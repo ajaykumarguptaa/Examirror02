@@ -1,0 +1,399 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Users, BookOpen, CheckSquare, IndianRupee, Sparkles, TrendingUp, Clock, ArrowRight, UserPlus, CheckCircle2 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
+import axios from 'axios';
+import { StaggerContainer, StaggerItem, InteractiveCard, NumberCounter, FadeUp } from '../../motion';
+
+const DEFAULT_CHART = [
+  { name: 'January', Students: 0 },
+  { name: 'February', Students: 0 },
+  { name: 'March', Students: 0 },
+  { name: 'April', Students: 0 },
+  { name: 'May', Students: 0 },
+  { name: 'June', Students: 0 },
+  { name: 'July', Students: 0 },
+  { name: 'August', Students: 0 },
+  { name: 'September', Students: 0 },
+];
+
+const CenterDashboard = () => {
+  const navigate = useNavigate();
+  const getCenterId = () => {
+    if (localStorage.getItem('centerId')) return Number(localStorage.getItem('centerId'));
+    try {
+      const u = JSON.parse(localStorage.getItem('centerUser') || '{}');
+      if (u && (u.id || u.centerId)) return Number(u.id || u.centerId);
+    } catch (_) {}
+    return 1;
+  };
+  const centerId = getCenterId();
+  const [stats, setStats] = useState({
+    studentsCount: 0,
+    freeTestsCount: 0,
+    coursesCount: 0,
+    walletBalance: 0
+  });
+  const [centerProfile, setCenterProfile] = useState<any>(null);
+  const [chartData, setChartData] = useState<any[]>(DEFAULT_CHART);
+  const [recentStudents, setRecentStudents] = useState<any[]>([]);
+
+  useEffect(() => {
+    axios.get(`http://localhost:3000/api/center/${centerId}/dashboard`)
+      .then((res) => {
+        if (res.data.success && res.data.data) {
+          const { stats: s, chartData: cd, centerProfile: cp, recentStudents: rs } = res.data.data;
+          setStats({
+            studentsCount: s.studentsCount || 0,
+            freeTestsCount: s.freeTestsCount || 0,
+            coursesCount: s.coursesCount || 0,
+            walletBalance: s.walletBalance || 0
+          });
+          if (cp) setCenterProfile(cp);
+
+          if (cd && cd.length > 0) {
+            const formatted = cd.map((item: any) => ({
+              name: item.month.substring(0, 3), // e.g. 'Jan'
+              Students: Number(item.count) || 0
+            }));
+            setChartData(formatted);
+          }
+
+          if (rs && rs.length > 0) {
+            setRecentStudents(rs);
+          }
+        }
+      })
+      .catch((err) => console.log('Using initial dashboard state', err));
+  }, [centerId]);
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto font-sans">
+      
+      {/* Minimalist Hero Section */}
+      {centerProfile && (
+        <FadeUp delay={0.05}>
+          <div className="bg-white rounded-2xl shadow-xs border border-gray-100 p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+            {/* Minimal Avatar */}
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+              <span className="text-4xl font-extrabold text-indigo-600">
+                {centerProfile.name ? centerProfile.name.charAt(0).toUpperCase() : 'C'}
+              </span>
+            </div>
+            
+            <div className="flex-1 text-center sm:text-left space-y-4 w-full">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-center sm:justify-start gap-3">
+                    <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                      {centerProfile.name || 'Center Name'}
+                    </h1>
+                    {centerProfile.status === 'active' && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold uppercase tracking-wider">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                        Active Center
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm font-medium text-gray-500 flex items-center justify-center sm:justify-start gap-1">
+                    <Sparkles size={14} className="text-indigo-500" />
+                    Center Code: <span className="font-bold text-gray-900">{centerProfile.code || 'N/A'}</span>
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-y-3 gap-x-6 text-sm text-gray-600 font-medium">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-gray-50 text-gray-400">
+                    <BookOpen size={16} />
+                  </div>
+                  <span>{centerProfile.email || 'Email N/A'}</span>
+                </div>
+                {centerProfile.phone && (
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-gray-50 text-gray-400">
+                      <Users size={16} />
+                    </div>
+                    <span>{centerProfile.phone}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </FadeUp>
+      )}
+
+      {/* Stats Cards Row with Stagger & NumberCounter */}
+      <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Students Card */}
+        <StaggerItem>
+          <InteractiveCard className="bg-white p-6 rounded-2xl shadow-xs hover:shadow-md border border-gray-100 flex justify-between items-center transition-all">
+            <div>
+              <div className="text-3xl font-bold text-gray-900 mb-1 tracking-tight">
+                <NumberCounter value={stats.studentsCount} durationMs={800} />
+              </div>
+              <div className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Total Enrolled Students</div>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-2xs">
+              <Users size={24} strokeWidth={2} />
+            </div>
+          </InteractiveCard>
+        </StaggerItem>
+
+        {/* Free Tests Card */}
+        <StaggerItem>
+          <InteractiveCard className="bg-white p-6 rounded-2xl shadow-xs hover:shadow-md border border-gray-100 flex justify-between items-center transition-all">
+            <div>
+              <div className="text-3xl font-bold text-gray-900 mb-1 tracking-tight">
+                <NumberCounter value={stats.freeTestsCount} durationMs={800} />
+              </div>
+              <div className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Assigned Online Tests</div>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shadow-2xs">
+              <CheckSquare size={24} strokeWidth={2} />
+            </div>
+          </InteractiveCard>
+        </StaggerItem>
+
+        {/* Courses Card */}
+        <StaggerItem>
+          <InteractiveCard className="bg-white p-6 rounded-2xl shadow-xs hover:shadow-md border border-gray-100 flex justify-between items-center transition-all">
+            <div>
+              <div className="text-3xl font-bold text-gray-900 mb-1 tracking-tight">
+                <NumberCounter value={stats.coursesCount} durationMs={800} />
+              </div>
+              <div className="text-xs font-bold text-amber-600 uppercase tracking-wider">Active Course Catalog</div>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shadow-2xs">
+              <BookOpen size={24} strokeWidth={2} />
+            </div>
+          </InteractiveCard>
+        </StaggerItem>
+
+        {/* Wallet Card */}
+        <StaggerItem>
+          <InteractiveCard className="bg-white p-6 rounded-2xl shadow-xs hover:shadow-md border border-gray-100 flex justify-between items-center transition-all">
+            <div>
+              <div className="text-3xl font-bold text-gray-900 mb-1 tracking-tight flex items-baseline">
+                <span className="text-lg font-normal text-gray-500 mr-0.5">₹</span>
+                <NumberCounter value={stats.walletBalance} durationMs={900} />
+              </div>
+              <div className="text-xs font-bold text-purple-600 uppercase tracking-wider">Available Wallet Balance</div>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100 shadow-2xs">
+              <IndianRupee size={24} strokeWidth={2} />
+            </div>
+          </InteractiveCard>
+        </StaggerItem>
+      </StaggerContainer>
+
+      {/* Main Content Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Fees Table */}
+        <FadeUp delay={0.1} className="lg:col-span-1 bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
+          <table className="w-full text-sm text-center">
+            <thead className="bg-[#5b5fd8] text-white font-bold">
+              <tr>
+                <th className="py-3 px-4 border-b border-[#4f46e5]/20 w-1/3">Duration</th>
+                <th colSpan={2} className="py-3 px-4 border-b border-[#4f46e5]/20">Student Admission Fees</th>
+              </tr>
+              <tr className="bg-[#6b6eed]">
+                <th className="py-2 px-4 border-r border-[#4f46e5]/20 text-xs">in Months</th>
+                <th className="py-2 px-4 border-r border-[#4f46e5]/20 text-xs">New</th>
+                <th className="py-2 px-4 text-xs">Old</th>
+              </tr>
+            </thead>
+            <tbody className="text-gray-700 divide-y divide-gray-100">
+              <tr className="hover:bg-slate-50 transition-colors">
+                <td className="py-3.5 px-4 font-bold text-gray-900 border-r border-gray-100">1 - 3</td>
+                <td className="py-3.5 px-4 border-r border-gray-100 font-bold text-indigo-700">₹100</td>
+                <td className="py-3.5 px-4 font-bold text-indigo-700">₹150</td>
+              </tr>
+              <tr className="hover:bg-slate-50 transition-colors">
+                <td className="py-3.5 px-4 font-bold text-gray-900 border-r border-gray-100">4 - 6</td>
+                <td className="py-3.5 px-4 border-r border-gray-100 font-bold text-indigo-700">₹150</td>
+                <td className="py-3.5 px-4 font-bold text-indigo-700">₹200</td>
+              </tr>
+              <tr className="hover:bg-slate-50 transition-colors">
+                <td className="py-3.5 px-4 font-bold text-gray-900 border-r border-gray-100">7 - 12</td>
+                <td className="py-3.5 px-4 border-r border-gray-100 font-bold text-indigo-700">₹200</td>
+                <td className="py-3.5 px-4 font-bold text-indigo-700">₹250</td>
+              </tr>
+            </tbody>
+          </table>
+        </FadeUp>
+
+        {/* Chart */}
+        <FadeUp delay={0.15} className="lg:col-span-2 bg-white rounded-2xl shadow-xs border border-gray-100 p-5">
+          <div className="border-b border-gray-100 pb-3 mb-4 flex items-center justify-between">
+            <h3 className="text-gray-900 font-bold text-sm sm:text-base flex items-center gap-2">
+              <TrendingUp size={18} className="text-indigo-600" />
+              <span>Students Enrollment Trend ({new Date().getFullYear()})</span>
+            </h3>
+            <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
+              Live Center Analytics
+            </span>
+          </div>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={chartData}
+                margin={{ top: 20, right: 10, left: -20, bottom: 5 }}
+              >
+                <defs>
+                  <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#6b6eed" stopOpacity={0.4}/>
+                    <stop offset="100%" stopColor="#6b6eed" stopOpacity={0.0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
+                  dy={10}
+                />
+                <YAxis 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
+                  allowDecimals={false}
+                />
+                <Tooltip 
+                  cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px 16px' }}
+                  itemStyle={{ color: '#0f172a', fontWeight: 'bold' }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="Students" 
+                  stroke="#6b6eed" 
+                  strokeWidth={3}
+                  fill="url(#areaGradient)" 
+                  activeDot={{ r: 6, fill: '#6b6eed', stroke: '#fff', strokeWidth: 2 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex justify-center items-center mt-3 gap-2 text-xs text-gray-500 font-medium">
+            <div className="w-3.5 h-3.5 bg-[#6b6eed] rounded-full border-2 border-white shadow-xs"></div> Monthly Admissions
+          </div>
+        </FadeUp>
+      </div>
+
+      {/* Recent Students & Analytics Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Recent Enrollments */}
+        <FadeUp delay={0.2} className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden flex flex-col">
+          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="text-gray-900 font-bold text-sm sm:text-base flex items-center gap-2">
+              <UserPlus size={18} className="text-emerald-600" />
+              <span>Recent Enrollments</span>
+            </h3>
+            <button className="text-[11px] font-bold text-gray-500 hover:text-gray-900 flex items-center gap-1 transition-colors">
+              View All <ArrowRight size={12} />
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-auto">
+            {recentStudents.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 text-sm flex flex-col items-center">
+                <Users size={32} className="text-gray-300 mb-2" />
+                <p>No recent enrollments found.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {recentStudents.map((student) => (
+                  <div key={student.id} className="p-4 hover:bg-slate-50 transition-colors flex items-center gap-4 cursor-pointer" onClick={() => navigate('/center/students')}>
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm border border-emerald-100 shrink-0">
+                      {student.firstName ? student.firstName.charAt(0).toUpperCase() : 'S'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-gray-900 truncate">
+                        {student.firstName} {student.lastName}
+                      </h4>
+                      <p className="text-xs text-gray-500 truncate mt-0.5 flex items-center gap-1">
+                        <BookOpen size={10} />
+                        {student.courseName || 'Unassigned Course'}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                        student.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {student.status}
+                      </span>
+                      <p className="text-[10px] text-gray-400 mt-1 flex items-center justify-end gap-1">
+                        <Clock size={10} />
+                        {new Date(student.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </FadeUp>
+
+        {/* Action Center / Quick Actions */}
+        <FadeUp delay={0.25} className="bg-white rounded-2xl shadow-xs border border-gray-100 p-6 flex flex-col">
+          <div className="mb-6">
+            <h3 className="text-gray-900 font-bold text-sm sm:text-base flex items-center gap-2">
+              <Sparkles size={18} className="text-amber-500" />
+              <span>Center Highlights & Quick Actions</span>
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">Manage your active operations directly from here.</p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 flex-1">
+            <div onClick={() => navigate('/center/add-student')} className="p-4 rounded-xl border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all cursor-pointer group flex flex-col items-center justify-center text-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Users size={20} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 group-hover:text-indigo-700">Add Student</h4>
+                <p className="text-[10px] text-gray-500 mt-0.5">Register a new candidate</p>
+              </div>
+            </div>
+
+            <div onClick={() => navigate('/center/add-course')} className="p-4 rounded-xl border border-gray-100 hover:border-amber-200 hover:bg-amber-50/50 transition-all cursor-pointer group flex flex-col items-center justify-center text-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <BookOpen size={20} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 group-hover:text-amber-700">Course Catalog</h4>
+                <p className="text-[10px] text-gray-500 mt-0.5">Browse available courses</p>
+              </div>
+            </div>
+
+            <div onClick={() => navigate('/center/exams')} className="p-4 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all cursor-pointer group flex flex-col items-center justify-center text-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <CheckCircle2 size={20} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 group-hover:text-emerald-700">Admit Cards</h4>
+                <p className="text-[10px] text-gray-500 mt-0.5">Manage exam permissions</p>
+              </div>
+            </div>
+
+            <div onClick={() => navigate('/center/wallet')} className="p-4 rounded-xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50/50 transition-all cursor-pointer group flex flex-col items-center justify-center text-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <IndianRupee size={20} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 group-hover:text-purple-700">Wallet Recharge</h4>
+                <p className="text-[10px] text-gray-500 mt-0.5">Add funds to wallet</p>
+              </div>
+            </div>
+          </div>
+        </FadeUp>
+
+      </div>
+    </div>
+  );
+};
+
+export default CenterDashboard;

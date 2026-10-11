@@ -1,0 +1,1694 @@
+import db from '../db';
+import { saveBase64File } from '../utils/fileStorage';
+
+export const testSeriesService = {
+  // ==========================================
+  // SUPER ADMIN: CATEGORIES MANAGEMENT
+  // ==========================================
+  getCategories: async () => {
+    const [rows]: any = await db.query('SELECT * FROM test_categories ORDER BY display_order ASC, id DESC');
+    return rows;
+  },
+
+  createCategory: async (data: any) => {
+    const { name, slug, description, icon, display_order } = data;
+    const finalSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    const [result]: any = await db.query(`
+      INSERT INTO test_categories (name, slug, description, icon, display_order)
+      VALUES (?, ?, ?, ?, ?)
+    `, [name, finalSlug, description || '', icon || 'BookOpen', display_order || 0]);
+    return { id: result.insertId, ...data, slug: finalSlug };
+  },
+
+  updateCategory: async (id: number | string, data: any) => {
+    const { name, slug, description, icon, display_order, status } = data;
+    await db.query(`
+      UPDATE test_categories
+      SET name = COALESCE(?, name),
+          slug = COALESCE(?, slug),
+          description = COALESCE(?, description),
+          icon = COALESCE(?, icon),
+          display_order = COALESCE(?, display_order),
+          status = COALESCE(?, status)
+      WHERE id = ?
+    `, [name, slug, description, icon, display_order, status, id]);
+    return { id, ...data };
+  },
+
+  deleteCategory: async (id: number | string) => {
+    await db.query('DELETE FROM test_categories WHERE id = ?', [id]);
+    return { success: true };
+  },
+
+  // ==========================================
+  // SUPER ADMIN: PAYMENT QR CONFIGURATION
+  // ==========================================
+  getPaymentQRs: async () => {
+    const [rows]: any = await db.query('SELECT * FROM test_payment_qr ORDER BY is_global_default DESC, id DESC');
+    return rows;
+  },
+
+  createPaymentQR: async (data: any) => {
+    let qrUrl = data.qr_image_url;
+    if (qrUrl && qrUrl.startsWith('data:image/')) {
+      qrUrl = saveBase64File(qrUrl, `test-qr-${Date.now()}`, 'payment-qr');
+    }
+    if (!qrUrl && data.upi_id) {
+      let upiData = `upi://pay?pa=${encodeURIComponent(data.upi_id)}&pn=${encodeURIComponent(data.account_name || 'Examirror')}&cu=INR`;
+      if (data.amount && Number(data.amount) > 0) {
+        upiData += `&am=${encodeURIComponent(Number(data.amount).toFixed(2))}`;
+      }
+      qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiData)}`;
+    }
+    if (data.is_global_default) {
+      await db.query('UPDATE test_payment_qr SET is_global_default = FALSE');
+    }
+    const [result]: any = await db.query(`
+      INSERT INTO test_payment_qr (title, upi_id, account_name, qr_image_url, amount, instructions, is_global_default, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      data.title,
+      data.upi_id,
+      data.account_name,
+      qrUrl || '',
+      data.amount !== undefined && data.amount !== '' ? Number(data.amount) : 0.00,
+      data.instructions || '',
+      data.is_global_default ? 1 : 0,
+      data.status || 'ACTIVE'
+    ]);
+    return { id: result.insertId, ...data, qr_image_url: qrUrl };
+  },
+
+  updatePaymentQR: async (id: number | string, data: any) => {
+    let qrUrl = data.qr_image_url;
+    if (qrUrl && qrUrl.startsWith('data:image/')) {
+      qrUrl = saveBase64File(qrUrl, `test-qr-${Date.now()}`, 'payment-qr');
+    }
+    if (data.is_global_default) {
+      await db.query('UPDATE test_payment_qr SET is_global_default = FALSE WHERE id != ?', [id]);
+    }
+    await db.query(`
+      UPDATE test_payment_qr
+      SET title = COALESCE(?, title),
+          upi_id = COALESCE(?, upi_id),
+          account_name = COALESCE(?, account_name),
+          qr_image_url = COALESCE(?, qr_image_url),
+          amount = COALESCE(?, amount),
+          instructions = COALESCE(?, instructions),
+          is_global_default = COALESCE(?, is_global_default),
+          status = COALESCE(?, status)
+      WHERE id = ?
+    `, [
+      data.title,
+      data.upi_id,
+      data.account_name,
+      qrUrl,
+      data.amount !== undefined && data.amount !== '' ? Number(data.amount) : null,
+      data.instructions,
+      data.is_global_default !== undefined ? (data.is_global_default ? 1 : 0) : null,
+      data.status,
+      id
+    ]);
+    return { id, ...data };
+  },
+
+  deletePaymentQR: async (id: number | string) => {
+    await db.query('DELETE FROM test_payment_qr WHERE id = ?', [id]);
+    return { success: true };
+  },
+
+  // ==========================================
+  // SUPER ADMIN: AUTO-PUBLISH SCHEDULER & SERIES
+  // ==========================================
+  autoPublishScheduled: async () => {
+    try {
+      const [result]: any = await db.query(`
+        UPDATE test_series
+        SET status = 'PUBLISHED'
+        WHERE status = 'SCHEDULED' 
+          AND scheduled_publish_time IS NOT NULL 
+          AND scheduled_publish_time <= NOW()
+      `);
+      if (result.affectedRows > 0) {
+        console.log(`[Auto-Publisher] Auto-published ${result.affectedRows} scheduled test series.`);
+      }
+      return result.affectedRows || 0;
+    } catch (e) {
+      console.error('Error auto-publishing scheduled test series:', e);
+      return 0;
+    }
+  },
+
+  getAllTestSeriesAdmin: async (statusFilter?: string) => {
+    // 1. Process any pending scheduled auto-publishes
+    await testSeriesService.autoPublishScheduled();
+
+    let query = `
+      SELECT 
+        ts.*,
+        c.name as category_name,
+        qr.upi_id as qr_upi_id,
+        qr.account_name as qr_account_name,
+        (SELECT COUNT(*) FROM tests t WHERE t.test_series_id = ts.id) as tests_count,
+        (
+          CASE 
+            WHEN ts.is_free = 1 AND ts.publish_scope = 'ALL_CENTRES' THEN 
+              (SELECT COUNT(*) FROM students WHERE status = 'active')
+            WHEN ts.is_free = 1 AND ts.publish_scope = 'SELECTED_CENTRES' THEN 
+              (SELECT COUNT(*) FROM students s JOIN test_series_centres tsc ON s.centerId = tsc.centre_id WHERE tsc.test_series_id = ts.id AND s.status = 'active')
+            ELSE 
+              (SELECT COUNT(*) FROM test_series_enrollments tse JOIN students s ON tse.student_id = s.id WHERE tse.test_series_id = ts.id AND tse.status = 'ACTIVE' AND s.status = 'active')
+          END
+        ) as active_enrollments,
+        (SELECT COUNT(*) FROM test_payments tp WHERE tp.test_series_id = ts.id AND tp.status = 'PENDING') as pending_payments
+      FROM test_series ts
+      LEFT JOIN test_categories c ON ts.category_id = c.id
+      LEFT JOIN test_payment_qr qr ON ts.payment_qr_id = qr.id
+    `;
+
+    const params: any[] = [];
+    if (statusFilter && statusFilter !== 'ALL') {
+      query += ` WHERE ts.status = ?`;
+      params.push(statusFilter);
+    }
+
+    query += ` ORDER BY ts.id DESC`;
+
+    const [rows]: any = await db.query(query, params);
+
+    // Fetch allowed centres for each series
+    for (const s of rows) {
+      if (s.publish_scope === 'SELECTED_CENTRES') {
+        const [centres]: any = await db.query(`
+          SELECT centre_id FROM test_series_centres WHERE test_series_id = ?
+        `, [s.id]);
+        s.allowed_centre_ids = centres.map((c: any) => c.centre_id);
+      } else {
+        s.allowed_centre_ids = [];
+      }
+    }
+
+    return rows;
+  },
+
+  createTestSeries: async (data: any, adminUserId?: number) => {
+    let thumbUrl = data.thumbnail_url;
+    if (thumbUrl && thumbUrl.startsWith('data:image/')) {
+      thumbUrl = saveBase64File(thumbUrl, `series-thumb-${Date.now()}`, 'test-series');
+    }
+
+    const finalSlug = data.slug || data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') + '-' + Math.floor(Math.random() * 1000);
+
+    const formatSqlDate = (d: any) => {
+      if (!d || d === '' || d === 'null' || d === 'undefined') return null;
+      const parsed = new Date(d);
+      if (isNaN(parsed.getTime())) return null;
+      return parsed.toISOString().slice(0, 19).replace('T', ' ');
+    };
+
+    const schedTimeFormatted = formatSqlDate(data.scheduled_publish_time);
+    const startDateFormatted = formatSqlDate(data.start_date);
+    const endDateFormatted = formatSqlDate(data.end_date);
+
+    let initialStatus = data.status || 'DRAFT';
+    let scheduledTime = data.scheduled_publish_time ? new Date(data.scheduled_publish_time) : null;
+
+    // Check if scheduled publish time is already in the past
+    if (initialStatus === 'SCHEDULED' && scheduledTime && !isNaN(scheduledTime.getTime()) && scheduledTime.getTime() <= Date.now()) {
+      initialStatus = 'PUBLISHED';
+    }
+
+    const [result]: any = await db.query(`
+      INSERT INTO test_series (
+        title, slug, category_id, description, thumbnail_url, instructions,
+        exam_type, language, difficulty, total_tests, price, is_free,
+        duration_minutes, validity_days, publish_scope, payment_qr_id,
+        start_date, end_date, scheduled_publish_time, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      data.title,
+      finalSlug,
+      data.category_id && Number(data.category_id) > 0 ? Number(data.category_id) : null,
+      data.description || '',
+      thumbUrl || '',
+      data.instructions || '',
+      data.exam_type || 'Mock Test Series',
+      data.language || 'English + Hindi',
+      data.difficulty || 'ALL_LEVELS',
+      data.total_tests || 1,
+      data.is_free ? 0.00 : (Number(data.price) || 0.00),
+      data.is_free ? 1 : 0,
+      data.duration_minutes || 60,
+      data.validity_days || 90,
+      data.publish_scope || 'ALL_CENTRES',
+      data.payment_qr_id && Number(data.payment_qr_id) > 0 ? Number(data.payment_qr_id) : null,
+      startDateFormatted,
+      endDateFormatted,
+      schedTimeFormatted,
+      initialStatus
+    ]);
+
+    const seriesId = result.insertId;
+
+    // Save allowed centres if scope is SELECTED_CENTRES
+    if (data.publish_scope === 'SELECTED_CENTRES' && Array.isArray(data.allowed_centre_ids)) {
+      for (const centreId of data.allowed_centre_ids) {
+        await db.query(`
+          INSERT IGNORE INTO test_series_centres (test_series_id, centre_id)
+          VALUES (?, ?)
+        `, [seriesId, centreId]);
+      }
+    }
+
+    // Audit Log
+    await db.query(`
+      INSERT INTO test_audit_logs (user_id, user_role, action, entity_type, entity_id, details)
+      VALUES (?, 'SUPER_ADMIN', 'CREATE_TEST_SERIES', 'TEST_SERIES', ?, ?)
+    `, [adminUserId || null, seriesId, JSON.stringify({ title: data.title, status: initialStatus, scheduled_publish_time: schedTimeFormatted })]);
+
+    return { id: seriesId, ...data, slug: finalSlug, status: initialStatus, thumbnail_url: thumbUrl };
+  },
+
+  updateTestSeries: async (id: number | string, data: any, adminUserId?: number) => {
+    let thumbUrl = data.thumbnail_url;
+    if (thumbUrl && thumbUrl.startsWith('data:image/')) {
+      thumbUrl = saveBase64File(thumbUrl, `series-thumb-${Date.now()}`, 'test-series');
+    }
+
+    const formatSqlDate = (d: any) => {
+      if (!d || d === '' || d === 'null' || d === 'undefined') return null;
+      const parsed = new Date(d);
+      if (isNaN(parsed.getTime())) return null;
+      return parsed.toISOString().slice(0, 19).replace('T', ' ');
+    };
+
+    const schedTimeFormatted = formatSqlDate(data.scheduled_publish_time);
+    const startDateFormatted = formatSqlDate(data.start_date);
+    const endDateFormatted = formatSqlDate(data.end_date);
+
+    let targetStatus = data.status;
+    let scheduledTime = data.scheduled_publish_time ? new Date(data.scheduled_publish_time) : null;
+
+    if (targetStatus === 'SCHEDULED' && scheduledTime && !isNaN(scheduledTime.getTime()) && scheduledTime.getTime() <= Date.now()) {
+      targetStatus = 'PUBLISHED';
+    }
+
+    await db.query(`
+      UPDATE test_series
+      SET title = COALESCE(?, title),
+          slug = COALESCE(?, slug),
+          category_id = COALESCE(?, category_id),
+          description = COALESCE(?, description),
+          thumbnail_url = COALESCE(?, thumbnail_url),
+          instructions = COALESCE(?, instructions),
+          exam_type = COALESCE(?, exam_type),
+          language = COALESCE(?, language),
+          difficulty = COALESCE(?, difficulty),
+          total_tests = COALESCE(?, total_tests),
+          price = COALESCE(?, price),
+          is_free = COALESCE(?, is_free),
+          duration_minutes = COALESCE(?, duration_minutes),
+          validity_days = COALESCE(?, validity_days),
+          publish_scope = COALESCE(?, publish_scope),
+          payment_qr_id = ?,
+          start_date = ?,
+          end_date = ?,
+          scheduled_publish_time = ?,
+          status = COALESCE(?, status)
+      WHERE id = ?
+    `, [
+      data.title,
+      data.slug,
+      data.category_id && Number(data.category_id) > 0 ? Number(data.category_id) : null,
+      data.description,
+      thumbUrl,
+      data.instructions,
+      data.exam_type,
+      data.language,
+      data.difficulty,
+      data.total_tests,
+      data.is_free ? 0.00 : data.price,
+      data.is_free !== undefined ? (data.is_free ? 1 : 0) : null,
+      data.duration_minutes,
+      data.validity_days,
+      data.publish_scope,
+      data.payment_qr_id && Number(data.payment_qr_id) > 0 ? Number(data.payment_qr_id) : null,
+      startDateFormatted,
+      endDateFormatted,
+      schedTimeFormatted,
+      targetStatus,
+      id
+    ]);
+
+    // Update allowed centres if provided
+    if (data.publish_scope === 'SELECTED_CENTRES' && Array.isArray(data.allowed_centre_ids)) {
+      await db.query('DELETE FROM test_series_centres WHERE test_series_id = ?', [id]);
+      for (const centreId of data.allowed_centre_ids) {
+        await db.query(`
+          INSERT IGNORE INTO test_series_centres (test_series_id, centre_id)
+          VALUES (?, ?)
+        `, [id, centreId]);
+      }
+    } else if (data.publish_scope === 'ALL_CENTRES') {
+      await db.query('DELETE FROM test_series_centres WHERE test_series_id = ?', [id]);
+    }
+
+    // Audit Log
+    await db.query(`
+      INSERT INTO test_audit_logs (user_id, user_role, action, entity_type, entity_id, details)
+      VALUES (?, 'SUPER_ADMIN', 'UPDATE_TEST_SERIES', 'TEST_SERIES', ?, ?)
+    `, [adminUserId || null, id, JSON.stringify({ status: targetStatus, scheduled_publish_time: data.scheduled_publish_time })]);
+
+    return { id, ...data, status: targetStatus };
+  },
+
+  cloneDraftSeries: async (id: number | string, adminUserId?: number) => {
+    const [existingRows]: any = await db.query('SELECT * FROM test_series WHERE id = ?', [id]);
+    if (existingRows.length === 0) throw new Error('Source test series not found');
+    const source = existingRows[0];
+
+    const copyTitle = `${source.title} (Draft Copy)`;
+    const copySlug = `${source.slug}-draft-${Date.now()}`;
+
+    // 1. Insert cloned test series as DRAFT
+    const [resSeries]: any = await db.query(`
+      INSERT INTO test_series (
+        title, slug, category_id, description, thumbnail_url, instructions,
+        exam_type, language, difficulty, total_tests, price, is_free,
+        duration_minutes, validity_days, publish_scope, payment_qr_id,
+        status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'DRAFT')
+    `, [
+      copyTitle,
+      copySlug,
+      source.category_id,
+      source.description,
+      source.thumbnail_url,
+      source.instructions,
+      source.exam_type,
+      source.language,
+      source.difficulty,
+      source.total_tests,
+      source.price,
+      source.is_free,
+      source.duration_minutes,
+      source.validity_days,
+      source.publish_scope,
+      source.payment_qr_id
+    ]);
+
+    const newSeriesId = resSeries.insertId;
+
+    // 2. Clone allowed centres if SELECTED_CENTRES
+    const [centres]: any = await db.query('SELECT centre_id FROM test_series_centres WHERE test_series_id = ?', [id]);
+    for (const c of centres) {
+      await db.query('INSERT INTO test_series_centres (test_series_id, centre_id) VALUES (?, ?)', [newSeriesId, c.centre_id]);
+    }
+
+    // 3. Clone tests and questions
+    const [sourceTests]: any = await db.query('SELECT * FROM tests WHERE test_series_id = ?', [id]);
+    for (const st of sourceTests) {
+      const [resTest]: any = await db.query(`
+        INSERT INTO tests (
+          test_series_id, title, description, question_count, duration_minutes,
+          total_marks, negative_marks, passing_marks, release_type, release_week,
+          status, display_order
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'DRAFT', ?)
+      `, [
+        newSeriesId,
+        st.title,
+        st.description,
+        st.question_count,
+        st.duration_minutes,
+        st.total_marks,
+        st.negative_marks,
+        st.passing_marks,
+        st.release_type,
+        st.release_week,
+        st.display_order
+      ]);
+
+      const newTestId = resTest.insertId;
+
+      // Clone questions and options
+      const [questions]: any = await db.query('SELECT * FROM questions WHERE test_id = ?', [st.id]);
+      for (const q of questions) {
+        const [resQ]: any = await db.query(`
+          INSERT INTO questions (
+            test_id, question_text, section_name, question_type, explanation,
+            marks, negative_marks, display_order
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          newTestId,
+          q.question_text,
+          q.section_name,
+          q.question_type,
+          q.explanation,
+          q.marks,
+          q.negative_marks,
+          q.display_order
+        ]);
+
+        const newQId = resQ.insertId;
+
+        const [options]: any = await db.query('SELECT * FROM question_options WHERE question_id = ?', [q.id]);
+        for (const opt of options) {
+          await db.query(`
+            INSERT INTO question_options (question_id, option_key, option_text, is_correct)
+            VALUES (?, ?, ?, ?)
+          `, [newQId, opt.option_key, opt.option_text, opt.is_correct]);
+        }
+      }
+    }
+
+    // Audit Log
+    await db.query(`
+      INSERT INTO test_audit_logs (user_id, user_role, action, entity_type, entity_id, details)
+      VALUES (?, 'SUPER_ADMIN', 'CLONE_DRAFT_SERIES', 'TEST_SERIES', ?, ?)
+    `, [adminUserId || null, newSeriesId, JSON.stringify({ source_id: id, new_id: newSeriesId })]);
+
+    return { id: newSeriesId, title: copyTitle, slug: copySlug, status: 'DRAFT' };
+  },
+
+  deleteTestSeries: async (id: number | string, adminUserId?: number) => {
+    await db.query('DELETE FROM test_series WHERE id = ?', [id]);
+    await db.query(`
+      INSERT INTO test_audit_logs (user_id, user_role, action, entity_type, entity_id, details)
+      VALUES (?, 'SUPER_ADMIN', 'DELETE_TEST_SERIES', 'TEST_SERIES', ?, ?)
+    `, [adminUserId || null, id, JSON.stringify({ id })]);
+    return { success: true };
+  },
+
+  // ==========================================
+  // SUPER ADMIN: TESTS & QUESTIONS MANAGEMENT
+  // ==========================================
+  getTestsBySeriesAdmin: async (seriesId: number | string) => {
+    const [rows]: any = await db.query(`
+      SELECT 
+        t.*,
+        qr.title as qr_title,
+        qr.upi_id as qr_upi_id,
+        qr.account_name as qr_account_name,
+        qr.qr_image_url as qr_image_url,
+        (SELECT COUNT(*) FROM questions q WHERE q.test_id = t.id) as real_question_count,
+        (SELECT COUNT(*) FROM test_attempts ta WHERE ta.test_id = t.id) as attempts_count,
+        (SELECT AVG(ta.final_score) FROM test_attempts ta WHERE ta.test_id = t.id AND ta.status = 'SUBMITTED') as average_score
+      FROM tests t
+      LEFT JOIN test_payment_qr qr ON t.payment_qr_id = qr.id
+      WHERE t.test_series_id = ?
+      ORDER BY t.display_order ASC, t.id ASC
+    `, [seriesId]);
+    return rows;
+  },
+
+  createTest: async (data: any) => {
+    const [result]: any = await db.query(`
+      INSERT INTO tests (
+        test_series_id, title, description, question_count, duration_minutes,
+        total_marks, negative_marks, passing_marks, release_type, release_week,
+        custom_release_date, is_released, status, display_order,
+        payment_qr_id, price, is_free
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      data.test_series_id,
+      data.title,
+      data.description || '',
+      data.question_count || 0,
+      data.duration_minutes || 60,
+      data.total_marks || 100.00,
+      data.negative_marks || 0.25,
+      data.passing_marks || 40.00,
+      data.release_type || 'IMMEDIATE',
+      data.release_week || 1,
+      data.custom_release_date || null,
+      data.is_released !== false ? 1 : 0,
+      data.status || 'LIVE',
+      data.display_order || 1,
+      data.payment_qr_id ? Number(data.payment_qr_id) : null,
+      data.price !== undefined ? data.price : 0.00,
+      data.is_free !== undefined ? (data.is_free ? 1 : 0) : 1
+    ]);
+    return { id: result.insertId, ...data };
+  },
+
+  updateTest: async (id: number | string, data: any) => {
+    await db.query(`
+      UPDATE tests
+      SET title = COALESCE(?, title),
+          description = COALESCE(?, description),
+          question_count = COALESCE(?, question_count),
+          duration_minutes = COALESCE(?, duration_minutes),
+          total_marks = COALESCE(?, total_marks),
+          negative_marks = COALESCE(?, negative_marks),
+          passing_marks = COALESCE(?, passing_marks),
+          release_type = COALESCE(?, release_type),
+          release_week = COALESCE(?, release_week),
+          custom_release_date = COALESCE(?, custom_release_date),
+          is_released = COALESCE(?, is_released),
+          status = COALESCE(?, status),
+          display_order = COALESCE(?, display_order),
+          payment_qr_id = COALESCE(?, payment_qr_id),
+          price = COALESCE(?, price),
+          is_free = COALESCE(?, is_free)
+      WHERE id = ?
+    `, [
+      data.title,
+      data.description,
+      data.question_count,
+      data.duration_minutes,
+      data.total_marks,
+      data.negative_marks,
+      data.passing_marks,
+      data.release_type,
+      data.release_week,
+      data.custom_release_date,
+      data.is_released !== undefined ? (data.is_released ? 1 : 0) : null,
+      data.status,
+      data.display_order,
+      data.payment_qr_id !== undefined ? (data.payment_qr_id ? Number(data.payment_qr_id) : null) : null,
+      data.price !== undefined ? data.price : null,
+      data.is_free !== undefined ? (data.is_free ? 1 : 0) : null,
+      id
+    ]);
+    return { id, ...data };
+  },
+
+  deleteTest: async (id: number | string) => {
+    await db.query('DELETE FROM tests WHERE id = ?', [id]);
+    return { success: true };
+  },
+
+  // Questions & Options
+  getQuestionsByTestAdmin: async (testId: number | string) => {
+    const [questions]: any = await db.query(`
+      SELECT * FROM questions WHERE test_id = ? ORDER BY display_order ASC, id ASC
+    `, [testId]);
+
+    for (const q of questions) {
+      const [options]: any = await db.query(`
+        SELECT * FROM question_options WHERE question_id = ? ORDER BY option_key ASC
+      `, [q.id]);
+      q.options = options;
+    }
+
+    return questions;
+  },
+
+  addQuestionWithOption: async (data: any) => {
+    const [result]: any = await db.query(`
+      INSERT INTO questions (test_id, question_text, section_name, question_type, explanation, marks, negative_marks, display_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      data.test_id,
+      data.question_text,
+      data.section_name || 'General Assessment',
+      data.question_type || 'SINGLE_CHOICE',
+      data.explanation || '',
+      data.marks || 2.00,
+      data.negative_marks || 0.50,
+      data.display_order || 1
+    ]);
+
+    const qId = result.insertId;
+
+    if (Array.isArray(data.options)) {
+      for (const opt of data.options) {
+        await db.query(`
+          INSERT INTO question_options (question_id, option_key, option_text, is_correct)
+          VALUES (?, ?, ?, ?)
+        `, [qId, opt.option_key || opt.k, opt.option_text || opt.t, opt.is_correct ? 1 : 0]);
+      }
+    }
+
+    // Sync question_count on test
+    const [countRows]: any = await db.query('SELECT COUNT(*) as cnt FROM questions WHERE test_id = ?', [data.test_id]);
+    await db.query('UPDATE tests SET question_count = ? WHERE id = ?', [countRows[0].cnt, data.test_id]);
+
+    return { id: qId, ...data };
+  },
+
+  bulkAddQuestions: async (testId: number | string, questions: any[]) => {
+    if (!Array.isArray(questions) || questions.length === 0) {
+      throw new Error('Questions array is required');
+    }
+
+    const insertedIds: number[] = [];
+
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      const [result]: any = await db.query(`
+        INSERT INTO questions (test_id, question_text, section_name, question_type, explanation, marks, negative_marks, display_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        testId,
+        q.question_text || q.question || '',
+        q.section_name || q.section || 'General Assessment',
+        q.question_type || 'SINGLE_CHOICE',
+        q.explanation || '',
+        q.marks !== undefined ? Number(q.marks) : 2.00,
+        q.negative_marks !== undefined ? Number(q.negative_marks) : 0.50,
+        q.display_order || (i + 1)
+      ]);
+
+      const qId = result.insertId;
+      insertedIds.push(qId);
+
+      let normalizedOptions: { option_key: string; option_text: string; is_correct: boolean }[] = [];
+
+      if (Array.isArray(q.options)) {
+        normalizedOptions = q.options.map((opt: any, idx: number) => {
+          const key = (opt.option_key || opt.key || String.fromCharCode(65 + idx)).toUpperCase();
+          const text = typeof opt === 'string' ? opt : (opt.option_text || opt.text || opt.t || '');
+          let isCorrect = false;
+          if (typeof opt === 'object' && opt.is_correct !== undefined) {
+            isCorrect = Boolean(opt.is_correct);
+          } else if (q.correct_option !== undefined || q.correctOption !== undefined || q.correct !== undefined) {
+            const corr = String(q.correct_option || q.correctOption || q.correct).trim().toUpperCase();
+            isCorrect = corr === key || corr === text.trim().toUpperCase() || String(idx) === corr;
+          }
+          return { option_key: key, option_text: text, is_correct: isCorrect };
+        });
+      } else if (q.optionA || q.option_a || q.a) {
+        const optA = q.optionA || q.option_a || q.a || '';
+        const optB = q.optionB || q.option_b || q.b || '';
+        const optC = q.optionC || q.option_c || q.c || '';
+        const optD = q.optionD || q.option_d || q.d || '';
+        const corr = String(q.correct_option || q.correctOption || q.correct || 'A').trim().toUpperCase();
+
+        normalizedOptions = [
+          { option_key: 'A', option_text: optA, is_correct: corr === 'A' || corr === optA.trim().toUpperCase() },
+          { option_key: 'B', option_text: optB, is_correct: corr === 'B' || corr === optB.trim().toUpperCase() },
+          { option_key: 'C', option_text: optC, is_correct: corr === 'C' || corr === optC.trim().toUpperCase() },
+          { option_key: 'D', option_text: optD, is_correct: corr === 'D' || corr === optD.trim().toUpperCase() },
+        ];
+      }
+
+      for (const opt of normalizedOptions) {
+        await db.query(`
+          INSERT INTO question_options (question_id, option_key, option_text, is_correct)
+          VALUES (?, ?, ?, ?)
+        `, [qId, opt.option_key, opt.option_text, opt.is_correct ? 1 : 0]);
+      }
+    }
+
+    // Sync question_count on test
+    const [countRows]: any = await db.query('SELECT COUNT(*) as cnt FROM questions WHERE test_id = ?', [testId]);
+    await db.query('UPDATE tests SET question_count = ? WHERE id = ?', [countRows[0].cnt, testId]);
+
+    return {
+      success: true,
+      importedCount: insertedIds.length,
+      test_id: testId
+    };
+  },
+
+  deleteQuestion: async (id: number | string) => {
+    const [q]: any = await db.query('SELECT test_id FROM questions WHERE id = ?', [id]);
+    const testId = q[0]?.test_id;
+    await db.query('DELETE FROM questions WHERE id = ?', [id]);
+    if (testId) {
+      const [countRows]: any = await db.query('SELECT COUNT(*) as cnt FROM questions WHERE test_id = ?', [testId]);
+      await db.query('UPDATE tests SET question_count = ? WHERE id = ?', [countRows[0].cnt, testId]);
+    }
+    return { success: true };
+  },
+
+  // ==========================================
+  // SUPER ADMIN: PAYMENT REQUESTS & UTR VERIFICATION
+  // ==========================================
+  getPaymentRequestsAdmin: async (statusFilter?: string) => {
+    let query = `
+      SELECT 
+        tp.*,
+        s.firstName as student_first_name,
+        s.lastName as student_last_name,
+        s.enrollment_no,
+        s.roll_no,
+        s.phone as student_phone,
+        s.email as student_email,
+        ts.title as test_series_title,
+        ts.price as series_price,
+        cntr.name as centre_name,
+        cntr.center_code as centre_code,
+        cntr.city as centre_city
+      FROM test_payments tp
+      JOIN students s ON tp.student_id = s.id
+      JOIN test_series ts ON tp.test_series_id = ts.id
+      JOIN centers cntr ON tp.centre_id = cntr.id
+    `;
+    const params: any[] = [];
+    if (statusFilter && statusFilter !== 'ALL') {
+      query += ' WHERE tp.status = ?';
+      params.push(statusFilter);
+    }
+    query += ' ORDER BY tp.submitted_at DESC';
+
+    const [rows]: any = await db.query(query, params);
+    return rows;
+  },
+
+  approvePayment: async (paymentId: number | string, adminUserId?: number) => {
+    const [payments]: any = await db.query('SELECT * FROM test_payments WHERE id = ?', [paymentId]);
+    if (payments.length === 0) throw new Error('Payment record not found');
+    const payment = payments[0];
+
+    // 1. Mark payment APPROVED
+    await db.query(`
+      UPDATE test_payments
+      SET status = 'APPROVED', verified_by = ?, verified_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [adminUserId || null, paymentId]);
+
+    // 2. Fetch series validity days
+    const [series]: any = await db.query('SELECT validity_days, title FROM test_series WHERE id = ?', [payment.test_series_id]);
+    const validityDays = series[0]?.validity_days || 90;
+
+    // 3. Grant ACTIVE Enrollment
+    await db.query(`
+      INSERT INTO test_series_enrollments (student_id, test_series_id, centre_id, enrollment_type, status, expires_at)
+      VALUES (?, ?, ?, 'PAID', 'ACTIVE', DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ? DAY))
+      ON DUPLICATE KEY UPDATE
+        status = 'ACTIVE',
+        expires_at = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ? DAY),
+        enrolled_at = CURRENT_TIMESTAMP
+    `, [payment.student_id, payment.test_series_id, payment.centre_id, validityDays, validityDays]);
+
+    // 4. Send Notification to Student
+    await db.query(`
+      INSERT INTO test_notifications (recipient_type, recipient_id, title, message, link_url)
+      VALUES ('STUDENT', ?, 'Test Series Payment Approved!', ?, '/student/dashboard')
+    `, [
+      payment.student_id,
+      `Your payment of ₹${payment.amount} for "${series[0]?.title || 'Test Series'}" (UTR: ${payment.utr_number}) has been verified. You now have full access to all tests!`
+    ]);
+
+    // 5. Audit Log
+    await db.query(`
+      INSERT INTO test_audit_logs (user_id, user_role, action, entity_type, entity_id, details)
+      VALUES (?, 'SUPER_ADMIN', 'APPROVE_PAYMENT', 'TEST_PAYMENT', ?, ?)
+    `, [adminUserId || null, paymentId, JSON.stringify({ student_id: payment.student_id, utr: payment.utr_number, amount: payment.amount })]);
+
+    return { success: true, message: 'Payment approved and student access activated successfully.' };
+  },
+
+  rejectPayment: async (paymentId: number | string, reason: string, adminUserId?: number) => {
+    const [payments]: any = await db.query('SELECT * FROM test_payments WHERE id = ?', [paymentId]);
+    if (payments.length === 0) throw new Error('Payment record not found');
+    const payment = payments[0];
+
+    // 1. Mark payment REJECTED
+    await db.query(`
+      UPDATE test_payments
+      SET status = 'REJECTED', rejection_reason = ?, verified_by = ?, verified_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [reason || 'Payment verification failed', adminUserId || null, paymentId]);
+
+    // 2. Mark Enrollment REJECTED
+    await db.query(`
+      UPDATE test_series_enrollments
+      SET status = 'REJECTED'
+      WHERE student_id = ? AND test_series_id = ?
+    `, [payment.student_id, payment.test_series_id]);
+
+    // 3. Send Notification to Student
+    await db.query(`
+      INSERT INTO test_notifications (recipient_type, recipient_id, title, message, link_url)
+      VALUES ('STUDENT', ?, 'Payment Verification Update', ?, '/student/dashboard')
+    `, [
+      payment.student_id,
+      `Your payment of ₹${payment.amount} (UTR: ${payment.utr_number}) was rejected: "${reason || 'Invalid transaction reference'}". Please contact support or resubmit valid payment details.`
+    ]);
+
+    // 4. Audit Log
+    await db.query(`
+      INSERT INTO test_audit_logs (user_id, user_role, action, entity_type, entity_id, details)
+      VALUES (?, 'SUPER_ADMIN', 'REJECT_PAYMENT', 'TEST_PAYMENT', ?, ?)
+    `, [adminUserId || null, paymentId, JSON.stringify({ student_id: payment.student_id, utr: payment.utr_number, reason })]);
+
+    return { success: true, message: 'Payment rejected.' };
+  },
+
+  // ==========================================
+  // SUPER ADMIN: ATTEMPTS MANAGEMENT & RESET
+  // ==========================================
+  getAllAttemptsAdmin: async (seriesId?: number | string) => {
+    let query = `
+      SELECT 
+        ta.*,
+        s.firstName as student_first_name,
+        s.lastName as student_last_name,
+        s.enrollment_no,
+        t.title as test_title,
+        ts.title as test_series_title,
+        cntr.name as centre_name,
+        cntr.center_code as centre_code
+      FROM test_attempts ta
+      JOIN students s ON ta.student_id = s.id
+      JOIN tests t ON ta.test_id = t.id
+      JOIN test_series ts ON ta.test_series_id = ts.id
+      JOIN centers cntr ON s.centerId = cntr.id
+    `;
+    const params: any[] = [];
+    if (seriesId) {
+      query += ' WHERE ta.test_series_id = ?';
+      params.push(seriesId);
+    }
+    query += ' ORDER BY ta.started_at DESC LIMIT 100';
+
+    const [rows]: any = await db.query(query, params);
+    return rows;
+  },
+
+  resetAttempt: async (attemptId: number | string, reason: string, adminUserId?: number) => {
+    const [attempts]: any = await db.query('SELECT * FROM test_attempts WHERE id = ?', [attemptId]);
+    if (attempts.length === 0) throw new Error('Attempt not found');
+    const att = attempts[0];
+
+    // Mark as RESET with audit trail instead of hard deleting historical record
+    await db.query(`
+      UPDATE test_attempts
+      SET status = 'RESET', reset_reason = ?, reset_by = ?, reset_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [reason || 'Reset by administration', adminUserId || null, attemptId]);
+
+    // Audit log
+    await db.query(`
+      INSERT INTO test_audit_logs (user_id, user_role, action, entity_type, entity_id, details)
+      VALUES (?, 'SUPER_ADMIN', 'RESET_TEST_ATTEMPT', 'TEST_ATTEMPT', ?, ?)
+    `, [adminUserId || null, attemptId, JSON.stringify({ student_id: att.student_id, test_id: att.test_id, reason })]);
+
+    return { success: true, message: 'Test attempt reset successfully. Student may now start a fresh test.' };
+  },
+
+  // ==========================================
+  // SUPER ADMIN: PLATFORM ANALYTICS
+  // ==========================================
+  getPlatformAnalytics: async () => {
+    const [seriesCount]: any = await db.query('SELECT COUNT(*) as count FROM test_series');
+    const [publishedCount]: any = await db.query('SELECT COUNT(*) as count FROM test_series WHERE status = "PUBLISHED"');
+    const [freeCount]: any = await db.query('SELECT COUNT(*) as count FROM test_series WHERE is_free = TRUE');
+    const [paidCount]: any = await db.query('SELECT COUNT(*) as count FROM test_series WHERE is_free = FALSE');
+
+    const [enrollments]: any = await db.query(`
+      SELECT SUM(
+        CASE 
+          WHEN ts.is_free = 1 AND ts.publish_scope = 'ALL_CENTRES' THEN 
+            (SELECT COUNT(*) FROM students WHERE status = 'active')
+          WHEN ts.is_free = 1 AND ts.publish_scope = 'SELECTED_CENTRES' THEN 
+            (SELECT COUNT(*) FROM students s JOIN test_series_centres tsc ON s.centerId = tsc.centre_id WHERE tsc.test_series_id = ts.id AND s.status = 'active')
+          ELSE 
+            (SELECT COUNT(*) FROM test_series_enrollments tse JOIN students s ON tse.student_id = s.id WHERE tse.test_series_id = ts.id AND tse.status = 'ACTIVE' AND s.status = 'active')
+        END
+      ) as count FROM test_series ts WHERE ts.status = 'PUBLISHED'
+    `);
+    const [pendingPayments]: any = await db.query('SELECT COUNT(*) as count FROM test_payments WHERE status = "PENDING"');
+    const [approvedPayments]: any = await db.query('SELECT COUNT(*) as count, COALESCE(SUM(amount), 0) as totalRevenue FROM test_payments WHERE status = "APPROVED"');
+    const [attemptsCount]: any = await db.query('SELECT COUNT(*) as count FROM test_attempts WHERE status = "SUBMITTED"');
+    const [avgScore]: any = await db.query('SELECT COALESCE(AVG(percentage), 0) as avgPercentage FROM test_attempts WHERE status = "SUBMITTED"');
+
+    // Recent 10 payments
+    const [recentPayments]: any = await db.query(`
+      SELECT 
+        tp.*,
+        s.firstName as student_first_name,
+        s.lastName as student_last_name,
+        ts.title as test_series_title
+      FROM test_payments tp
+      JOIN students s ON tp.student_id = s.id
+      JOIN test_series ts ON tp.test_series_id = ts.id
+      ORDER BY tp.submitted_at DESC
+      LIMIT 10
+    `);
+
+    const [notesStats]: any = await db.query(`
+      SELECT 
+        (
+          COALESCE((SELECT COUNT(*) FROM study_material_purchases WHERE status = 'APPROVED'), 0) +
+          COALESCE((SELECT COUNT(*) FROM center_material_purchases WHERE status = 'APPROVED'), 0)
+        ) as totalNotesPurchases,
+        (
+          COALESCE((SELECT SUM(amount) FROM study_material_purchases WHERE status = 'APPROVED'), 0) +
+          COALESCE((SELECT SUM(amount) FROM center_material_purchases WHERE status = 'APPROVED'), 0)
+        ) as totalNotesRevenue
+    `);
+
+    const testRevenue = Number(approvedPayments[0]?.totalRevenue) || 0;
+    const testPurchases = Number(approvedPayments[0]?.count) || 0;
+    const notesRevenue = Number(notesStats[0]?.totalNotesRevenue) || 0;
+    const notesPurchases = Number(notesStats[0]?.totalNotesPurchases) || 0;
+
+    return {
+      kpis: {
+        totalSeries: seriesCount[0]?.count || 0,
+        publishedSeries: publishedCount[0]?.count || 0,
+        freeSeries: freeCount[0]?.count || 0,
+        paidSeries: paidCount[0]?.count || 0,
+        totalEnrollments: enrollments[0]?.count || 0,
+        pendingPayments: pendingPayments[0]?.count || 0,
+        totalRevenue: testRevenue,
+        testSeriesPurchases: testPurchases,
+        testSeriesRevenue: testRevenue,
+        notesPurchases: notesPurchases,
+        notesRevenue: notesRevenue,
+        combinedDigitalRevenue: testRevenue + notesRevenue,
+        testsCompleted: attemptsCount[0]?.count || 0,
+        averagePercentage: Number(avgScore[0]?.avgPercentage || 0).toFixed(1)
+      },
+      recentPayments
+    };
+  },
+
+  // ==========================================
+  // STUDENT API: ELIGIBLE SERIES & DISCOVERY
+  // ==========================================
+  getStudentEligibleSeries: async (studentId: number | string) => {
+    // 1. Fetch student center
+    let centreId: any = null;
+    const safeStudentId = studentId ? (Number(studentId) || 0) : 0;
+    if (safeStudentId > 0) {
+      try {
+        const [studentRows]: any = await db.query('SELECT id, centerId, status FROM students WHERE id = ?', [safeStudentId]);
+        if (studentRows && studentRows.length > 0) {
+          centreId = studentRows[0].centerId;
+        }
+      } catch (e) {
+        console.warn('Error fetching student for eligible series:', e);
+      }
+    }
+
+    // 2. Fetch all PUBLISHED test series that are either ALL_CENTRES or matching student's centreId
+    const [series]: any = await db.query(`
+      SELECT 
+        ts.*,
+        c.name as category_name,
+        c.slug as category_slug,
+        COALESCE(qr.upi_id, gqr.upi_id) as upi_id,
+        COALESCE(qr.account_name, gqr.account_name) as account_name,
+        COALESCE(qr.qr_image_url, gqr.qr_image_url) as qr_image_url,
+        COALESCE(qr.instructions, gqr.instructions) as qr_instructions,
+        (SELECT COUNT(*) FROM tests t WHERE t.test_series_id = ts.id AND t.status = 'LIVE') as live_tests_count,
+        CASE 
+          WHEN tse.status = 'ACTIVE' THEN 'APPROVED'
+          WHEN tse.status = 'PAYMENT_PENDING' THEN 'PAYMENT_PENDING'
+          WHEN tp.status = 'APPROVED' THEN 'APPROVED'
+          WHEN tp.status = 'PENDING' THEN 'PAYMENT_PENDING'
+          WHEN (ts.is_free = 1 OR ts.price = 0) AND tse.id IS NOT NULL THEN 'APPROVED'
+          WHEN (ts.is_free = 1 OR ts.price = 0) THEN 'FREE_AVAILABLE'
+          WHEN tse.status IS NOT NULL THEN tse.status
+          ELSE 'NOT_ENROLLED' 
+        END as enrollment_status,
+        tse.expires_at,
+        tp.status as latest_payment_status,
+        tp.utr_number as latest_utr
+      FROM test_series ts
+      LEFT JOIN test_categories c ON ts.category_id = c.id
+      LEFT JOIN test_payment_qr qr ON ts.payment_qr_id = qr.id
+      LEFT JOIN (
+        SELECT * FROM test_payment_qr WHERE is_global_default = 1 ORDER BY id DESC LIMIT 1
+      ) gqr ON 1=1
+      LEFT JOIN test_series_centres tsc ON ts.id = tsc.test_series_id AND tsc.centre_id = ?
+      LEFT JOIN test_series_enrollments tse ON ts.id = tse.test_series_id AND tse.student_id = ?
+      LEFT JOIN test_payments tp ON tp.id = (
+        SELECT MAX(id) FROM test_payments WHERE test_series_id = ts.id AND student_id = ?
+      )
+      WHERE ts.status = 'PUBLISHED'
+        AND (ts.publish_scope = 'ALL_CENTRES' OR tsc.centre_id IS NOT NULL)
+      ORDER BY ts.is_free DESC, ts.id DESC
+    `, [centreId, safeStudentId, safeStudentId]);
+
+    // Populate tests inside each series for the student
+    if (series.length > 0) {
+      const seriesIds = series.map((s: any) => s.id);
+      const [tests]: any = await db.query(`
+        SELECT 
+          t.*,
+          (SELECT COUNT(*) FROM questions q WHERE q.test_id = t.id) as questions_count,
+          (SELECT COUNT(*) FROM test_attempts ta WHERE ta.test_id = t.id AND ta.student_id = ? AND ta.status != 'RESET') as student_attempts_count,
+          ta_latest.id as latest_attempt_id,
+          ta_latest.status as latest_attempt_status,
+          ta_latest.final_score as latest_attempt_score,
+          ta_latest.percentage as latest_attempt_percentage,
+          ta_latest.submitted_at as latest_attempt_submitted_at,
+          ta_latest.correct_answers as latest_attempt_correct_answers,
+          ta_latest.incorrect_answers as latest_attempt_incorrect_answers,
+          ta_latest.unanswered as latest_attempt_unanswered,
+          ta_latest.accuracy as latest_attempt_accuracy,
+          ta_latest.duration_seconds as latest_attempt_duration_seconds
+        FROM tests t
+        LEFT JOIN test_attempts ta_latest ON ta_latest.id = (
+          SELECT MAX(id) FROM test_attempts 
+          WHERE test_id = t.id AND student_id = ? AND status != 'RESET'
+        )
+        WHERE t.test_series_id IN (?) AND t.status = 'LIVE'
+        ORDER BY t.display_order ASC, t.id ASC
+      `, [safeStudentId, safeStudentId, seriesIds]);
+
+      const testsBySeries = new Map<number, any[]>();
+      for (const t of tests) {
+        const testItem = {
+          ...t,
+          questions_count: Number(t.questions_count || 0),
+          student_attempts_count: Number(t.student_attempts_count || 0),
+          latest_attempt: t.latest_attempt_id ? {
+            id: t.latest_attempt_id,
+            status: t.latest_attempt_status,
+            final_score: t.latest_attempt_score,
+            percentage: t.latest_attempt_percentage,
+            submitted_at: t.latest_attempt_submitted_at,
+            correct_answers: Number(t.latest_attempt_correct_answers || 0),
+            incorrect_answers: Number(t.latest_attempt_incorrect_answers || 0),
+            unanswered: Number(t.latest_attempt_unanswered || 0),
+            accuracy: Number(t.latest_attempt_accuracy || 0),
+            duration_seconds: Number(t.latest_attempt_duration_seconds || 0),
+            passed: Number(t.latest_attempt_score || 0) >= Number(t.passing_marks || 0),
+            passing_marks: t.passing_marks
+          } : null
+        };
+        if (!testsBySeries.has(t.test_series_id)) {
+          testsBySeries.set(t.test_series_id, []);
+        }
+        testsBySeries.get(t.test_series_id)!.push(testItem);
+      }
+
+      for (const s of series) {
+        s.tests = testsBySeries.get(s.id) || [];
+      }
+    } else {
+      for (const s of series) {
+        s.tests = [];
+      }
+    }
+
+    return series;
+  },
+
+  getSeriesDetailForStudent: async (seriesId: number | string, studentId: number | string) => {
+    // 1. Verify eligibility
+    const [studentRows]: any = await db.query('SELECT id, centerId FROM students WHERE id = ?', [studentId]);
+    if (studentRows.length === 0) throw new Error('Student not found');
+    const centreId = studentRows[0].centerId;
+
+    const [seriesRows]: any = await db.query(`
+      SELECT 
+        ts.*,
+        c.name as category_name,
+        COALESCE(qr.upi_id, gqr.upi_id) as upi_id,
+        COALESCE(qr.account_name, gqr.account_name) as account_name,
+        COALESCE(qr.qr_image_url, gqr.qr_image_url) as qr_image_url,
+        COALESCE(qr.instructions, gqr.instructions) as qr_instructions,
+        CASE 
+          WHEN tse.status = 'ACTIVE' THEN 'APPROVED'
+          WHEN tse.status = 'PAYMENT_PENDING' THEN 'PAYMENT_PENDING'
+          WHEN tp.status = 'APPROVED' THEN 'APPROVED'
+          WHEN tp.status = 'PENDING' THEN 'PAYMENT_PENDING'
+          WHEN (ts.is_free = 1 OR ts.price = 0) AND tse.id IS NOT NULL THEN 'APPROVED'
+          WHEN (ts.is_free = 1 OR ts.price = 0) THEN 'FREE_AVAILABLE'
+          WHEN tse.status IS NOT NULL THEN tse.status
+          ELSE 'NOT_ENROLLED' 
+        END as enrollment_status,
+        tse.expires_at,
+        tp.status as payment_status,
+        tp.utr_number,
+        tp.rejection_reason
+      FROM test_series ts
+      LEFT JOIN test_categories c ON ts.category_id = c.id
+      LEFT JOIN test_payment_qr qr ON ts.payment_qr_id = qr.id
+      LEFT JOIN (
+        SELECT * FROM test_payment_qr WHERE is_global_default = 1 ORDER BY id DESC LIMIT 1
+      ) gqr ON 1=1
+      LEFT JOIN test_series_centres tsc ON ts.id = tsc.test_series_id AND tsc.centre_id = ?
+      LEFT JOIN test_series_enrollments tse ON ts.id = tse.test_series_id AND tse.student_id = ?
+      LEFT JOIN test_payments tp ON tp.id = (
+        SELECT MAX(id) FROM test_payments WHERE test_series_id = ts.id AND student_id = ?
+      )
+      WHERE ts.id = ? AND ts.status = 'PUBLISHED'
+        AND (ts.publish_scope = 'ALL_CENTRES' OR tsc.centre_id IS NOT NULL)
+      LIMIT 1
+    `, [centreId, studentId, studentId, seriesId]);
+
+    if (seriesRows.length === 0) {
+      throw new Error('This Test Series is not available for your center or is unpublished.');
+    }
+
+    const series = seriesRows[0];
+
+    // If payment QR is not series-specific, fetch global default
+    if (!series.upi_id) {
+      const [globalQr]: any = await db.query('SELECT upi_id, account_name, qr_image_url, instructions FROM test_payment_qr WHERE is_global_default = TRUE LIMIT 1');
+      if (globalQr.length > 0) {
+        series.upi_id = globalQr[0].upi_id;
+        series.account_name = globalQr[0].account_name;
+        series.qr_image_url = globalQr[0].qr_image_url;
+        series.qr_instructions = globalQr[0].instructions;
+      }
+    }
+
+    // Fetch tests inside this series with student's attempt status
+    const [tests]: any = await db.query(`
+      SELECT 
+        t.*,
+        qr.title as qr_title,
+        qr.upi_id as qr_upi_id,
+        qr.account_name as qr_account_name,
+        qr.qr_image_url as qr_image_url,
+        qr.instructions as qr_instructions,
+        (SELECT COUNT(*) FROM questions q WHERE q.test_id = t.id) as real_question_count,
+        ta.id as last_attempt_id,
+        ta.status as attempt_status,
+        ta.final_score as last_score,
+        ta.percentage as last_percentage,
+        ta.submitted_at as last_submitted_at
+      FROM tests t
+      LEFT JOIN test_payment_qr qr ON t.payment_qr_id = qr.id
+      LEFT JOIN test_attempts ta ON t.id = ta.test_id AND ta.student_id = ? AND ta.status != 'RESET'
+      WHERE t.test_series_id = ? AND t.status = 'LIVE'
+      ORDER BY t.display_order ASC, t.id ASC
+    `, [studentId, seriesId]);
+
+    series.tests = tests;
+    return series;
+  },
+
+  // ==========================================
+  // STUDENT ENROLLMENT & PAYMENT SUBMISSION
+  // ==========================================
+  enrollFreeSeries: async (seriesId: number | string, studentId: number | string) => {
+    // 1. Verify student & centre
+    const [studentRows]: any = await db.query('SELECT id, centerId FROM students WHERE id = ?', [studentId]);
+    if (studentRows.length === 0) throw new Error('Student not found');
+    const centreId = studentRows[0].centerId;
+
+    // 2. Verify series is free & published
+    const [seriesRows]: any = await db.query(`
+      SELECT id, title, is_free, validity_days, publish_scope FROM test_series
+      WHERE id = ? AND status = 'PUBLISHED'
+    `, [seriesId]);
+
+    if (seriesRows.length === 0) throw new Error('Test series not found or unavailable');
+    const series = seriesRows[0];
+    if (!series.is_free) throw new Error('This is a paid Test Series. Please complete payment.');
+
+    // 3. Check centre eligibility
+    if (series.publish_scope === 'SELECTED_CENTRES') {
+      const [allowed]: any = await db.query('SELECT id FROM test_series_centres WHERE test_series_id = ? AND centre_id = ?', [seriesId, centreId]);
+      if (allowed.length === 0) throw new Error('This Test Series is not available for your center.');
+    }
+
+    const validity = series.validity_days || 180;
+
+    await db.query(`
+      INSERT INTO test_series_enrollments (student_id, test_series_id, centre_id, enrollment_type, status, expires_at)
+      VALUES (?, ?, ?, 'FREE', 'ACTIVE', DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ? DAY))
+      ON DUPLICATE KEY UPDATE
+        status = 'ACTIVE',
+        expires_at = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ? DAY)
+    `, [studentId, seriesId, centreId, validity, validity]);
+
+    return { success: true, message: 'Enrolled successfully in free test series.' };
+  },
+
+  submitPaidUtrPayment: async (data: {
+    studentId: number | string;
+    seriesId: number | string;
+    utrNumber: string;
+    screenshot?: string;
+  }) => {
+    const { studentId, seriesId, utrNumber, screenshot } = data;
+
+    const cleanUtr = utrNumber.trim().toUpperCase();
+    if (!cleanUtr || cleanUtr.length < 6) {
+      throw new Error('Please enter a valid 12-digit UPI UTR / Transaction Reference number.');
+    }
+
+    // 1. Duplicate UTR check
+    const [existingUtr]: any = await db.query('SELECT id FROM test_payments WHERE utr_number = ?', [cleanUtr]);
+    if (existingUtr.length > 0) {
+      throw new Error('This UTR number has already been submitted or processed. Duplicate transaction IDs are not accepted.');
+    }
+
+    // 2. Verify student & centre
+    const [studentRows]: any = await db.query('SELECT id, centerId, firstName, lastName FROM students WHERE id = ?', [studentId]);
+    if (studentRows.length === 0) throw new Error('Student not found');
+    const student = studentRows[0];
+    const centreId = student.centerId;
+
+    // 3. Verify series
+    const [seriesRows]: any = await db.query('SELECT id, title, price, is_free, payment_qr_id FROM test_series WHERE id = ?', [seriesId]);
+    if (seriesRows.length === 0) throw new Error('Test series not found');
+    const series = seriesRows[0];
+
+    let screenUrl = screenshot;
+    if (screenUrl && screenUrl.startsWith('data:image/')) {
+      screenUrl = saveBase64File(screenUrl, `utr-proof-${Date.now()}`, 'payment-proofs');
+    }
+
+    // 4. Insert Payment Record
+    const [payResult]: any = await db.query(`
+      INSERT INTO test_payments (
+        student_id, test_series_id, centre_id, amount, utr_number,
+        payment_screenshot, payment_qr_id, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING')
+    `, [studentId, seriesId, centreId, series.price, cleanUtr, screenUrl || '', series.payment_qr_id || null]);
+
+    // 5. Insert / Update Enrollment as PAYMENT_PENDING
+    await db.query(`
+      INSERT INTO test_series_enrollments (student_id, test_series_id, centre_id, enrollment_type, status)
+      VALUES (?, ?, ?, 'PAID', 'PAYMENT_PENDING')
+      ON DUPLICATE KEY UPDATE status = 'PAYMENT_PENDING'
+    `, [studentId, seriesId, centreId]);
+
+    // 6. Notify Super Admin
+    await db.query(`
+      INSERT INTO test_notifications (recipient_type, title, message, link_url)
+      VALUES ('SUPER_ADMIN', 'New Test Series Payment Submitted', ?, '/admin/test-series')
+    `, [
+      `Student ${student.firstName} ${student.lastName} submitted payment of ₹${series.price} (UTR: ${cleanUtr}) for "${series.title}".`
+    ]);
+
+    return {
+      success: true,
+      paymentId: payResult.insertId,
+      message: 'Payment submitted successfully! Super Admin is verifying your UTR reference. Access will be activated upon approval.'
+    };
+  },
+
+  // ==========================================
+  // STUDENT: ONLINE TEST TAKING & SCORING ENGINE
+  // ==========================================
+  startTestAttempt: async (testId: number | string, studentId: number | string) => {
+    // 1. Fetch test and verify series enrollment
+    const [tests]: any = await db.query(`
+      SELECT t.*, ts.id as series_id, ts.title as series_title, ts.is_free
+      FROM tests t
+      JOIN test_series ts ON t.test_series_id = ts.id
+      WHERE t.id = ? AND t.status = 'LIVE'
+    `, [testId]);
+
+    if (tests.length === 0) throw new Error('Test not found or not currently available.');
+    const test = tests[0];
+
+    // 2. Check student active enrollment
+    if (test.is_free) {
+      await db.query(`
+        INSERT INTO test_series_enrollments (student_id, test_series_id, centre_id, enrollment_type, status, expires_at)
+        SELECT ?, ?, s.centerId, 'FREE', 'ACTIVE', DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 180 DAY)
+        FROM students s WHERE s.id = ?
+        ON DUPLICATE KEY UPDATE status = 'ACTIVE'
+      `, [studentId, test.series_id, studentId]);
+    } else {
+      const [enrollments]: any = await db.query(`
+        SELECT status, expires_at FROM test_series_enrollments
+        WHERE student_id = ? AND test_series_id = ?
+      `, [studentId, test.series_id]);
+
+      if (enrollments.length === 0 || enrollments[0].status !== 'ACTIVE') {
+        throw new Error('Access denied. You must be actively enrolled in this Test Series to take tests.');
+      }
+
+      if (enrollments[0].expires_at && new Date(enrollments[0].expires_at) < new Date()) {
+        throw new Error('Your enrollment for this Test Series has expired.');
+      }
+    }
+
+    // 3. Check for existing active attempt
+    const [activeAttempts]: any = await db.query(`
+      SELECT * FROM test_attempts
+      WHERE test_id = ? AND student_id = ? AND status = 'IN_PROGRESS'
+      ORDER BY id DESC LIMIT 1
+    `, [testId, studentId]);
+
+    let attemptId: number;
+    let serverEndTime: string;
+
+    if (activeAttempts.length > 0) {
+      attemptId = activeAttempts[0].id;
+      serverEndTime = activeAttempts[0].server_end_time;
+    } else {
+      // Create new attempt
+      const durationMin = test.duration_minutes || 60;
+      const [attRes]: any = await db.query(`
+        INSERT INTO test_attempts (
+          student_id, test_id, test_series_id, started_at,
+          server_end_time, status, total_questions
+        ) VALUES (
+          ?, ?, ?, CURRENT_TIMESTAMP,
+          DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ? MINUTE), 'IN_PROGRESS', ?
+        )
+      `, [studentId, testId, test.series_id, durationMin, test.question_count || 0]);
+
+      attemptId = attRes.insertId;
+      const [newAtt]: any = await db.query('SELECT server_end_time FROM test_attempts WHERE id = ?', [attemptId]);
+      serverEndTime = newAtt[0].server_end_time;
+    }
+
+    // 4. Fetch questions and options WITHOUT revealing is_correct to prevent client inspection tampering
+    const [questions]: any = await db.query(`
+      SELECT id, test_id, question_text, section_name, question_type, marks, negative_marks, display_order
+      FROM questions
+      WHERE test_id = ?
+      ORDER BY display_order ASC, id ASC
+    `, [testId]);
+
+    for (const q of questions) {
+      const [opts]: any = await db.query(`
+        SELECT id, question_id, option_key, option_text
+        FROM question_options
+        WHERE question_id = ?
+        ORDER BY option_key ASC
+      `, [q.id]);
+      q.options = opts;
+    }
+
+    // Fetch any previously saved answers for this active attempt
+    const [savedAnswers]: any = await db.query(`
+      SELECT question_id, selected_option_key, is_marked_for_review FROM test_answers WHERE attempt_id = ?
+    `, [attemptId]);
+
+    return {
+      attemptId,
+      test: {
+        id: test.id,
+        title: test.title,
+        description: test.description,
+        durationMinutes: test.duration_minutes,
+        totalMarks: test.total_marks,
+        negativeMarks: test.negative_marks,
+        passingMarks: test.passing_marks
+      },
+      serverEndTime,
+      questions,
+      savedAnswers
+    };
+  },
+
+  submitTestAttempt: async (data: {
+    attemptId: number | string;
+    studentId: number | string;
+    answers: Array<any>;
+  }) => {
+    const { attemptId, studentId, answers } = data;
+
+    // 1. Fetch attempt
+    const [attempts]: any = await db.query(`
+      SELECT ta.*, t.total_marks, t.passing_marks, t.title as test_title, t.duration_minutes
+      FROM test_attempts ta
+      JOIN tests t ON ta.test_id = t.id
+      WHERE ta.id = ? AND ta.student_id = ?
+    `, [attemptId, studentId]);
+
+    if (attempts.length === 0) throw new Error('Test attempt not found.');
+    const attempt = attempts[0];
+
+    // If already submitted, return existing scorecard
+    if (attempt.status === 'SUBMITTED' || attempt.status === 'AUTO_SUBMITTED') {
+      return await testSeriesService.getScorecard(attemptId, studentId);
+    }
+
+    // 2. Fetch all questions and their correct answers from database
+    const [dbQuestions]: any = await db.query(`
+      SELECT q.id, q.marks, q.negative_marks, qo.option_key as correct_key
+      FROM questions q
+      JOIN question_options qo ON q.id = qo.question_id AND qo.is_correct = TRUE
+      WHERE q.test_id = ?
+    `, [attempt.test_id]);
+
+    // Fetch all options for this test to resolve option IDs to option keys
+    const [allTestOptions]: any = await db.query(`
+      SELECT qo.id, qo.question_id, qo.option_key, qo.is_correct
+      FROM question_options qo
+      JOIN questions q ON qo.question_id = q.id
+      WHERE q.test_id = ?
+    `, [attempt.test_id]);
+
+    const optionsByQuestion = new Map<number, any[]>();
+    for (const opt of allTestOptions) {
+      const qId = Number(opt.question_id);
+      if (!optionsByQuestion.has(qId)) optionsByQuestion.set(qId, []);
+      optionsByQuestion.get(qId)!.push(opt);
+    }
+
+    let correctCount = 0;
+    let incorrectCount = 0;
+    let unansweredCount = 0;
+    let marksObtained = 0;
+    let negativeApplied = 0;
+
+    const answerMap = new Map();
+    if (Array.isArray(answers)) {
+      answers.forEach(a => {
+        const qId = Number(a.questionId || a.question_id || a.id);
+        if (!isNaN(qId) && qId > 0) {
+          answerMap.set(qId, a);
+        }
+      });
+    }
+
+    // Evaluate each question on server
+    for (const q of dbQuestions) {
+      const qId = Number(q.id);
+      const studentAns = answerMap.get(qId);
+      const qOptions = optionsByQuestion.get(qId) || [];
+
+      // Determine selected option key: either from option key or resolved from option id
+      let selectedKey: string | null = studentAns?.selectedOptionKey || studentAns?.selected_option_key || studentAns?.optionKey || studentAns?.option_key || null;
+      if (!selectedKey) {
+        const optId = Number(studentAns?.selectedOptionId || studentAns?.selected_option_id || studentAns?.optionId || studentAns?.option_id);
+        if (!isNaN(optId) && optId > 0) {
+          const matched = qOptions.find((o: any) => Number(o.id) === optId);
+          if (matched) {
+            selectedKey = matched.option_key;
+          }
+        }
+      }
+
+      const isMarked = Boolean(studentAns?.isMarkedForReview || studentAns?.is_marked_for_review);
+      const timeSpent = Number(studentAns?.timeSpentSeconds || studentAns?.time_spent_seconds || 0);
+
+      let isCorrect = false;
+
+      if (!selectedKey) {
+        unansweredCount++;
+      } else if (String(selectedKey).trim().toUpperCase() === String(q.correct_key).trim().toUpperCase()) {
+        isCorrect = true;
+        correctCount++;
+        marksObtained += Number(q.marks || 2.0);
+      } else {
+        incorrectCount++;
+        negativeApplied += Number(q.negative_marks || 0.5);
+      }
+
+      // Save answer
+      await db.query(`
+        INSERT INTO test_answers (attempt_id, question_id, selected_option_key, is_correct, is_marked_for_review, time_spent_seconds)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          selected_option_key = VALUES(selected_option_key),
+          is_correct = VALUES(is_correct),
+          is_marked_for_review = VALUES(is_marked_for_review),
+          time_spent_seconds = VALUES(time_spent_seconds)
+      `, [attemptId, q.id, selectedKey || null, isCorrect ? 1 : 0, isMarked ? 1 : 0, timeSpent]);
+    }
+
+    const finalScore = Math.max(0, marksObtained - negativeApplied);
+    const totalPossibleMarks = Number(attempt.total_marks) || (dbQuestions.length * 2);
+    const percentage = totalPossibleMarks > 0 ? (finalScore / totalPossibleMarks) * 100 : 0;
+    const attemptedCount = correctCount + incorrectCount;
+    const accuracy = attemptedCount > 0 ? (correctCount / attemptedCount) * 100 : 0;
+
+    // Calculate dynamic rank
+    const [betterAttempts]: any = await db.query(`
+      SELECT COUNT(*) as cnt FROM test_attempts
+      WHERE test_id = ? AND final_score > ? AND status IN ('SUBMITTED', 'AUTO_SUBMITTED')
+    `, [attempt.test_id, finalScore]);
+    const dynamicRank = (betterAttempts[0]?.cnt || 0) + 1;
+
+    // 3. Calculate duration and update attempt record
+    const startedAtTime = attempt.started_at ? new Date(attempt.started_at).getTime() : Date.now();
+    const durationSeconds = Math.max(1, Math.round((Date.now() - startedAtTime) / 1000));
+
+    await db.query(`
+      UPDATE test_attempts
+      SET status = 'SUBMITTED',
+          submitted_at = CURRENT_TIMESTAMP,
+          duration_seconds = ?,
+          total_questions = ?,
+          correct_answers = ?,
+          incorrect_answers = ?,
+          unanswered = ?,
+          marks_obtained = ?,
+          negative_marks_applied = ?,
+          final_score = ?,
+          percentage = ?,
+          accuracy = ?,
+          ranking = ?
+      WHERE id = ?
+    `, [
+      durationSeconds,
+      dbQuestions.length,
+      correctCount,
+      incorrectCount,
+      unansweredCount,
+      marksObtained,
+      negativeApplied,
+      finalScore,
+      percentage,
+      accuracy,
+      dynamicRank,
+      attemptId
+    ]);
+
+    // 4. Achievement Star Rules Evaluation
+    const [completedTests]: any = await db.query(`
+      SELECT COUNT(DISTINCT test_id) as cnt FROM test_attempts
+      WHERE student_id = ? AND status = 'SUBMITTED'
+    `, [studentId]);
+    const totalCompleted = completedTests[0]?.cnt || 1;
+
+    // Check rules
+    const [rules]: any = await db.query('SELECT * FROM achievement_rules WHERE status = "ACTIVE"');
+    for (const rule of rules) {
+      let isUnlocked = false;
+      if (rule.criteria_type === 'TESTS_COMPLETED' && totalCompleted >= Number(rule.threshold_value)) {
+        isUnlocked = true;
+      } else if (rule.criteria_type === 'SCORE_PERCENTAGE' && percentage >= Number(rule.threshold_value)) {
+        isUnlocked = true;
+      }
+
+      if (isUnlocked) {
+        await db.query(`
+          INSERT IGNORE INTO student_achievements (student_id, rule_id)
+          VALUES (?, ?)
+        `, [studentId, rule.id]);
+      }
+    }
+
+    return await testSeriesService.getScorecard(attemptId, studentId);
+  },
+
+  getScorecard: async (attemptId: number | string, studentId: number | string) => {
+    const [attempts]: any = await db.query(`
+      SELECT 
+        ta.*,
+        t.title as test_title,
+        t.description as test_description,
+        t.total_marks as test_total_marks,
+        t.passing_marks as test_passing_marks,
+        t.duration_minutes as test_duration,
+        ts.title as test_series_title,
+        s.firstName as student_first_name,
+        s.lastName as student_last_name,
+        s.enrollment_no,
+        cntr.name as centre_name
+      FROM test_attempts ta
+      JOIN tests t ON ta.test_id = t.id
+      JOIN test_series ts ON ta.test_series_id = ts.id
+      JOIN students s ON ta.student_id = s.id
+      JOIN centers cntr ON s.centerId = cntr.id
+      WHERE ta.id = ? AND ta.student_id = ?
+    `, [attemptId, studentId]);
+
+    if (attempts.length === 0) throw new Error('Scorecard not found.');
+    const attempt = attempts[0];
+
+    // Fetch detailed question analysis with correct options and explanations
+    const [questions]: any = await db.query(`
+      SELECT 
+        q.id,
+        q.question_text,
+        q.section_name,
+        q.explanation,
+        q.marks,
+        q.negative_marks,
+        ta.selected_option_key,
+        ta.is_correct as student_is_correct,
+        ta.time_spent_seconds
+      FROM questions q
+      LEFT JOIN test_answers ta ON q.id = ta.question_id AND ta.attempt_id = ?
+      WHERE q.test_id = ?
+      ORDER BY q.display_order ASC, q.id ASC
+    `, [attemptId, attempt.test_id]);
+
+    for (const q of questions) {
+      const [options]: any = await db.query(`
+        SELECT id, question_id, option_key, option_text, is_correct
+        FROM question_options
+        WHERE question_id = ?
+        ORDER BY option_key ASC
+      `, [q.id]);
+      q.options = options;
+    }
+
+    // Fetch earned achievements
+    const [achievements]: any = await db.query(`
+      SELECT ar.*, sa.earned_at
+      FROM student_achievements sa
+      JOIN achievement_rules ar ON sa.rule_id = ar.id
+      WHERE sa.student_id = ?
+      ORDER BY sa.earned_at DESC
+    `, [studentId]);
+
+    // Determine pass / fail status
+    const passingMarks = Number(attempt.test_passing_marks || attempt.passing_marks || 40);
+    const isPassed = Number(attempt.final_score || 0) >= passingMarks;
+    attempt.is_passed = isPassed;
+    attempt.pass_status = isPassed ? 'PASSED' : 'FAILED';
+    attempt.passing_marks = passingMarks;
+
+    return {
+      attempt,
+      questions,
+      achievements
+    };
+  },
+
+  getStudentAnalyticsAndStars: async (studentId: number | string) => {
+    // 1. Attempts summary
+    const [attempts]: any = await db.query(`
+      SELECT 
+        ta.*,
+        t.title as test_title,
+        ts.title as test_series_title
+      FROM test_attempts ta
+      JOIN tests t ON ta.test_id = t.id
+      JOIN test_series ts ON ta.test_series_id = ts.id
+      WHERE ta.student_id = ? AND ta.status = 'SUBMITTED'
+      ORDER BY ta.submitted_at DESC
+    `, [studentId]);
+
+    // 2. Aggregate stats
+    const [agg]: any = await db.query(`
+      SELECT 
+        COUNT(*) as total_attempts,
+        COALESCE(AVG(final_score), 0) as avg_score,
+        COALESCE(MAX(final_score), 0) as max_score,
+        COALESCE(AVG(accuracy), 0) as avg_accuracy,
+        COALESCE(AVG(percentage), 0) as avg_percentage
+      FROM test_attempts
+      WHERE student_id = ? AND status = 'SUBMITTED'
+    `, [studentId]);
+
+    // 3. Achievements (Earned vs Locked)
+    const [allRules]: any = await db.query('SELECT * FROM achievement_rules WHERE status = "ACTIVE" ORDER BY star_count ASC');
+    const [earned]: any = await db.query('SELECT rule_id, earned_at FROM student_achievements WHERE student_id = ?', [studentId]);
+    const earnedMap = new Map();
+    earned.forEach((e: any) => earnedMap.set(e.rule_id, e.earned_at));
+
+    const stars = allRules.map((r: any) => ({
+      ...r,
+      is_unlocked: earnedMap.has(r.id),
+      earned_at: earnedMap.get(r.id) || null
+    }));
+
+    return {
+      stats: {
+        testsAttempted: agg[0]?.total_attempts || 0,
+        averageScore: Number(agg[0]?.avg_score || 0).toFixed(1),
+        highestScore: Number(agg[0]?.max_score || 0).toFixed(1),
+        averageAccuracy: Number(agg[0]?.avg_accuracy || 0).toFixed(1),
+        averagePercentage: Number(agg[0]?.avg_percentage || 0).toFixed(1)
+      },
+      attempts,
+      stars
+    };
+  }
+};

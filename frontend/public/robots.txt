@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /courses
+Allow: /centers
+Allow: /gallery
+Allow: /contact
+Allow: /franchise/requirements
+Allow: /franchise/register
+Allow: /verify
+Allow: /terms
+Allow: /privacy
+Allow: /login/student
+Allow: /login/center
+Allow: /login/admin
+
+Disallow: /admin/
+Disallow: /center/
+Disallow: /student/
+Disallow: /api/
+
+Sitemap: https://examirror.edu.in/sitemap.xml
