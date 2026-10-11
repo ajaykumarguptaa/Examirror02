@@ -9,6 +9,7 @@
     "strict": false,
     "skipLibCheck": true,
     "outDir": "dist",
+    "rootDir": "src",
     "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*"]
