@@ -179,3 +179,11 @@ ALTER TABLE student_marks ADD COLUMN IF NOT EXISTS total_questions INT DEFAULT 0
 ALTER TABLE student_marks ADD COLUMN IF NOT EXISTS correct_answers INT DEFAULT 0;
 ALTER TABLE student_marks ADD COLUMN IF NOT EXISTS wrong_answers INT DEFAULT 0;
 
+-- Center Affiliation Certificate & Franchise Applications Updates
+ALTER TABLE centers ADD COLUMN IF NOT EXISTS certificate_number VARCHAR(100);
+ALTER TABLE centers ADD COLUMN IF NOT EXISTS certificate_issued_date DATE;
+ALTER TABLE centers ADD COLUMN IF NOT EXISTS certificate_valid_until DATE;
+
+ALTER TABLE franchise_applications ADD COLUMN IF NOT EXISTS qualification VARCHAR(100) DEFAULT 'Graduate';
+
+
