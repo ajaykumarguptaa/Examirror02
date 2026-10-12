@@ -483,7 +483,7 @@ const StudentsList = () => {
         // Add artificial delay for UX (make it feel like a complex generation process)
         await new Promise(resolve => setTimeout(resolve, 2500));
 
-        setFeedback({ type: 'success', text: `Certificate generated successfully! Cert No: ${res.data.result.certificateNumber}` });
+        setFeedback({ type: 'success', text: `Certificate generated successfully! Cert No: ${res.data.result.certificateNumber}. ₹${res.data.result.charged || instantCharge} debited from wallet.` });
         setCertWarningState({ open: false, student: null, isInstant: false, agreed: false });
         fetchStudents();
         window.dispatchEvent(new Event('center-stats-updated'));
@@ -2784,11 +2784,18 @@ const StudentsList = () => {
             </div>
 
             <div className="space-y-3.5 text-xs text-slate-600">
-              {certWarningState.isInstant && (
+              {certWarningState.isInstant ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-amber-900 font-medium flex items-start gap-2">
                   <Coins size={16} className="text-amber-600 shrink-0 mt-0.5" />
                   <span>
                     <strong>Instant Generation:</strong> A fee of <strong className="text-amber-800">₹{instantCharge}</strong> will be deducted from your center wallet immediately.
+                  </span>
+                </div>
+              ) : (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-indigo-900 font-medium flex items-start gap-2">
+                  <Coins size={16} className="text-indigo-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Certificate Issuance Fee:</strong> A required fee of <strong className="text-indigo-800">₹{instantCharge}</strong> will be deducted from your center wallet upon generation.
                   </span>
                 </div>
               )}

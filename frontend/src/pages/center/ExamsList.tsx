@@ -535,7 +535,7 @@ const ExamsList = () => {
           type: 'success',
           text: isInstant
             ? `Instant certificate issued successfully! ₹${res.data.data?.charged || instantCharge} debited from wallet.`
-            : 'Official certificate generated and certified successfully!'
+            : `Official certificate generated successfully! ₹${res.data.data?.charged || instantCharge} debited from wallet.`
         });
         window.dispatchEvent(new Event('center-stats-updated'));
         setCertConfirmModalOpen(false);
@@ -1808,7 +1808,7 @@ const ExamsList = () => {
                 <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900">
                   <p className="font-semibold mb-1">🎓 Official Completion Certificate</p>
                   <p className="text-[11px] text-indigo-700">
-                    This will generate the official ISO-compliant Completion Certificate with verifiable QR code and Unique Certificate ID.
+                    This will generate the official ISO-compliant Completion Certificate with verifiable QR code. A required fee of ₹{instantCharge} will be deducted from your center wallet upon generation.
                   </p>
                 </div>
               )}

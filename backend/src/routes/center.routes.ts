@@ -313,7 +313,7 @@ router.post('/students/:id/certificate', async (req, res) => {
     const result = await centerService.generateStudentCertificate(req.params.id, Boolean(isInstant));
     res.status(200).json({
       success: true,
-      message: isInstant ? 'Instant certificate generated & wallet fee deducted successfully!' : 'Certificate generated successfully!',
+      message: `Certificate generated & wallet fee of ₹${result.charged} deducted successfully!`,
       data: result,
       result
     });
@@ -327,7 +327,7 @@ router.post('/students/:id/instant-certificate', async (req, res) => {
     const result = await centerService.generateStudentCertificate(req.params.id, true);
     res.status(200).json({
       success: true,
-      message: 'Instant certificate generated & wallet fee deducted successfully!',
+      message: `Instant certificate generated & wallet fee of ₹${result.charged} deducted successfully!`,
       data: result,
       result
     });
@@ -341,7 +341,7 @@ router.post('/students/:id/generate-certificate', async (req, res) => {
     const result = await centerService.generateStudentCertificate(req.params.id, false);
     res.status(200).json({
       success: true,
-      message: 'Certificate generated successfully!',
+      message: `Certificate generated & wallet fee of ₹${result.charged} deducted successfully!`,
       data: result,
       result
     });

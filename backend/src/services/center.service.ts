@@ -236,11 +236,9 @@ export const centerService = {
   },
 
   // --- STUDENTS & ADMISSION LOGIC ---
-  calculateAdmissionFee: (courseFee: number = 0) => {
-    // 40% charge by portal examirror for system management per enrollment
-    const charge = Math.round(courseFee * 0.40);
-    // Minimum 100 token deduction if course fee is very low, or 0 if free? Let's just strictly do 40%.
-    return charge > 0 ? charge : 0;
+  calculateAdmissionFee: (_courseFee: number = 0) => {
+    // Admission platform fee removed; required fee is deducted upon certificate generation
+    return 0;
   },
 
   addStudent: async (data: {
@@ -283,9 +281,8 @@ export const centerService = {
       throw new Error('Exam questions have not been set for this course yet. Please configure questions in Courses List (+ icon) before enrolling students.');
     }
 
-    // 2. Calculate token deduction (40% of course fee)
+    // 2. Student type and duration validation
     const courseFee = data.courseFee ? Number(data.courseFee) : 0;
-    const tokensRequired = centerService.calculateAdmissionFee(courseFee);
     const studentType = data.studentType || 'new';
     if (studentType === 'old') {
       const [centerPerm]: any = await db.query(
@@ -298,26 +295,8 @@ export const centerService = {
       }
     }
     const duration = data.duration || '1-3 months';
-
-    // 3. Check Center Wallet Balance
-    const [centerRows]: any = await db.query('SELECT wallet_balance FROM centers WHERE id = ?', [data.centerId]);
-    if (!centerRows || centerRows.length === 0) {
-      throw new Error('Center not found');
-    }
-    const currentBalance = Number(centerRows[0].wallet_balance) || 0;
-
-    if (currentBalance < tokensRequired) {
-      throw new Error(`Insufficient wallet balance. Required: ₹${tokensRequired} tokens (40% of course fee ₹${courseFee}), Available: ₹${currentBalance}. Please recharge your wallet.`);
-    }
-
-    // 4. Deduct tokens from center wallet and log transaction
-    await db.query('UPDATE centers SET wallet_balance = wallet_balance - ? WHERE id = ?', [tokensRequired, data.centerId]);
-    if (tokensRequired > 0) {
-      await db.query(`
-        INSERT INTO wallet_transactions (centerId, type, amount, description, status)
-        VALUES (?, 'debit', ?, ?, 'Approved')
-      `, [data.centerId, tokensRequired, `Examirror Platform Fee (40%) for Student Enrollment in Course ID #${data.courseId}`]);
-    }
+    // Zero enrollment fee deduction at admission time (fee deduction occurs upon certificate generation)
+    const tokensRequired = 0;
 
     // Save images/documents locally to disk in uploads/students/
     const savedPhotoUrl = saveBase64File(data.photoUrl, 'photo');
@@ -378,18 +357,17 @@ export const centerService = {
       studentId
     ]);
 
-    // 6. Record Debit Transaction in Wallet
-    await db.query(
-      'INSERT INTO wallet_transactions (centerId, amount, type, description) VALUES (?, ?, ?, ?)',
-      [data.centerId, tokensRequired, 'debit', `Admission fee: ${data.firstName} ${data.lastName} (${duration}, ${studentType})`]
-    );
+
+
+    const [cntRows]: any = await db.query('SELECT wallet_balance FROM centers WHERE id = ?', [data.centerId]);
+    const walletBalance = Number(cntRows && cntRows[0] ? cntRows[0].wallet_balance : 0);
 
     return {
       studentId,
       enrollmentNo,
       rollNo,
-      tokensDeducted: tokensRequired,
-      remainingBalance: currentBalance - tokensRequired
+      tokensDeducted: 0,
+      remainingBalance: walletBalance
     };
   },
 
@@ -646,7 +624,7 @@ export const centerService = {
   generateStudentCertificate: async (studentId: string | number, isInstant: boolean = false) => {
     // 1. Fetch student to get centerId and student details
     const [studentRows]: any = await db.query(
-      'SELECT id, centerId, firstName, lastName, roll_no, enrollment_no FROM students WHERE id = ? OR enrollment_no = ? OR roll_no = ?',
+      'SELECT id, centerId, firstName, lastName, roll_no, enrollment_no, certificate_status FROM students WHERE id = ? OR enrollment_no = ? OR roll_no = ?',
       [studentId, studentId, studentId]
     );
     if (!studentRows || studentRows.length === 0) throw new Error('Student not found');
@@ -654,21 +632,25 @@ export const centerService = {
     const actualStudentId = student.id;
     const centerId = student.centerId;
 
-    let deduction = 0;
+    if (student.certificate_status === 'generated') {
+      throw new Error('Certificate has already been generated for this student.');
+    }
 
-    // 2. If instant, check permissions and wallet deduction
-    if (isInstant) {
-      const chargeInfo = await centerService.getInstantCertificateCharge(centerId);
-      deduction = chargeInfo.charge;
-      const allowed = chargeInfo.allowed;
-      if (!allowed) {
-        throw new Error('Instant Certificate generation is not enabled for your center. All semester exams must be completed.');
-      }
+    // 2. Fetch certificate charge & permissions
+    const chargeInfo = await centerService.getInstantCertificateCharge(centerId);
+    const deduction = Number(chargeInfo.charge) || 200;
 
+    if (isInstant && !chargeInfo.allowed) {
+      throw new Error('Instant Certificate generation is not enabled for your center. All semester exams must be completed.');
+    }
+
+    // 3. Check wallet balance and deduct required fee
+    if (deduction > 0) {
       const [centerRows]: any = await db.query('SELECT wallet_balance FROM centers WHERE id = ?', [centerId]);
       const balance = Number(centerRows[0]?.wallet_balance || 0);
       if (balance < deduction) {
-        throw new Error(`Insufficient wallet balance for instant certificate. Need ₹${deduction}, have ₹${balance}`);
+        const certType = isInstant ? 'instant certificate' : 'certificate generation';
+        throw new Error(`Insufficient wallet balance for ${certType}. Required: ₹${deduction}, Available: ₹${balance}. Please recharge your center wallet.`);
       }
 
       // Deduct from center wallet balance
@@ -678,7 +660,9 @@ export const centerService = {
       const txnUid = `EXAMTXN${Date.now()}${Math.floor(100 + Math.random() * 900)}`;
       const studentName = `${student.firstName || ''} ${student.lastName || ''}`.trim() || `Student #${actualStudentId}`;
       const studentIdentifier = student.roll_no || student.enrollment_no || actualStudentId;
-      const desc = `I-Certificate Fee: ${studentName} (Roll/ID: ${studentIdentifier})`;
+      const desc = isInstant
+        ? `Instant Certificate Fee: ${studentName} (Roll/ID: ${studentIdentifier})`
+        : `Certificate Generation Fee: ${studentName} (Roll/ID: ${studentIdentifier})`;
 
       // Log transaction with complete metadata
       await db.query(
@@ -687,18 +671,18 @@ export const centerService = {
       );
     }
 
-    // 3. Generate Certificate
+    // 4. Generate Certificate
     const certNumber = `EXAM-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
     await db.query(
-      'UPDATE students SET certificate_status = "generated", certificate_number = ? WHERE id = ?',
-      [certNumber, actualStudentId]
+      'UPDATE students SET certificate_status = "generated", certificate_number = ?, tokens_deducted = ? WHERE id = ?',
+      [certNumber, deduction, actualStudentId]
     );
 
     const [updatedCenter]: any = await db.query('SELECT wallet_balance FROM centers WHERE id = ?', [centerId]);
     return {
       success: true,
       certificateNumber: certNumber,
-      charged: isInstant ? deduction : 0,
+      charged: deduction,
       remaining_balance: updatedCenter[0]?.wallet_balance || 0
     };
   },

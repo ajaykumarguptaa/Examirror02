@@ -119,22 +119,8 @@ const AddStudent = () => {
   const selectedCourse = courses.find(c => c.id === Number(courseId));
   const isSelectedCourseReady = selectedCourse ? (selectedCourse.questionsCount || 0) > 0 : false;
 
-  // Pricing based on rules
-  const getRequiredTokens = () => {
-    const isNew = studentType === 'New Student';
-    if (!selectedCourse) return isNew ? 100 : 150;
-    const dur = (selectedCourse.duration || '').toLowerCase();
-    if (dur.includes('1') || dur.includes('2') || dur.includes('3') || dur.includes('month')) {
-      return isNew ? 100 : 150;
-    } else if (dur.includes('4') || dur.includes('5') || dur.includes('6')) {
-      return isNew ? 150 : 200;
-    } else {
-      return isNew ? 200 : 250;
-    }
-  };
-
-  const requiredTokens = getRequiredTokens();
-  const hasEnoughBalance = walletBalance >= requiredTokens;
+  // Enrollment is free; certificate fee is deducted only upon certificate generation
+  const requiredTokens = 0;
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -218,13 +204,7 @@ const AddStudent = () => {
       return;
     }
 
-    if (!hasEnoughBalance) {
-      setFeedback({
-        type: 'error',
-        text: `Insufficient wallet balance! Required: ₹${requiredTokens} Tokens, Available: ₹${walletBalance}. Please recharge your wallet.`
-      });
-      return;
-    }
+
 
     try {
       setLoading(true);
@@ -267,7 +247,7 @@ const AddStudent = () => {
       if (res.data.success) {
         setSuccessModal({
           show: true,
-          message: `Student ${fullName} registered successfully! ₹${requiredTokens} Tokens deducted from wallet.`,
+          message: `Student ${fullName} registered successfully!`,
           enrollNo: res.data.enrollment_no || ''
         });
         setFeedback(null);
@@ -318,8 +298,8 @@ const AddStudent = () => {
         {/* Title Header */}
         <div className="mb-6 flex flex-wrap items-baseline gap-2">
           <h1 className="text-xl font-bold text-[#1e293b]">Add Student</h1>
-          <span className="text-sm font-medium text-[#ef4444]">
-            (Please check wallet balance before adding student.)
+          <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+            ✓ Free Enrollment • Certificate fee applicable at issuance
           </span>
           <span className="ml-auto text-xs bg-indigo-50 text-indigo-700 font-semibold px-2.5 py-1 rounded border border-indigo-100">
             Wallet Balance: ₹{walletBalance}
