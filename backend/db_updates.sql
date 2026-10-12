@@ -183,7 +183,19 @@ ALTER TABLE student_marks ADD COLUMN IF NOT EXISTS wrong_answers INT DEFAULT 0;
 ALTER TABLE centers ADD COLUMN IF NOT EXISTS certificate_number VARCHAR(100);
 ALTER TABLE centers ADD COLUMN IF NOT EXISTS certificate_issued_date DATE;
 ALTER TABLE centers ADD COLUMN IF NOT EXISTS certificate_valid_until DATE;
+ALTER TABLE centers ADD COLUMN IF NOT EXISTS certificate_status VARCHAR(50) DEFAULT 'unclaimed';
+ALTER TABLE centers ADD COLUMN IF NOT EXISTS certificate_claim_date DATETIME NULL;
+ALTER TABLE centers ADD COLUMN IF NOT EXISTS certificate_approved_date DATETIME NULL;
+ALTER TABLE centers ADD COLUMN IF NOT EXISTS certificate_demand_notes TEXT NULL;
+ALTER TABLE centers ADD COLUMN IF NOT EXISTS certificate_demanded_docs TEXT NULL;
+ALTER TABLE centers ADD COLUMN IF NOT EXISTS certificate_uploaded_docs LONGTEXT NULL;
 
 ALTER TABLE franchise_applications ADD COLUMN IF NOT EXISTS qualification VARCHAR(100) DEFAULT 'Graduate';
+ALTER TABLE franchise_applications ADD COLUMN IF NOT EXISTS certificate_status VARCHAR(50) DEFAULT 'unclaimed';
+ALTER TABLE franchise_applications ADD COLUMN IF NOT EXISTS certificate_claim_date DATETIME NULL;
+ALTER TABLE franchise_applications ADD COLUMN IF NOT EXISTS certificate_approved_date DATETIME NULL;
+ALTER TABLE franchise_applications ADD COLUMN IF NOT EXISTS certificate_demand_notes TEXT NULL;
+ALTER TABLE franchise_applications ADD COLUMN IF NOT EXISTS certificate_demanded_docs TEXT NULL;
+ALTER TABLE franchise_applications ADD COLUMN IF NOT EXISTS certificate_uploaded_docs LONGTEXT NULL;
 
 

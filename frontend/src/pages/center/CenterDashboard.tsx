@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, BookOpen, CheckSquare, IndianRupee, Sparkles, TrendingUp, Clock, ArrowRight, UserPlus, CheckCircle2, Award, ShieldCheck, Download, Printer, FileCheck } from 'lucide-react';
+import { Users, BookOpen, CheckSquare, IndianRupee, Sparkles, TrendingUp, Clock, ArrowRight, UserPlus, CheckCircle2, Award, ShieldCheck, Download, Printer, FileCheck, AlertTriangle, AlertCircle, Upload, Send, RefreshCw } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import axios from 'axios';
 import { StaggerContainer, StaggerItem, InteractiveCard, NumberCounter, FadeUp } from '../../motion';
 import CenterCertificateModal from '../../components/CenterCertificateModal';
+import CenterDemandDocsUploadModal from '../../components/CenterDemandDocsUploadModal';
 
 const DEFAULT_CHART = [
   { name: 'January', Students: 0 },
@@ -39,8 +40,11 @@ const CenterDashboard = () => {
   const [chartData, setChartData] = useState<any[]>(DEFAULT_CHART);
   const [recentStudents, setRecentStudents] = useState<any[]>([]);
   const [showCertModal, setShowCertModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [claimLoading, setClaimLoading] = useState(false);
+  const [claimToast, setClaimToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  useEffect(() => {
+  const fetchDashboardData = () => {
     axios.get(`http://localhost:3000/api/center/${centerId}/dashboard`)
       .then((res) => {
         if (res.data.success && res.data.data) {
@@ -67,7 +71,34 @@ const CenterDashboard = () => {
         }
       })
       .catch((err) => console.log('Using initial dashboard state', err));
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
   }, [centerId]);
+
+  const handleClaimCertificate = async () => {
+    setClaimLoading(true);
+    try {
+      const res = await axios.post(`http://localhost:3000/api/center/${centerId}/claim-certificate`);
+      if (res.data?.success) {
+        setCenterProfile((prev: any) => ({ ...prev, certificateStatus: 'pending' }));
+        setClaimToast({
+          type: 'success',
+          message: 'Certificate claim request submitted to Super Admin for verification!'
+        });
+        setTimeout(() => setClaimToast(null), 6000);
+      }
+    } catch (err: any) {
+      setClaimToast({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to submit certificate claim request.'
+      });
+      setTimeout(() => setClaimToast(null), 6000);
+    } finally {
+      setClaimLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans">
@@ -103,16 +134,42 @@ const CenterDashboard = () => {
                   </p>
                 </div>
 
-                {/* Hero Action: Claim Certificate */}
+                {/* Hero Action: Conditional on certificateStatus */}
                 <div className="flex items-center justify-center sm:justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCertModal(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-amber-500/25 hover:shadow-lg transition-all transform active:scale-95 cursor-pointer"
-                  >
-                    <Award size={18} className="text-amber-100" />
-                    <span>Claim Center Certificate</span>
-                  </button>
+                  {centerProfile.certificateStatus === 'approved' ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowCertModal(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-amber-500/25 hover:shadow-lg transition-all transform active:scale-95 cursor-pointer"
+                    >
+                      <Award size={18} className="text-amber-100" />
+                      <span>View Center Certificate</span>
+                    </button>
+                  ) : centerProfile.certificateStatus === 'action_required' ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowUploadModal(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-rose-600/30 hover:shadow-lg transition-all transform active:scale-95 cursor-pointer animate-pulse"
+                    >
+                      <Upload size={16} />
+                      <span>Upload Requested Docs</span>
+                    </button>
+                  ) : centerProfile.certificateStatus === 'pending' ? (
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-800 font-bold text-xs rounded-xl shadow-2xs">
+                      <Clock size={15} className="animate-spin text-amber-600" />
+                      <span>Claim Pending Review</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={claimLoading}
+                      onClick={handleClaimCertificate}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-indigo-600/25 hover:shadow-lg transition-all transform active:scale-95 cursor-pointer"
+                    >
+                      {claimLoading ? <RefreshCw size={16} className="animate-spin" /> : <Award size={18} />}
+                      <span>Claim Center Certificate</span>
+                    </button>
+                  )}
                 </div>
               </div>
               
@@ -137,65 +194,229 @@ const CenterDashboard = () => {
         </FadeUp>
       )}
 
-      {/* Prominent Center Affiliation & Authorization Certificate Banner */}
-      <FadeUp delay={0.08}>
-        <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-amber-500/30">
-          {/* Subtle Background Glow & Watermark */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-            <div className="flex items-start gap-4 sm:gap-5 max-w-2xl">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 p-0.5 shadow-lg shadow-amber-500/30 shrink-0">
-                <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                  <Award size={32} className="text-amber-400 animate-pulse" />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-2.5 py-0.5 bg-amber-400/20 border border-amber-400/40 text-amber-300 rounded-full text-[11px] font-black uppercase tracking-wider">
-                    Official Recognition
-                  </span>
-                  <span className="px-2.5 py-0.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-full text-[11px] font-bold flex items-center gap-1">
-                    <ShieldCheck size={12} /> Verified & Authorized
-                  </span>
-                </div>
-                <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                  Center Authorization & Affiliation Certificate
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  Your authorized training center certificate has been officially issued under Examirror accreditation. Print and display this certificate at your study center.
-                </p>
-                <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-amber-200/90 font-mono">
-                  <span>Cert No: <b className="text-white">{centerProfile?.certificate_number || `EXAM-ATC-2026-${String(centerProfile?.id || centerId).padStart(4, '0')}`}</b></span>
-                  <span>•</span>
-                  <span>Center Code: <b className="text-white">{centerProfile?.code || 'ATC-PENDING'}</b></span>
-                </div>
-              </div>
+      {/* Toast Alert Message */}
+      {claimToast && (
+        <FadeUp delay={0.06}>
+          <div className={`p-4 rounded-2xl flex items-center justify-between gap-3 text-xs font-bold border shadow-lg ${
+            claimToast.type === 'success'
+              ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+              : 'bg-rose-50 border-rose-300 text-rose-900'
+          }`}>
+            <div className="flex items-center gap-2.5">
+              {claimToast.type === 'success' ? <CheckCircle2 size={18} className="text-emerald-600" /> : <AlertCircle size={18} className="text-rose-600" />}
+              <span>{claimToast.message}</span>
             </div>
+            <button type="button" onClick={() => setClaimToast(null)} className="text-slate-400 hover:text-slate-700">✕</button>
+          </div>
+        </FadeUp>
+      )}
 
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
-              <button
-                type="button"
-                onClick={() => setShowCertModal(true)}
-                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/30 hover:shadow-xl transition-all transform active:scale-95 cursor-pointer"
-              >
-                <Award size={18} className="text-slate-950" />
-                <span>Claim & View Certificate</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowCertModal(true)}
-                className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-sm rounded-xl border border-white/20 hover:border-white/30 transition-all cursor-pointer backdrop-blur-sm"
-                title="Print or Download Certificate"
-              >
-                <Printer size={16} />
-                <span className="hidden sm:inline">Print / HD PDF</span>
-              </button>
+      {/* Prominent Center Affiliation & Authorization Certificate Banner (Status Driven) */}
+      <FadeUp delay={0.08}>
+        {centerProfile?.certificateStatus === 'action_required' ? (
+          /* STATE 1: SUPER ADMIN DEMANDED DOCUMENTS */
+          <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-rose-500/40">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-rose-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div className="flex items-start gap-4 sm:gap-5 max-w-2xl">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-rose-500 to-amber-400 p-0.5 shadow-lg shadow-rose-500/30 shrink-0">
+                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                    <AlertTriangle size={30} className="text-rose-400 animate-pulse" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-0.5 bg-rose-500/25 border border-rose-400/40 text-rose-300 rounded-full text-[11px] font-black uppercase tracking-wider">
+                      Verification Action Required
+                    </span>
+                    <span className="px-2.5 py-0.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded-full text-[11px] font-bold">
+                      Documents Demanded by Super Admin
+                    </span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                    Additional Verification Documents Demanded
+                  </h2>
+                  <div className="p-3 bg-white/10 rounded-xl border border-white/15 text-xs text-rose-100 leading-relaxed font-medium">
+                    <span className="font-bold text-amber-300 block mb-0.5">Admin Notice:</span>
+                    {centerProfile.certificateDemandNotes || 'Please upload the demanded premises / identity documents to complete affiliation verification.'}
+                  </div>
+
+                  {centerProfile.certificateDemandedDocs && centerProfile.certificateDemandedDocs.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[11px] font-bold text-slate-300">Required:</span>
+                      {centerProfile.certificateDemandedDocs.map((docName: string, idx: number) => (
+                        <span key={idx} className="px-2 py-0.5 bg-rose-900/60 border border-rose-500/40 text-rose-200 rounded-md text-[11px] font-bold">
+                          • {docName}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 w-full lg:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(true)}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-lg shadow-rose-600/30 hover:shadow-xl transition-all transform active:scale-95 cursor-pointer"
+                >
+                  <Upload size={18} />
+                  <span>Upload Requested Documents</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        ) : centerProfile?.certificateStatus === 'pending' ? (
+          /* STATE 2: CLAIM REQUEST SUBMITTED & PENDING APPROVAL */
+          <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-amber-500/30">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div className="flex items-start gap-4 sm:gap-5 max-w-2xl">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 p-0.5 shadow-lg shadow-amber-500/30 shrink-0">
+                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                    <Clock size={30} className="text-amber-400 animate-pulse" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-0.5 bg-amber-400/20 border border-amber-400/40 text-amber-300 rounded-full text-[11px] font-black uppercase tracking-wider flex items-center gap-1">
+                      <Clock size={12} className="animate-spin" /> Claim Submitted • Awaiting Super Admin
+                    </span>
+                    <span className="px-2.5 py-0.5 bg-slate-800 text-slate-300 rounded-full text-[11px] font-medium border border-slate-700">
+                      Under Audit Wing Review
+                    </span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                    Center Affiliation Certificate Under Review
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Your certificate claim request has been received by Super Admin. After secondary verification of your premises and documents, your certificate will be officially unlocked here.
+                  </p>
+                  <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-amber-200/90 font-mono">
+                    <span>Center Code: <b className="text-white">{centerProfile?.code || 'ATC-PENDING'}</b></span>
+                    <span>•</span>
+                    <span>Pending Super Admin Secondary Confirmation</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 w-full lg:w-auto">
+                <div className="px-5 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-2">
+                  <Clock size={16} />
+                  <span>Verification in Progress</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : centerProfile?.certificateStatus === 'approved' ? (
+          /* STATE 3: OFFICIALLY APPROVED & ACTIVE */
+          <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-amber-500/30">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div className="flex items-start gap-4 sm:gap-5 max-w-2xl">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 p-0.5 shadow-lg shadow-amber-500/30 shrink-0">
+                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                    <Award size={32} className="text-amber-400 animate-pulse" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-0.5 bg-amber-400/20 border border-amber-400/40 text-amber-300 rounded-full text-[11px] font-black uppercase tracking-wider">
+                      Official Recognition
+                    </span>
+                    <span className="px-2.5 py-0.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-full text-[11px] font-bold flex items-center gap-1">
+                      <ShieldCheck size={12} /> Verified & Authorized
+                    </span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                    Center Authorization & Affiliation Certificate
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Your authorized training center certificate has been officially issued under Examirror accreditation. Print and display this certificate at your study center.
+                  </p>
+                  <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-amber-200/90 font-mono">
+                    <span>Cert No: <b className="text-white">{centerProfile?.certificate_number || `EXAM-ATC-2026-${String(centerProfile?.id || centerId).padStart(4, '0')}`}</b></span>
+                    <span>•</span>
+                    <span>Center Code: <b className="text-white">{centerProfile?.code || 'ATC-PENDING'}</b></span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowCertModal(true)}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/30 hover:shadow-xl transition-all transform active:scale-95 cursor-pointer"
+                >
+                  <Award size={18} className="text-slate-950" />
+                  <span>Claim & View Certificate</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCertModal(true)}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-sm rounded-xl border border-white/20 hover:border-white/30 transition-all cursor-pointer backdrop-blur-sm"
+                  title="Print or Download Certificate"
+                >
+                  <Printer size={16} />
+                  <span className="hidden sm:inline">Print / HD PDF</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* STATE 4: UNCLAIMED (INITIAL STATE) */
+          <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-indigo-500/30">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div className="flex items-start gap-4 sm:gap-5 max-w-2xl">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-amber-300 p-0.5 shadow-lg shadow-indigo-500/30 shrink-0">
+                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                    <Award size={32} className="text-indigo-300" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-0.5 bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 rounded-full text-[11px] font-black uppercase tracking-wider">
+                      Accreditation Available
+                    </span>
+                    <span className="px-2.5 py-0.5 bg-slate-800 text-slate-300 rounded-full text-[11px] font-bold">
+                      Govt. Recognized (MCA) & ISO 9001:2015
+                    </span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                    Center Authorization & Affiliation Certificate
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Submit your official certificate claim request to Super Admin for verification. Once approved with secondary confirmation, your authorized accreditation certificate will be issued.
+                  </p>
+                  <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-indigo-200/90 font-mono">
+                    <span>Center Code: <b className="text-white">{centerProfile?.code || 'ATC-PENDING'}</b></span>
+                    <span>•</span>
+                    <span>Ready to Claim</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 w-full lg:w-auto">
+                <button
+                  type="button"
+                  disabled={claimLoading}
+                  onClick={handleClaimCertificate}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/30 hover:shadow-xl transition-all transform active:scale-95 cursor-pointer"
+                >
+                  {claimLoading ? <RefreshCw size={18} className="animate-spin text-slate-950" /> : <Award size={18} className="text-slate-950" />}
+                  <span>Claim Center Certificate</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </FadeUp>
 
       {/* Stats Cards Row with Stagger & NumberCounter */}
@@ -473,6 +694,23 @@ const CenterDashboard = () => {
         center={centerProfile}
         isOpen={showCertModal}
         onClose={() => setShowCertModal(false)}
+      />
+
+      {/* Demanded Documents Upload Modal */}
+      <CenterDemandDocsUploadModal
+        centerId={centerId}
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        adminNotes={centerProfile?.certificateDemandNotes}
+        demandedDocs={centerProfile?.certificateDemandedDocs || []}
+        onSuccess={() => {
+          fetchDashboardData();
+          setClaimToast({
+            type: 'success',
+            message: 'Demanded documents uploaded successfully! Awaiting Super Admin final review.'
+          });
+          setTimeout(() => setClaimToast(null), 6000);
+        }}
       />
 
     </div>

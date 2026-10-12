@@ -736,7 +736,9 @@ export const centerService = {
       SELECT 
         id, wallet_balance, name, center_code, head_name, head_image_url, email, phone,
         address, address_line2, city, district, state, pincode, status, joined_date,
-        certificate_number, certificate_issued_date, certificate_valid_until
+        certificate_number, certificate_issued_date, certificate_valid_until,
+        certificate_status, certificate_demand_notes, certificate_demanded_docs, certificate_uploaded_docs,
+        certificate_claim_date, certificate_approved_date
       FROM centers WHERE id = ?
     `, [centerId]);
 
@@ -777,6 +779,20 @@ export const centerService = {
       LIMIT 5
     `, [centerId]);
 
+    let demandedDocsList: string[] = [];
+    if (centerRows && centerRows[0]?.certificate_demanded_docs) {
+      try {
+        demandedDocsList = JSON.parse(centerRows[0].certificate_demanded_docs);
+      } catch (_) {}
+    }
+
+    let uploadedDocsList: any[] = [];
+    if (centerRows && centerRows[0]?.certificate_uploaded_docs) {
+      try {
+        uploadedDocsList = JSON.parse(centerRows[0].certificate_uploaded_docs);
+      } catch (_) {}
+    }
+
     const centerProfile = centerRows && centerRows.length > 0 ? {
       id: centerRows[0].id,
       name: centerRows[0].name,
@@ -796,6 +812,12 @@ export const centerService = {
       certificateNumber: certNum || `EXAM-ATC-2026-${String(centerRows[0].id).padStart(4, '0')}`,
       certificateIssuedDate: centerRows[0].certificate_issued_date || centerRows[0].joined_date || new Date().toISOString().split('T')[0],
       certificateValidUntil: centerRows[0].certificate_valid_until || '2027-03-31',
+      certificateStatus: centerRows[0].certificate_status || 'unclaimed',
+      certificateDemandNotes: centerRows[0].certificate_demand_notes || '',
+      certificateDemandedDocs: demandedDocsList,
+      certificateUploadedDocs: uploadedDocsList,
+      certificateClaimDate: centerRows[0].certificate_claim_date,
+      certificateApprovedDate: centerRows[0].certificate_approved_date,
       status: centerRows[0].status
     } : null;
 
@@ -818,7 +840,9 @@ export const centerService = {
       SELECT 
         id, name, center_code, head_name, head_image_url, email, phone,
         address, address_line2, city, district, state, pincode, status, joined_date,
-        certificate_number, certificate_issued_date, certificate_valid_until
+        certificate_number, certificate_issued_date, certificate_valid_until,
+        certificate_status, certificate_demand_notes, certificate_demanded_docs, certificate_uploaded_docs,
+        certificate_claim_date, certificate_approved_date
       FROM centers 
       WHERE id = ? OR center_code = ?
     `, [centerIdOrCode, centerIdOrCode]);
@@ -858,8 +882,104 @@ export const centerService = {
       fullAddress: [c.address, c.address_line2, c.city, c.district, c.state, c.pincode].filter(Boolean).join(', '),
       status: c.status,
       certificateNumber: certNum,
+      certificateStatus: c.certificate_status || 'unclaimed',
       issueDate: c.certificate_issued_date || c.joined_date || new Date().toISOString().split('T')[0],
       validUntil: c.certificate_valid_until || '2027-03-31'
+    };
+  },
+
+  claimCenterCertificate: async (centerId: string | number) => {
+    const [centers]: any = await db.query(
+      'SELECT id, name, email, phone, certificate_status FROM centers WHERE id = ?',
+      [centerId]
+    );
+    if (!centers || centers.length === 0) {
+      throw new Error('Center not found');
+    }
+    const center = centers[0];
+
+    await db.query(`
+      UPDATE centers SET
+        certificate_status = 'pending',
+        certificate_claim_date = NOW()
+      WHERE id = ?
+    `, [center.id]);
+
+    try {
+      await db.query(`
+        UPDATE franchise_applications SET
+          certificate_status = 'pending',
+          certificate_claim_date = NOW()
+        WHERE center_name = ? OR email = ? OR phone = ?
+      `, [center.name, center.email, center.phone]);
+    } catch (_) {}
+
+    return {
+      success: true,
+      status: 'pending',
+      message: 'Certificate claim request submitted to Super Admin for verification.'
+    };
+  },
+
+  submitDemandedDocs: async (
+    centerId: string | number,
+    notes: string,
+    docs: Array<{ title: string; fileData: string; filename: string }>
+  ) => {
+    const [centers]: any = await db.query(
+      'SELECT id, name, email, phone, certificate_uploaded_docs FROM centers WHERE id = ?',
+      [centerId]
+    );
+    if (!centers || centers.length === 0) {
+      throw new Error('Center not found');
+    }
+    const center = centers[0];
+
+    let previousDocs: any[] = [];
+    if (center.certificate_uploaded_docs) {
+      try {
+        previousDocs = JSON.parse(center.certificate_uploaded_docs);
+      } catch (_) {}
+    }
+
+    const newSavedDocs = (docs || []).map((d, index) => {
+      const savedUrl = saveBase64File(d.fileData, `demanded_doc_${index + 1}`, 'center_docs');
+      return {
+        title: d.title || `Document #${index + 1}`,
+        filename: d.filename || `demanded_doc_${index + 1}.png`,
+        url: savedUrl || d.fileData,
+        submittedAt: new Date().toISOString()
+      };
+    });
+
+    const combinedDocs = [...previousDocs, ...newSavedDocs];
+    const docsJson = JSON.stringify(combinedDocs);
+
+    await db.query(`
+      UPDATE centers SET
+        certificate_status = 'pending',
+        certificate_uploaded_docs = ?,
+        certificate_claim_date = NOW(),
+        certificate_demand_notes = CONCAT(COALESCE(certificate_demand_notes, ''), '\n[Center Resubmission]: ', ?)
+      WHERE id = ?
+    `, [docsJson, notes || 'Uploaded requested documents', center.id]);
+
+    try {
+      await db.query(`
+        UPDATE franchise_applications SET
+          certificate_status = 'pending',
+          certificate_uploaded_docs = ?,
+          certificate_claim_date = NOW(),
+          certificate_demand_notes = CONCAT(COALESCE(certificate_demand_notes, ''), '\n[Center Resubmission]: ', ?)
+        WHERE center_name = ? OR email = ? OR phone = ?
+      `, [docsJson, notes || 'Uploaded requested documents', center.name, center.email, center.phone]);
+    } catch (_) {}
+
+    return {
+      success: true,
+      status: 'pending',
+      uploadedDocsCount: newSavedDocs.length,
+      message: 'Requested documents uploaded successfully and submitted to Super Admin.'
     };
   },
 

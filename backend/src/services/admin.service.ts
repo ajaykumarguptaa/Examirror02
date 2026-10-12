@@ -708,6 +708,89 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
     return { success: true, message: 'Franchise application permanently deleted' };
   },
 
+  // --- CENTER CERTIFICATE GOVERNANCE & DEMAND WORKFLOW ---
+  approveCenterCertificate: async (centerIdOrCode: number | string, adminNotes?: string) => {
+    const [centers]: any = await db.query(
+      'SELECT id, name, center_code, email, phone, certificate_number FROM centers WHERE id = ? OR center_code = ?',
+      [centerIdOrCode, centerIdOrCode]
+    );
+    if (!centers || centers.length === 0) {
+      throw new Error('Center not found');
+    }
+    const center = centers[0];
+    let certNum = center.certificate_number;
+    if (!certNum) {
+      certNum = `EXAM-ATC-2026-${String(center.id).padStart(4, '0')}`;
+    }
+
+    await db.query(`
+      UPDATE centers SET
+        certificate_status = 'approved',
+        certificate_approved_date = NOW(),
+        certificate_demand_notes = NULL,
+        certificate_number = ?,
+        certificate_issued_date = COALESCE(certificate_issued_date, CURDATE()),
+        certificate_valid_until = COALESCE(certificate_valid_until, DATE_ADD(CURDATE(), INTERVAL 1 YEAR))
+      WHERE id = ?
+    `, [certNum, center.id]);
+
+    try {
+      await db.query(`
+        UPDATE franchise_applications SET
+          certificate_status = 'approved',
+          certificate_approved_date = NOW(),
+          certificate_demand_notes = NULL
+        WHERE center_name = ? OR email = ? OR phone = ?
+      `, [center.name, center.email, center.phone]);
+    } catch (_) {}
+
+    return {
+      success: true,
+      message: 'Center Authorization Certificate officially approved with secondary confirmation.',
+      certificateNumber: certNum,
+      approvedDate: new Date().toISOString()
+    };
+  },
+
+  demandCenterCertificateDocs: async (
+    centerIdOrCode: number | string,
+    notes: string,
+    demandedDocs: string[] = []
+  ) => {
+    const [centers]: any = await db.query(
+      'SELECT id, name, center_code, email, phone FROM centers WHERE id = ? OR center_code = ?',
+      [centerIdOrCode, centerIdOrCode]
+    );
+    if (!centers || centers.length === 0) {
+      throw new Error('Center not found');
+    }
+    const center = centers[0];
+    const docsJson = JSON.stringify(demandedDocs);
+
+    await db.query(`
+      UPDATE centers SET
+        certificate_status = 'action_required',
+        certificate_demand_notes = ?,
+        certificate_demanded_docs = ?
+      WHERE id = ?
+    `, [notes, docsJson, center.id]);
+
+    try {
+      await db.query(`
+        UPDATE franchise_applications SET
+          certificate_status = 'action_required',
+          certificate_demand_notes = ?,
+          certificate_demanded_docs = ?
+        WHERE center_name = ? OR email = ? OR phone = ?
+      `, [notes, docsJson, center.name, center.email, center.phone]);
+    } catch (_) {}
+
+    return {
+      success: true,
+      message: 'Document demand notice sent to center successfully.'
+    };
+  },
+
   // --- CONTACT INQUIRIES & QUERIES ---
   getContactQueries: async (status?: string) => {
     await db.query(`

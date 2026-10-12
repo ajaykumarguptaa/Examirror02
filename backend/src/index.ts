@@ -563,6 +563,25 @@ const initDbSchema = async () => {
 
     // Initialize Test Series Database Schema and Migrations
     await initTestSeriesDatabase();
+
+    // Ensure Center Affiliation & Certificate Verification columns
+    try { await db.query(`ALTER TABLE centers ADD COLUMN certificate_number VARCHAR(100)`); } catch (_) {}
+    try { await db.query(`ALTER TABLE centers ADD COLUMN certificate_issued_date DATE`); } catch (_) {}
+    try { await db.query(`ALTER TABLE centers ADD COLUMN certificate_valid_until DATE`); } catch (_) {}
+    try { await db.query(`ALTER TABLE centers ADD COLUMN certificate_status VARCHAR(50) DEFAULT 'unclaimed'`); } catch (_) {}
+    try { await db.query(`ALTER TABLE centers ADD COLUMN certificate_claim_date DATETIME NULL`); } catch (_) {}
+    try { await db.query(`ALTER TABLE centers ADD COLUMN certificate_approved_date DATETIME NULL`); } catch (_) {}
+    try { await db.query(`ALTER TABLE centers ADD COLUMN certificate_demand_notes TEXT NULL`); } catch (_) {}
+    try { await db.query(`ALTER TABLE centers ADD COLUMN certificate_demanded_docs TEXT NULL`); } catch (_) {}
+    try { await db.query(`ALTER TABLE centers ADD COLUMN certificate_uploaded_docs LONGTEXT NULL`); } catch (_) {}
+
+    try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN qualification VARCHAR(100) DEFAULT 'Graduate'`); } catch (_) {}
+    try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_status VARCHAR(50) DEFAULT 'unclaimed'`); } catch (_) {}
+    try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_claim_date DATETIME NULL`); } catch (_) {}
+    try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_approved_date DATETIME NULL`); } catch (_) {}
+    try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_demand_notes TEXT NULL`); } catch (_) {}
+    try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_demanded_docs TEXT NULL`); } catch (_) {}
+    try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_uploaded_docs LONGTEXT NULL`); } catch (_) {}
   } catch (err) {
     console.error('Schema initialization warning:', err);
   }

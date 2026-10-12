@@ -514,6 +514,47 @@ router.delete('/franchise-requests/:id', async (req, res) => {
   }
 });
 
+// Certificate Governance: Secondary Confirmation & Demanding Documents
+router.post('/franchise-requests/:id/approve-certificate', async (req, res) => {
+  const { notes } = req.body;
+  try {
+    const result = await adminService.approveCenterCertificate(req.params.id, notes);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/franchise-requests/:id/demand-certificate-docs', async (req, res) => {
+  const { notes, demandedDocs } = req.body;
+  try {
+    const result = await adminService.demandCenterCertificateDocs(req.params.id, notes, demandedDocs);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/centers/:id/approve-certificate', async (req, res) => {
+  const { notes } = req.body;
+  try {
+    const result = await adminService.approveCenterCertificate(req.params.id, notes);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/centers/:id/demand-certificate-docs', async (req, res) => {
+  const { notes, demandedDocs } = req.body;
+  try {
+    const result = await adminService.demandCenterCertificateDocs(req.params.id, notes, demandedDocs);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
 // --- CONTACT QUERIES / INQUIRIES ENDPOINTS ---
 router.get('/contact-queries', async (req, res) => {
   const { status } = req.query;

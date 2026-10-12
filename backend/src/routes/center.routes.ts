@@ -30,6 +30,25 @@ router.get('/:centerId/certificate', async (req, res) => {
   }
 });
 
+router.post('/:centerId/claim-certificate', async (req, res) => {
+  try {
+    const result = await centerService.claimCenterCertificate(req.params.centerId);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/:centerId/submit-demanded-docs', async (req, res) => {
+  const { notes, docs } = req.body;
+  try {
+    const result = await centerService.submitDemandedDocs(req.params.centerId, notes, docs);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
 router.get('/:centerId/stats', async (req, res) => {
   try {
     const data = await centerService.getStats(req.params.centerId);

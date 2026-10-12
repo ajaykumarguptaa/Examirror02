@@ -38,7 +38,10 @@ import {
   GraduationCap,
   Award,
   Share2,
-  Copy
+  Copy,
+  Send,
+  UploadCloud,
+  Plus
 } from 'lucide-react';
 import { CenterCertificateModal } from '../../components/CenterCertificateModal';
 import { downloadFranchiseDossierZip } from '../../utils/generateFranchiseDossierZip';
@@ -75,6 +78,13 @@ interface FranchiseApplication {
   center_photos_url?: string;
   status: 'Pending' | 'Approved' | 'Rejected' | 'Trash';
   created_at: string;
+  certificate_status?: 'unclaimed' | 'pending' | 'action_required' | 'approved';
+  certificate_claim_date?: string;
+  certificate_approved_date?: string;
+  certificate_demand_notes?: string;
+  certificate_demanded_docs?: string;
+  certificate_uploaded_docs?: string;
+  certificate_number?: string;
 }
 
 // Real-Time Zebtish Security Captcha Generator Utility
@@ -118,6 +128,67 @@ const FranchiseRequests = () => {
   const [copiedCreds, setCopiedCreds] = useState(false);
   const [zippingAppId, setZippingAppId] = useState<number | null>(null);
   const [zipProgressText, setZipProgressText] = useState<string>('');
+
+  // Certificate Governance: Secondary Confirmation & Demanding Documents
+  const [certApprovalTarget, setCertApprovalTarget] = useState<FranchiseApplication | null>(null);
+  const [secondaryConfirmed, setSecondaryConfirmed] = useState(false);
+  const [certApprovalNotes, setCertApprovalNotes] = useState('');
+  const [certApproving, setCertApproving] = useState(false);
+
+  const [certDemandTarget, setCertDemandTarget] = useState<FranchiseApplication | null>(null);
+  const [demandedDocList, setDemandedDocList] = useState<string[]>([]);
+  const [customDemandDoc, setCustomDemandDoc] = useState('');
+  const [demandNotes, setDemandNotes] = useState('');
+  const [certDemanding, setCertDemanding] = useState(false);
+
+  const handleConfirmCertificateApproval = async (appId: number) => {
+    if (!secondaryConfirmed) {
+      alert('Please check the secondary verification confirmation box before issuing certificate.');
+      return;
+    }
+    setCertApproving(true);
+    try {
+      const res = await axios.post(`http://localhost:3000/api/admin/franchise-requests/${appId}/approve-certificate`, {
+        notes: certApprovalNotes
+      });
+      if (res.data?.success) {
+        setToast({ type: 'success', text: 'Center Authorization Certificate officially approved & issued!' });
+        setCertApprovalTarget(null);
+        setSecondaryConfirmed(false);
+        setCertApprovalNotes('');
+        fetchApplications();
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to approve certificate.');
+    } finally {
+      setCertApproving(false);
+    }
+  };
+
+  const handleSendDemandNotice = async (appId: number) => {
+    if (demandedDocList.length === 0 && !demandNotes.trim()) {
+      alert('Please select at least one demanded document or provide instructions in the demand notes.');
+      return;
+    }
+    setCertDemanding(true);
+    try {
+      const res = await axios.post(`http://localhost:3000/api/admin/franchise-requests/${appId}/demand-certificate-docs`, {
+        notes: demandNotes,
+        demandedDocs: demandedDocList
+      });
+      if (res.data?.success) {
+        setToast({ type: 'success', text: 'Document demand notice sent to Center Head successfully!' });
+        setCertDemandTarget(null);
+        setDemandedDocList([]);
+        setDemandNotes('');
+        fetchApplications();
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to send demand notice.');
+    } finally {
+      setCertDemanding(false);
+    }
+  };
 
   // Soft Delete & Real-Time Zebtish Captcha State
   const [deleteTargetApp, setDeleteTargetApp] = useState<FranchiseApplication | null>(null);
@@ -418,6 +489,7 @@ const FranchiseRequests = () => {
   // Active vs Trash counts
   const activeApps = applications.filter((a) => a.status !== 'Trash');
   const pendingCount = applications.filter((a) => a.status === 'Pending').length;
+  const certClaimsCount = applications.filter((a) => a.certificate_status === 'pending' || a.certificate_status === 'action_required').length;
   const approvedCount = applications.filter((a) => a.status === 'Approved').length;
   const rejectedCount = applications.filter((a) => a.status === 'Rejected').length;
   const trashCount = applications.filter((a) => a.status === 'Trash').length;
@@ -429,6 +501,8 @@ const FranchiseRequests = () => {
       matchesStatus = app.status !== 'Trash';
     } else if (filterStatus === 'trash') {
       matchesStatus = app.status === 'Trash';
+    } else if (filterStatus === 'cert_claims') {
+      matchesStatus = app.certificate_status === 'pending' || app.certificate_status === 'action_required';
     } else {
       matchesStatus = app.status?.toLowerCase() === filterStatus.toLowerCase();
     }
@@ -487,7 +561,7 @@ const FranchiseRequests = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Total</span>
           <div className="text-2xl font-black text-slate-900 mt-2">{activeApps.length}</div>
@@ -499,6 +573,24 @@ const FranchiseRequests = () => {
             {pendingCount > 0 && <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />}
           </div>
           <div className="text-2xl font-black text-amber-900 mt-2">{pendingCount}</div>
+        </div>
+
+        <div 
+          onClick={() => setFilterStatus('cert_claims')}
+          className={`p-4 rounded-2xl border shadow-xs flex flex-col justify-between cursor-pointer transition-all ${
+            filterStatus === 'cert_claims'
+              ? 'bg-amber-100 border-amber-400 ring-2 ring-amber-400/20'
+              : 'bg-amber-50/60 border-amber-200 hover:bg-amber-100/70'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1">
+              <Award size={12} className="text-amber-600" />
+              <span>Cert Claims</span>
+            </span>
+            {certClaimsCount > 0 && <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />}
+          </div>
+          <div className="text-2xl font-black text-amber-950 mt-2">{certClaimsCount}</div>
         </div>
 
         <div className="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200 shadow-xs flex flex-col justify-between">
@@ -528,6 +620,7 @@ const FranchiseRequests = () => {
           {[
             { key: 'all', label: `All Active (${activeApps.length})` },
             { key: 'pending', label: `Pending (${pendingCount})` },
+            { key: 'cert_claims', label: `Cert Claims (${certClaimsCount})`, icon: Award, highlight: certClaimsCount > 0 },
             { key: 'approved', label: `Approved (${approvedCount})` },
             { key: 'rejected', label: `Rejected (${rejectedCount})` },
             { key: 'trash', label: `Trash (${trashCount})`, icon: Trash2 }
@@ -538,12 +631,19 @@ const FranchiseRequests = () => {
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 ${filterStatus === tab.key
                   ? tab.key === 'trash'
                     ? 'bg-rose-900 text-white shadow-xs'
-                    : 'bg-indigo-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : tab.key === 'cert_claims'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'bg-indigo-900 text-white shadow-xs'
+                  : tab.key === 'cert_claims' && certClaimsCount > 0
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
             >
               {tab.icon && <tab.icon size={13} />}
               <span>{tab.label}</span>
+              {tab.key === 'cert_claims' && certClaimsCount > 0 && filterStatus !== 'cert_claims' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              )}
             </button>
           ))}
         </div>
@@ -647,17 +747,44 @@ const FranchiseRequests = () => {
 
                       {/* Status */}
                       <td className="py-3.5 px-4 text-center">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${app.status === 'Approved'
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                            : app.status === 'Rejected'
-                              ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                              : app.status === 'Trash'
-                                ? 'bg-slate-200 text-slate-700 border border-slate-300'
-                                : 'bg-amber-100 text-amber-800 border border-amber-300'
-                          }`}>
-                          {app.status === 'Approved' ? <CheckCircle2 size={11} /> : app.status === 'Rejected' ? <XCircle size={11} /> : app.status === 'Trash' ? <Archive size={11} /> : <AlertCircle size={11} />}
-                          <span>{app.status === 'Trash' ? 'Trash (Soft Deleted)' : app.status}</span>
-                        </span>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${app.status === 'Approved'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : app.status === 'Rejected'
+                                ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                : app.status === 'Trash'
+                                  ? 'bg-slate-200 text-slate-700 border border-slate-300'
+                                  : 'bg-amber-100 text-amber-800 border border-amber-300'
+                            }`}>
+                            {app.status === 'Approved' ? <CheckCircle2 size={11} /> : app.status === 'Rejected' ? <XCircle size={11} /> : app.status === 'Trash' ? <Archive size={11} /> : <AlertCircle size={11} />}
+                            <span>{app.status === 'Trash' ? 'Trash (Soft Deleted)' : app.status}</span>
+                          </span>
+
+                          {app.status === 'Approved' && (
+                            <>
+                              {app.certificate_status === 'pending' && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-500 text-white shadow-xs animate-pulse">
+                                  <Award size={10} /> Cert Claimed
+                                </span>
+                              )}
+                              {app.certificate_status === 'action_required' && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-600 text-white shadow-xs">
+                                  <AlertCircle size={10} /> Docs Demanded
+                                </span>
+                              )}
+                              {app.certificate_status === 'approved' && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-600 text-white shadow-xs">
+                                  <ShieldCheck size={10} /> Cert Issued
+                                </span>
+                              )}
+                              {(!app.certificate_status || app.certificate_status === 'unclaimed') && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                                  Unclaimed
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </td>
 
                       {/* Actions */}
@@ -714,34 +841,66 @@ const FranchiseRequests = () => {
                               )}
 
                               {app.status === 'Approved' && (
-                                <button
-                                  onClick={() => {
-                                    setCertCenterData({
-                                      id: app.id,
-                                      centerName: app.center_name,
-                                      centerCode: `EXAMc2026-${String(100 + app.id).padStart(3, '0')}`,
-                                      headName: `${app.center_head_first_name} ${app.center_head_last_name}`,
-                                      headPhoto: app.photo_url,
-                                      email: app.email,
-                                      phone: app.phone,
-                                      address: app.address_line1,
-                                      addressLine2: app.address_line2,
-                                      city: app.city,
-                                      district: app.district,
-                                      state: app.state,
-                                      pincode: app.pincode,
-                                      certificateNumber: `EXAM-ATC-2026-${String(100 + app.id).padStart(4, '0')}`,
-                                      issueDate: app.created_at,
-                                      validUntil: '2027-03-31'
-                                    });
-                                    setCertModalOpen(true);
-                                  }}
-                                  className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-lg text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
-                                  title="View Center Certificate"
-                                >
-                                  <Award size={13} className="text-amber-600" />
-                                  <span>Certificate</span>
-                                </button>
+                                <>
+                                  {app.certificate_status !== 'approved' ? (
+                                    <>
+                                      <button
+                                        onClick={() => {
+                                          setCertApprovalTarget(app);
+                                          setSecondaryConfirmed(false);
+                                          setCertApprovalNotes('');
+                                        }}
+                                        className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                                        title="Approve Center Authorization Certificate (Requires Secondary Confirmation)"
+                                      >
+                                        <Award size={13} />
+                                        <span>Approve Cert</span>
+                                      </button>
+
+                                      <button
+                                        onClick={() => {
+                                          setCertDemandTarget(app);
+                                          setDemandedDocList([]);
+                                          setDemandNotes(app.certificate_demand_notes || '');
+                                        }}
+                                        className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                                        title="Demand Additional Documents from Center"
+                                      >
+                                        <FileCheck size={13} />
+                                        <span>Demand Docs</span>
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setCertCenterData({
+                                          id: app.id,
+                                          centerName: app.center_name,
+                                          centerCode: `EXAMc2026-${String(100 + app.id).padStart(3, '0')}`,
+                                          headName: `${app.center_head_first_name} ${app.center_head_last_name}`,
+                                          headPhoto: app.photo_url,
+                                          email: app.email,
+                                          phone: app.phone,
+                                          address: app.address_line1,
+                                          addressLine2: app.address_line2,
+                                          city: app.city,
+                                          district: app.district,
+                                          state: app.state,
+                                          pincode: app.pincode,
+                                          certificateNumber: app.certificate_number || `EXAM-ATC-2026-${String(100 + app.id).padStart(4, '0')}`,
+                                          issueDate: app.certificate_approved_date || app.created_at,
+                                          validUntil: '2027-03-31'
+                                        });
+                                        setCertModalOpen(true);
+                                      }}
+                                      className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-lg text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                                      title="View Center Certificate"
+                                    >
+                                      <Award size={13} className="text-amber-600" />
+                                      <span>Certificate</span>
+                                    </button>
+                                  )}
+                                </>
                               )}
 
                               {/* Quick ZIP Dossier Download */}
@@ -843,6 +1002,151 @@ const FranchiseRequests = () => {
                   <span>Print Dossier</span>
                 </button>
               </div>
+
+              {/* Certificate Governance Status Card (for Approved Centers) */}
+              {selectedApp.status === 'Approved' && (
+                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                  selectedApp.certificate_status === 'approved'
+                    ? 'bg-emerald-50/70 border-emerald-300'
+                    : selectedApp.certificate_status === 'pending'
+                      ? 'bg-amber-50/80 border-amber-300'
+                      : selectedApp.certificate_status === 'action_required'
+                        ? 'bg-rose-50/80 border-rose-300'
+                        : 'bg-indigo-50/60 border-indigo-200'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2.5 rounded-xl mt-0.5 shrink-0 ${
+                      selectedApp.certificate_status === 'approved'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : selectedApp.certificate_status === 'pending'
+                          ? 'bg-amber-100 text-amber-700 animate-pulse'
+                          : selectedApp.certificate_status === 'action_required'
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-indigo-100 text-indigo-700'
+                    }`}>
+                      <Award size={22} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wide">
+                          Center Authorization & Affiliation Certificate
+                        </h4>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          selectedApp.certificate_status === 'approved'
+                            ? 'bg-emerald-200 text-emerald-900'
+                            : selectedApp.certificate_status === 'pending'
+                              ? 'bg-amber-200 text-amber-900'
+                              : selectedApp.certificate_status === 'action_required'
+                                ? 'bg-rose-200 text-rose-900'
+                                : 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {selectedApp.certificate_status === 'approved'
+                            ? 'Approved & Issued'
+                            : selectedApp.certificate_status === 'pending'
+                              ? 'Claim Pending Super Admin Approval'
+                              : selectedApp.certificate_status === 'action_required'
+                                ? 'Documents Demanded'
+                                : 'Unclaimed'}
+                        </span>
+                      </div>
+
+                      <p className="text-[11px] text-slate-600 mt-1">
+                        {selectedApp.certificate_status === 'approved' ? (
+                          <span>Official Certificate No: <strong className="font-mono text-emerald-800">{selectedApp.certificate_number || `EXAM-ATC-2026-${String(100 + selectedApp.id).padStart(4, '0')}`}</strong> • Approved on {selectedApp.certificate_approved_date ? new Date(selectedApp.certificate_approved_date).toLocaleDateString() : 'N/A'}.</span>
+                        ) : selectedApp.certificate_status === 'pending' ? (
+                          <span>Center Head requested certificate claim on {selectedApp.certificate_claim_date ? new Date(selectedApp.certificate_claim_date).toLocaleString() : 'recently'}. Please perform secondary confirmation or demand required documents.</span>
+                        ) : selectedApp.certificate_status === 'action_required' ? (
+                          <span>Super Admin has demanded documents from center. Notes: <em className="text-rose-800">"{selectedApp.certificate_demand_notes || 'Pending required documents'}"</em></span>
+                        ) : (
+                          <span>Center has not yet submitted an affiliation certificate claim request. Super Admin can still approve directly.</span>
+                        )}
+                      </p>
+
+                      {/* If documents demanded, show pill list */}
+                      {selectedApp.certificate_demanded_docs && (
+                        <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase">Demanded:</span>
+                          {(() => {
+                            try {
+                              const list = JSON.parse(selectedApp.certificate_demanded_docs);
+                              if (Array.isArray(list)) {
+                                return list.map((doc: string, idx: number) => (
+                                  <span key={idx} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-rose-100 text-rose-800 border border-rose-200">
+                                    {doc}
+                                  </span>
+                                ));
+                              }
+                            } catch (e) {}
+                            return <span className="text-[10px] text-rose-700">{selectedApp.certificate_demanded_docs}</span>;
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Quick Action buttons right in the card */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {selectedApp.certificate_status !== 'approved' ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCertApprovalTarget(selectedApp);
+                            setSecondaryConfirmed(false);
+                            setCertApprovalNotes('');
+                          }}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Award size={14} />
+                          <span>Approve Cert</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCertDemandTarget(selectedApp);
+                            setDemandedDocList([]);
+                            setDemandNotes(selectedApp.certificate_demand_notes || '');
+                          }}
+                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <FileCheck size={14} />
+                          <span>Demand Docs</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCertCenterData({
+                            id: selectedApp.id,
+                            centerName: selectedApp.center_name,
+                            centerCode: `EXAMc2026-${String(100 + selectedApp.id).padStart(3, '0')}`,
+                            headName: `${selectedApp.center_head_first_name} ${selectedApp.center_head_last_name}`,
+                            headPhoto: selectedApp.photo_url,
+                            email: selectedApp.email,
+                            phone: selectedApp.phone,
+                            address: selectedApp.address_line1,
+                            addressLine2: selectedApp.address_line2,
+                            city: selectedApp.city,
+                            district: selectedApp.district,
+                            state: selectedApp.state,
+                            pincode: selectedApp.pincode,
+                            certificateNumber: selectedApp.certificate_number || `EXAM-ATC-2026-${String(100 + selectedApp.id).padStart(4, '0')}`,
+                            issueDate: selectedApp.certificate_approved_date || selectedApp.created_at,
+                            validUntil: '2027-03-31'
+                          });
+                          setCertModalOpen(true);
+                        }}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Award size={14} />
+                        <span>View Certificate</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* 1. Center Head Details */}
               <div className="space-y-3">
@@ -1097,6 +1401,117 @@ const FranchiseRequests = () => {
                 </div>
               </div>
 
+              {/* 4. Center Resubmitted Verification Documents (Response to Demand Notice) */}
+              {selectedApp.certificate_uploaded_docs && (
+                <div className="space-y-3 pt-4 border-t border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <UploadCloud size={16} className="text-amber-600" />
+                        <span>Center Resubmitted Verification Documents (Response to Demand)</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Documents uploaded directly by Center Head to fulfill accreditation requirements.
+                      </p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                      <FileCheck size={11} className="text-amber-700" />
+                      <span>Resubmitted Files</span>
+                    </span>
+                  </div>
+
+                  {/* Resubmitted Documents Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                    {(() => {
+                      let docsArray: { key: string; label: string; url: string }[] = [];
+                      try {
+                        const parsed = typeof selectedApp.certificate_uploaded_docs === 'string'
+                          ? JSON.parse(selectedApp.certificate_uploaded_docs)
+                          : selectedApp.certificate_uploaded_docs;
+                        if (Array.isArray(parsed)) {
+                          docsArray = parsed.map((item: any, idx: number) => ({
+                            key: item.key || `doc_${idx}`,
+                            label: item.label || item.name || `Document #${idx + 1}`,
+                            url: item.url || item
+                          }));
+                        } else if (typeof parsed === 'object' && parsed !== null) {
+                          docsArray = Object.entries(parsed).map(([key, val]: [string, any]) => ({
+                            key,
+                            label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+                            url: typeof val === 'string' ? val : val?.url || ''
+                          }));
+                        }
+                      } catch (e) {}
+
+                      if (docsArray.length === 0) {
+                        return <div className="text-xs text-slate-500 italic p-3">No files parsed.</div>;
+                      }
+
+                      return docsArray.map((rdoc, idx) => {
+                        const fullUrl = getAssetUrl(rdoc.url);
+                        const isPdf = (rdoc.url || '').toLowerCase().endsWith('.pdf');
+
+                        return (
+                          <div key={idx} className="bg-amber-50/50 rounded-2xl p-3.5 border border-amber-200 flex flex-col justify-between gap-3 shadow-xs">
+                            <div>
+                              <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">
+                                Demanded Upload #{idx + 1}
+                              </span>
+                              <div className="font-bold text-slate-900 text-xs mt-0.5">{rdoc.label}</div>
+                            </div>
+
+                            <div className="w-full h-32 rounded-xl overflow-hidden border border-amber-200 bg-white relative group flex items-center justify-center">
+                              {isPdf ? (
+                                <div className="text-center p-3">
+                                  <FileText size={32} className="mx-auto text-rose-500 mb-1" />
+                                  <span className="text-[10px] font-bold text-slate-700 block">PDF Document</span>
+                                </div>
+                              ) : (
+                                <img src={fullUrl} alt={rdoc.label} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                              )}
+                              <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPreviewDoc({ url: fullUrl, title: rdoc.label, docKey: rdoc.key, appId: selectedApp.id });
+                                    setZoomScale(1);
+                                    setRotationDeg(0);
+                                  }}
+                                  className="p-2 rounded-xl bg-white text-slate-900 hover:bg-indigo-50 hover:text-indigo-600 shadow-md cursor-pointer transition-colors"
+                                  title="Zoom & Inspect"
+                                >
+                                  <Eye size={15} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadFile(rdoc.url, `${selectedApp.center_name}_${rdoc.key}`)}
+                                  className="p-2 rounded-xl bg-white text-slate-900 hover:bg-emerald-50 hover:text-emerald-700 shadow-md cursor-pointer transition-colors"
+                                  title="Download File"
+                                >
+                                  <Download size={15} />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2 pt-2 border-t border-amber-200/80">
+                              <span className="text-[10px] text-amber-900 font-medium">Uploaded by Center</span>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadFile(rdoc.url, `${selectedApp.center_name}_${rdoc.key}`)}
+                                className="px-2.5 py-1 rounded-lg bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <Download size={11} />
+                                <span>Download</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              )}
+
             </div>
 
             {/* Modal Footer Actions */}
@@ -1157,6 +1572,69 @@ const FranchiseRequests = () => {
                       <CheckCircle2 size={15} />
                       <span>Approve & Create Center</span>
                     </button>
+                  </>
+                )}
+
+                {selectedApp.status === 'Approved' && (
+                  <>
+                    {selectedApp.certificate_status !== 'approved' ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCertDemandTarget(selectedApp);
+                            setDemandedDocList([]);
+                            setDemandNotes(selectedApp.certificate_demand_notes || '');
+                          }}
+                          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <FileCheck size={14} />
+                          <span>Demand Documents</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCertApprovalTarget(selectedApp);
+                            setSecondaryConfirmed(false);
+                            setCertApprovalNotes('');
+                          }}
+                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Award size={14} />
+                          <span>Approve Certificate (Secondary Confirmation)</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCertCenterData({
+                            id: selectedApp.id,
+                            centerName: selectedApp.center_name,
+                            centerCode: `EXAMc2026-${String(100 + selectedApp.id).padStart(3, '0')}`,
+                            headName: `${selectedApp.center_head_first_name} ${selectedApp.center_head_last_name}`,
+                            headPhoto: selectedApp.photo_url,
+                            email: selectedApp.email,
+                            phone: selectedApp.phone,
+                            address: selectedApp.address_line1,
+                            addressLine2: selectedApp.address_line2,
+                            city: selectedApp.city,
+                            district: selectedApp.district,
+                            state: selectedApp.state,
+                            pincode: selectedApp.pincode,
+                            certificateNumber: selectedApp.certificate_number || `EXAM-ATC-2026-${String(100 + selectedApp.id).padStart(4, '0')}`,
+                            issueDate: selectedApp.certificate_approved_date || selectedApp.created_at,
+                            validUntil: '2027-03-31'
+                          });
+                          setCertModalOpen(true);
+                        }}
+                        className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-600/30 flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Award size={14} />
+                        <span>View Center Certificate</span>
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -1672,6 +2150,357 @@ const FranchiseRequests = () => {
 
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SECONDARY CERTIFICATE APPROVAL MODAL */}
+      {certApprovalTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-5 bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
+                  <Award size={22} />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-white">Secondary Confirmation Required</h3>
+                  <p className="text-[11px] text-emerald-300">
+                    Center Authorization & Affiliation Certificate Issue
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setCertApprovalTarget(null);
+                  setSecondaryConfirmed(false);
+                }}
+                className="text-slate-400 hover:text-white text-2xl font-bold cursor-pointer leading-none"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
+              {/* Center Summary Card */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Target Center</span>
+                  <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg border border-indigo-200">
+                    EXAMc2026-{String(100 + certApprovalTarget.id).padStart(3, '0')}
+                  </span>
+                </div>
+                <div className="font-black text-base text-slate-900">{certApprovalTarget.center_name}</div>
+                <div className="text-xs text-slate-600 flex items-center gap-2 flex-wrap">
+                  <span>Head: <strong>{certApprovalTarget.center_head_first_name} {certApprovalTarget.center_head_last_name}</strong></span>
+                  <span>•</span>
+                  <span>{certApprovalTarget.city}, {certApprovalTarget.state}</span>
+                  <span>•</span>
+                  <span>{certApprovalTarget.phone}</span>
+                </div>
+              </div>
+
+              {/* Security Audit Verification Points */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                  Mandatory Compliance Audit Verification
+                </span>
+                <div className="space-y-2 text-xs">
+                  <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl flex items-center gap-2.5 text-emerald-900 font-medium">
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                    <span>Center head biometric KYC & identity proof authenticated</span>
+                  </div>
+                  <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl flex items-center gap-2.5 text-emerald-900 font-medium">
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                    <span>Center physical infrastructure & computer lab capacity audited</span>
+                  </div>
+                  <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl flex items-center gap-2.5 text-emerald-900 font-medium">
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                    <span>Examirror National Accreditation terms & regulations accepted</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes (Optional) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Administrative Approval Notes / Verification Remarks (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={certApprovalNotes}
+                  onChange={(e) => setCertApprovalNotes(e.target.value)}
+                  placeholder="e.g., Physical site audit completed, lease deed and lab photos validated. Authorized for official affiliation."
+                  className="w-full p-3 border border-slate-200 rounded-xl text-xs outline-none focus:border-emerald-500 bg-slate-50 focus:bg-white resize-none"
+                />
+              </div>
+
+              {/* Secondary Confirmation Checkbox */}
+              <div className="p-4 bg-amber-50 rounded-2xl border-2 border-amber-300">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={secondaryConfirmed}
+                    onChange={(e) => setSecondaryConfirmed(e.target.checked)}
+                    className="w-5 h-5 rounded border-amber-400 text-emerald-600 focus:ring-emerald-500 mt-0.5 cursor-pointer shrink-0"
+                  />
+                  <div className="text-xs text-amber-950 font-medium leading-relaxed">
+                    <strong className="font-bold text-amber-900 block mb-0.5">
+                      Secondary Super Admin Confirmation
+                    </strong>
+                    I formally certify that I have reviewed the franchise dossier, verified the center's credentials, and officially authorize the release of the <strong>Center Authorization & Affiliation Certificate</strong> for public and center display.
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCertApprovalTarget(null);
+                  setSecondaryConfirmed(false);
+                }}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={!secondaryConfirmed || certApproving}
+                onClick={() => handleConfirmCertificateApproval(certApprovalTarget.id)}
+                className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow-md flex items-center gap-2 transition-all ${
+                  secondaryConfirmed && !certApproving
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-emerald-600/30'
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                }`}
+              >
+                {certApproving ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Issuing Certificate...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck size={15} />
+                    <span>Confirm & Issue Affiliation Certificate</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DEMAND DOCUMENTS MODAL */}
+      {certDemandTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-5 bg-gradient-to-r from-amber-950 via-slate-900 to-amber-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400">
+                  <FileCheck size={22} />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-white">Demand Required Documents</h3>
+                  <p className="text-[11px] text-amber-300">
+                    Request missing or clearer verification documents before issuing certificate
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setCertDemandTarget(null);
+                  setDemandedDocList([]);
+                }}
+                className="text-slate-400 hover:text-white text-2xl font-bold cursor-pointer leading-none"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
+              {/* Target Center Info */}
+              <div className="bg-amber-50/60 p-3.5 rounded-2xl border border-amber-200 flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">Target Center</span>
+                  <span className="font-bold text-slate-900">{certDemandTarget.center_name}</span>
+                  <span className="text-slate-500 ml-2">({certDemandTarget.center_head_first_name} {certDemandTarget.center_head_last_name})</span>
+                </div>
+                <span className="font-mono text-[11px] font-bold text-indigo-700 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                  EXAMc2026-{String(100 + certDemandTarget.id).padStart(3, '0')}
+                </span>
+              </div>
+
+              {/* Preset Checklist */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                  Select Demanded Documents (Center Head will see this checklist to upload)
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {[
+                    'Electricity / Utility Bill for Center Premises',
+                    'Clear / Higher Resolution Head Marksheet',
+                    'Commercial Rent Agreement / Lease Deed',
+                    'Police Verification / NOC Document',
+                    'Clear Aadhar Card (Both Sides HD Scan)',
+                    'Classroom & Computer Lab Geo-tagged Photos',
+                    'Fire & Safety Clearance Certificate',
+                    'Bank Passbook / Cancelled Cheque'
+                  ].map((presetDoc) => {
+                    const isSelected = demandedDocList.includes(presetDoc);
+                    return (
+                      <button
+                        key={presetDoc}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setDemandedDocList(demandedDocList.filter(d => d !== presetDoc));
+                          } else {
+                            setDemandedDocList([...demandedDocList, presetDoc]);
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold shadow-xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 ${
+                          isSelected ? 'bg-amber-500 border-amber-600 text-white' : 'border-slate-300 bg-white'
+                        }`}>
+                          {isSelected && <Check size={11} className="stroke-[3]" />}
+                        </div>
+                        <span className="text-[11px] leading-tight">{presetDoc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Add Custom Document Requirement */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
+                  Add Custom Document Requirement (Optional)
+                </span>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="e.g., Trade License, Affidavit, Stamp Paper..."
+                    value={customDemandDoc}
+                    onChange={(e) => setCustomDemandDoc(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && customDemandDoc.trim()) {
+                        e.preventDefault();
+                        if (!demandedDocList.includes(customDemandDoc.trim())) {
+                          setDemandedDocList([...demandedDocList, customDemandDoc.trim()]);
+                        }
+                        setCustomDemandDoc('');
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-amber-500 bg-slate-50 focus:bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (customDemandDoc.trim()) {
+                        if (!demandedDocList.includes(customDemandDoc.trim())) {
+                          setDemandedDocList([...demandedDocList, customDemandDoc.trim()]);
+                        }
+                        setCustomDemandDoc('');
+                      }
+                    }}
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Plus size={13} />
+                    <span>Add</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Instructions & Notes */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  Instructions for Center Head (Visible Prominently on Center Dashboard)
+                </label>
+                <textarea
+                  rows={3}
+                  value={demandNotes}
+                  onChange={(e) => setDemandNotes(e.target.value)}
+                  placeholder="e.g., Please upload clear color scans of your commercial lease deed and recent electricity bill showing center name for affiliation clearance."
+                  className="w-full p-3 border border-slate-200 rounded-xl text-xs outline-none focus:border-amber-500 bg-slate-50 focus:bg-white resize-none"
+                />
+              </div>
+
+              {/* Selected Summary Pill */}
+              {demandedDocList.length > 0 && (
+                <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200 space-y-1">
+                  <span className="text-[10px] font-bold text-amber-900 uppercase">Selected Demanded Checklist ({demandedDocList.length}):</span>
+                  <div className="flex flex-wrap gap-1">
+                    {demandedDocList.map((doc, idx) => (
+                      <span key={idx} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-white border border-amber-300 text-amber-900 flex items-center gap-1">
+                        <span>{doc}</span>
+                        <button
+                          type="button"
+                          onClick={() => setDemandedDocList(demandedDocList.filter((_, i) => i !== idx))}
+                          className="hover:text-rose-600 font-bold ml-1 cursor-pointer"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200 leading-relaxed">
+                ℹ️ When sent, this will immediately flag the center as <strong>"Action Required"</strong>. The Center Head's dashboard will display an urgent alert and unlock the document upload portal.
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCertDemandTarget(null);
+                  setDemandedDocList([]);
+                }}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={certDemanding || (demandedDocList.length === 0 && !demandNotes.trim())}
+                onClick={() => handleSendDemandNotice(certDemandTarget.id)}
+                className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow-md flex items-center gap-2 transition-all ${
+                  !certDemanding && (demandedDocList.length > 0 || demandNotes.trim())
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white cursor-pointer shadow-amber-600/30'
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                }`}
+              >
+                {certDemanding ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Sending Demand Notice...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send size={14} />
+                    <span>Send Document Demand Notice</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
