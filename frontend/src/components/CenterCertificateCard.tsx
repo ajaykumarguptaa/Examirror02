@@ -292,44 +292,47 @@ export const CenterCertificateCard: React.FC<CenterCertificateCardProps> = ({
           </div>
 
           {/* Right Column: Authorized Signatures & Seals */}
-          <div className="col-span-4 flex justify-end gap-6 text-center">
+          <div className="col-span-4 flex items-end justify-end gap-4 text-center">
             
             {/* Center Head / Director Specimen */}
             {center.headPhoto ? (
-              <div className="flex flex-col items-center">
-                <div className="w-16 h-18 rounded-lg overflow-hidden border-2 border-amber-400 shadow-sm bg-white mb-1">
+              <div className="flex flex-col items-center pb-1 shrink-0">
+                <div className="w-14 h-16 rounded-lg overflow-hidden border-2 border-amber-400 shadow-sm bg-white mb-1">
                   <img
                     src={getAssetUrl(center.headPhoto)}
                     alt="Center Head"
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <span className="text-[9px] font-bold text-slate-600 uppercase">
+                <span className="text-[8.5px] font-bold text-slate-600 uppercase tracking-wider">
                   Authorized Head
                 </span>
               </div>
             ) : null}
 
-            {/* Managing Director Signature & Seal */}
-            <div className="flex flex-col items-center justify-end">
-              <div className="relative w-28 h-12 flex items-center justify-center">
-                {/* Digital Signature Specimen */}
-                <span className="font-serif italic font-bold text-2xl text-indigo-950 tracking-wider transform -rotate-3 select-none">
-                  A.K. Gupta
-                </span>
-                {/* Red/Purple Official Corporate Stamp */}
-                <div className="absolute -bottom-1 -right-2 w-14 h-14 rounded-full border border-purple-600/40 text-purple-700/50 flex items-center justify-center pointer-events-none rotate-12">
-                  <span className="text-[7px] font-black uppercase text-center leading-tight">
-                    EXAMIRROR<br/>SEAL
-                  </span>
-                </div>
+            {/* Official Stamp & Saurabh Signature Block */}
+            <div className="flex items-end justify-end h-[82px] relative shrink-0">
+              {/* Official Stamp */}
+              <div className="opacity-95 mix-blend-multiply drop-shadow-sm pb-1 pointer-events-none -rotate-12 translate-x-12 z-20">
+                <img 
+                  src="/Blue Circular Tech Emblem Logo.png?v=3" 
+                  alt="Official Stamp" 
+                  className="w-[74px] h-[74px] object-contain" 
+                />
               </div>
-              <div className="w-32 border-t-2 border-slate-800 pt-1 mt-0.5">
-                <div className="text-[11px] font-black text-slate-900 uppercase font-serif">
-                  Managing Director
-                </div>
-                <div className="text-[8.5px] font-bold text-slate-500 uppercase tracking-wider">
-                  Examirror Edutech Pvt. Ltd.
+
+              {/* Signature Block */}
+              <div className="flex flex-col items-center justify-end w-44 relative">
+                <img
+                  src="/Saurabh_Signature_Final.png?v=3"
+                  alt="Signature"
+                  className="w-40 h-14 object-contain z-10 mb-0.5 mix-blend-multiply pointer-events-none"
+                />
+
+                <div className="w-full border-t-[1.5px] border-blue-900/60 text-center pt-1">
+                  <span className="text-xs font-bold text-[#1e3a8a] font-sans italic tracking-wide drop-shadow-sm block">
+                    Authorised Signature
+                  </span>
                 </div>
               </div>
             </div>

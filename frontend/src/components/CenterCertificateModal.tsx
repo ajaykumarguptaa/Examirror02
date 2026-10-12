@@ -9,7 +9,10 @@ import {
   Sparkles,
   ExternalLink,
   ShieldCheck,
-  Copy
+  Copy,
+  ZoomIn,
+  ZoomOut,
+  Maximize2
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { CenterCertificateCard, type CenterCertificateData, CENTER_CERT_WIDTH, CENTER_CERT_HEIGHT } from './CenterCertificateCard';
@@ -27,6 +30,15 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
 }) => {
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth < 640) return 0.5;
+      if (window.innerWidth < 1024) return 0.68;
+      if (window.innerWidth < 1440) return 0.8;
+      return 0.88;
+    }
+    return 0.8;
+  });
   const certRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen || !center) return null;
@@ -113,6 +125,42 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
 
           {/* Action Buttons & Close */}
           <div className="flex items-center gap-2">
+            {/* Interactive Zoom Controls */}
+            <div className="hidden md:flex items-center bg-white/10 rounded-xl p-1 border border-white/10 gap-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setZoomLevel(prev => Math.max(0.4, Number((prev - 0.08).toFixed(2))))}
+                className="p-1 hover:bg-white/20 rounded-lg text-slate-300 hover:text-white transition-colors cursor-pointer"
+                title="Zoom Out"
+              >
+                <ZoomOut size={13} />
+              </button>
+              <span className="font-mono px-1.5 text-[11px] font-bold text-amber-300 min-w-[38px] text-center">
+                {Math.round(zoomLevel * 100)}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setZoomLevel(prev => Math.min(1.2, Number((prev + 0.08).toFixed(2))))}
+                className="p-1 hover:bg-white/20 rounded-lg text-slate-300 hover:text-white transition-colors cursor-pointer"
+                title="Zoom In"
+              >
+                <ZoomIn size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const defaultZoom = typeof window !== 'undefined'
+                    ? (window.innerWidth < 640 ? 0.5 : window.innerWidth < 1024 ? 0.68 : window.innerWidth < 1440 ? 0.8 : 0.88)
+                    : 0.8;
+                  setZoomLevel(defaultZoom);
+                }}
+                className="px-2 py-0.5 hover:bg-white/20 rounded-lg text-[10px] font-bold text-slate-300 hover:text-white transition-colors cursor-pointer"
+                title="Fit to Screen"
+              >
+                Fit
+              </button>
+            </div>
+
             <button
               onClick={handlePrint}
               className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-white/10"
@@ -151,9 +199,22 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
         </div>
 
         {/* Modal Certificate Viewport */}
-        <div className="flex-1 overflow-auto bg-slate-100 p-4 sm:p-8 flex items-center justify-center">
-          <div className="overflow-auto max-w-full flex justify-center py-2">
-            <div className="transform scale-[0.52] sm:scale-[0.72] md:scale-[0.84] lg:scale-[0.92] origin-top transition-transform shadow-2xl rounded-sm">
+        <div className="flex-1 overflow-auto bg-slate-200/70 p-4 sm:p-8 flex items-center justify-center">
+          <div 
+            style={{
+              width: `${Math.round(CENTER_CERT_WIDTH * zoomLevel)}px`,
+              height: `${Math.round(CENTER_CERT_HEIGHT * zoomLevel)}px`
+            }}
+            className="relative shadow-2xl rounded-sm transition-all flex items-center justify-center overflow-hidden shrink-0 my-auto"
+          >
+            <div 
+              style={{
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: 'top left',
+                width: `${CENTER_CERT_WIDTH}px`,
+                height: `${CENTER_CERT_HEIGHT}px`
+              }}
+            >
               <CenterCertificateCard center={center} />
             </div>
           </div>
