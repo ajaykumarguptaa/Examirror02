@@ -426,8 +426,13 @@ const StudentsList = () => {
       setQuickPhone(student.phone || '');
       setQuickCourseFee(student.course_fee || 0);
     } else if (type === 'manage_fee') {
-      setFeeAmount(Number(student.course_fee) || 0);
-      setFeePaid(Number(student.course_fee) || 0);
+      const matchedCourse = courses.find(c => c.id === student.courseId);
+      const officialFee = (matchedCourse?.fee !== undefined && matchedCourse?.fee !== null)
+        ? Number(matchedCourse.fee)
+        : (Number(student.course_fee) || 0);
+
+      setFeeAmount(officialFee || Number(student.course_fee) || 0);
+      setFeePaid(Number(student.course_fee) || officialFee || 0);
       setFeeMode('Cash');
     } else if (type === 'advanced_edit') {
       setEditFormData({
@@ -1253,14 +1258,20 @@ const StudentsList = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Total Course Fee (₹) *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-bold text-gray-700">Total Course Fee (₹) *</label>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-100 border border-emerald-300 font-bold px-1.5 py-0.5 rounded">
+                    Un-editable (Auto-fetched)
+                  </span>
+                </div>
                 <input
                   type="number"
+                  readOnly
                   required
                   value={feeAmount}
-                  onChange={(e) => setFeeAmount(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-bold text-indigo-700 outline-none focus:border-purple-600"
+                  className="w-full px-3 py-2 border border-gray-300 bg-gray-100 rounded-lg text-sm font-bold text-indigo-700 outline-none cursor-not-allowed select-none"
                 />
+                <p className="text-[11px] text-gray-500 mt-1">Course fee is auto-fetched according to official course selection and cannot be modified.</p>
               </div>
 
               <div>
@@ -1634,12 +1645,17 @@ const StudentsList = () => {
                       </div>
 
                       <div>
-                        <label className="block font-bold text-gray-700 mb-1">Center Course Fee Charged (₹)</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block font-bold text-gray-700">Center Course Fee (₹)</label>
+                          <span className="text-[10px] text-emerald-700 bg-emerald-100 border border-emerald-300 font-bold px-1.5 py-0.5 rounded">
+                            Auto-fetched
+                          </span>
+                        </div>
                         <input
                           type="number"
+                          readOnly
                           value={editFormData.courseFee}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, courseFee: Number(e.target.value) }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-indigo-600 font-bold text-indigo-700"
+                          className="w-full px-3 py-2 border border-gray-300 bg-gray-100 rounded-lg text-sm font-bold text-indigo-700 outline-none cursor-not-allowed select-none"
                         />
                       </div>
                     </div>

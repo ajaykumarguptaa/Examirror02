@@ -595,46 +595,46 @@ const AddStudent = () => {
                       </div>
                     </div>
 
-                    {/* Course Duration (Auto-fetched) */}
-                    <div className="relative border border-[#cbd5e1] rounded-md px-3 py-1.5 focus-within:border-[#6366f1] bg-white">
+                    {/* Course Duration (Auto-fetched & Un-editable) */}
+                    <div className="relative border border-[#cbd5e1] rounded-md px-3 py-1.5 bg-slate-50">
                       <div className="flex items-center justify-between">
-                        <label className="block text-[11px] font-semibold text-[#6366f1] leading-tight">Course Duration *</label>
+                        <label className="block text-[11px] font-semibold text-slate-600 leading-tight">Course Duration * (Auto-fetched)</label>
                         {duration && (
-                          <span className="text-[10px] text-emerald-600 bg-emerald-50 font-bold px-1.5 py-0.5 rounded border border-emerald-200">
+                          <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-1.5 py-0.5 rounded border border-emerald-300">
                             Auto-fetched
                           </span>
                         )}
                       </div>
                       <input
                         type="text"
+                        readOnly
                         required
-                        placeholder="Course Duration (e.g. 3 Months, 6 Months) *"
+                        placeholder="Select course to auto-fetch duration *"
                         value={duration}
-                        onChange={(e) => setDuration(e.target.value)}
-                        className="w-full text-sm font-medium text-[#1e293b] placeholder-gray-500 outline-none bg-transparent"
+                        className="w-full text-sm font-semibold text-slate-800 placeholder-gray-400 outline-none bg-transparent cursor-not-allowed select-none"
                       />
                     </div>
                   </div>
 
                   {/* Row 10: Total Course Fee in Center & Academic Status */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Total Course Fee in Center */}
-                    <div className="relative border border-[#cbd5e1] rounded-md px-3 py-1.5 focus-within:border-[#6366f1] bg-white">
+                    {/* Total Course Fee in Center (Auto-fetched & Un-editable) */}
+                    <div className="relative border border-[#cbd5e1] rounded-md px-3 py-1.5 bg-slate-50">
                       <div className="flex items-center justify-between">
-                        <label className="block text-[11px] font-semibold text-[#6366f1] leading-tight">Total Course Fee in Center (₹) *</label>
+                        <label className="block text-[11px] font-semibold text-slate-600 leading-tight">Total Course Fee in Center (₹) * (Auto-fetched)</label>
                         {courseFee && (
-                          <span className="text-[10px] text-emerald-600 bg-emerald-50 font-bold px-1.5 py-0.5 rounded border border-emerald-200">
+                          <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-1.5 py-0.5 rounded border border-emerald-300">
                             Auto-fetched
                           </span>
                         )}
                       </div>
                       <input
                         type="number"
+                        readOnly
                         required
-                        placeholder="Total Course Fee in Center *"
+                        placeholder="Select course to auto-fetch fee *"
                         value={courseFee}
-                        onChange={(e) => setCourseFee(e.target.value)}
-                        className="w-full text-sm font-medium text-[#1e293b] placeholder-gray-500 outline-none bg-transparent"
+                        className="w-full text-sm font-bold text-indigo-700 placeholder-gray-400 outline-none bg-transparent cursor-not-allowed select-none"
                       />
                     </div>
 
