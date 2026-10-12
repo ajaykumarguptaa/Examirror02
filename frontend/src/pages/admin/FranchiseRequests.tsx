@@ -41,6 +41,8 @@ import {
   Copy
 } from 'lucide-react';
 import { CenterCertificateModal } from '../../components/CenterCertificateModal';
+import { downloadFranchiseDossierZip } from '../../utils/generateFranchiseDossierZip';
+import { downloadFranchiseDossierPdf } from '../../utils/generateFranchiseDossierPdf';
 
 interface FranchiseApplication {
   id: number;
@@ -114,6 +116,8 @@ const FranchiseRequests = () => {
   const [certModalOpen, setCertModalOpen] = useState(false);
   const [certCenterData, setCertCenterData] = useState<any | null>(null);
   const [copiedCreds, setCopiedCreds] = useState(false);
+  const [zippingAppId, setZippingAppId] = useState<number | null>(null);
+  const [zipProgressText, setZipProgressText] = useState<string>('');
 
   // Soft Delete & Real-Time Zebtish Captcha State
   const [deleteTargetApp, setDeleteTargetApp] = useState<FranchiseApplication | null>(null);
@@ -222,18 +226,78 @@ const FranchiseRequests = () => {
     return list;
   };
 
-  const handleDownloadAllDocs = (app: FranchiseApplication) => {
-    const docs = getAppDocuments(app).filter(d => !!d.url);
-    if (docs.length === 0) {
-      alert('No uploaded documents available for download.');
+  const handleDownloadAllDocs = async (app: FranchiseApplication) => {
+    const docs = getAppDocuments(app);
+    const uploadedDocs = docs.filter(d => !!d.url);
+    if (uploadedDocs.length === 0) {
+      alert('No uploaded KYC documents found for this application.');
       return;
     }
-    docs.forEach((doc, idx) => {
-      setTimeout(() => {
-        handleDownloadFile(doc.url!, `${app.center_name.replace(/[^a-zA-Z0-9]/g, '_')}_${doc.filename}`);
-      }, idx * 350);
-    });
-    setToast({ type: 'success', text: `Downloading ${docs.length} documents...` });
+
+    setZippingAppId(app.id);
+    setZipProgressText('Packaging Dossier ZIP...');
+    try {
+      await downloadFranchiseDossierZip(app, docs, verifiedDocs, (msg) => {
+        setZipProgressText(msg);
+      });
+      setToast({
+        type: 'success',
+        text: `ZIP Archive created! Contains Dossier PDF & ${uploadedDocs.length} KYC documents.`
+      });
+    } catch (err: any) {
+      console.error('Failed to create ZIP dossier:', err);
+      setToast({
+        type: 'error',
+        text: 'Failed to create ZIP archive. Please try again.'
+      });
+    } finally {
+      setZippingAppId(null);
+      setZipProgressText('');
+    }
+  };
+
+  const handleDownloadDossierPdfOnly = (app: FranchiseApplication) => {
+    const docs = getAppDocuments(app);
+    try {
+      downloadFranchiseDossierPdf({
+        id: app.id,
+        center_head_first_name: app.center_head_first_name,
+        center_head_middle_name: app.center_head_middle_name,
+        center_head_last_name: app.center_head_last_name,
+        father_first_name: app.father_first_name,
+        father_middle_name: app.father_middle_name,
+        father_last_name: app.father_last_name,
+        phone: app.phone,
+        email: app.email,
+        aadhar_number: app.aadhar_number,
+        pan_number: app.pan_number,
+        dob: app.dob,
+        gender: app.gender,
+        marital_status: app.marital_status,
+        qualification: app.qualification,
+        center_name: app.center_name,
+        address_line1: app.address_line1,
+        address_line2: app.address_line2,
+        city: app.city,
+        district: app.district,
+        state: app.state,
+        pincode: app.pincode,
+        status: app.status,
+        created_at: app.created_at,
+        documents: docs.map(d => ({
+          key: d.key,
+          label: d.label,
+          category: d.category,
+          isUploaded: !!d.url,
+          isVerified: !!verifiedDocs[`${app.id}_${d.key}`],
+          filename: d.filename
+        }))
+      });
+      setToast({ type: 'success', text: `Downloaded Franchise Application Summary PDF for #${app.id}` });
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+      setToast({ type: 'error', text: 'Failed to generate PDF dossier.' });
+    }
   };
 
   const fetchApplications = async () => {
@@ -680,6 +744,21 @@ const FranchiseRequests = () => {
                                 </button>
                               )}
 
+                              {/* Quick ZIP Dossier Download */}
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadAllDocs(app)}
+                                disabled={zippingAppId === app.id}
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                                title="Download Dossier Archive (ZIP containing PDF + all uploaded documents)"
+                              >
+                                {zippingAppId === app.id ? (
+                                  <RefreshCw size={14} className="animate-spin text-amber-600" />
+                                ) : (
+                                  <FolderDown size={14} />
+                                )}
+                              </button>
+
                               {/* Delete / Soft Delete Trigger Button */}
                               <button
                                 onClick={() => openDeleteModal(app, 'soft')}
@@ -873,12 +952,36 @@ const FranchiseRequests = () => {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => handleDownloadAllDocs(selectedApp)}
-                      className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-indigo-200 shadow-xs"
-                      title="Download all uploaded documents"
+                      onClick={() => handleDownloadDossierPdfOnly(selectedApp)}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-300 shadow-xs"
+                      title="Download Official Application Summary PDF"
                     >
-                      <FolderDown size={14} />
-                      <span>Download All Files</span>
+                      <FileText size={14} className="text-rose-600" />
+                      <span>Dossier PDF</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={zippingAppId === selectedApp.id}
+                      onClick={() => handleDownloadAllDocs(selectedApp)}
+                      className={`px-3.5 py-1.5 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer border shadow-xs ${
+                        zippingAppId === selectedApp.id
+                          ? 'bg-amber-50 border-amber-300 text-amber-800 cursor-wait'
+                          : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200'
+                      }`}
+                      title="Download complete ZIP archive containing application PDF and all uploaded documents"
+                    >
+                      {zippingAppId === selectedApp.id ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin text-amber-600" />
+                          <span>{zipProgressText || 'Packaging ZIP...'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <FolderDown size={14} className="text-indigo-600" />
+                          <span>Download All Files (ZIP + PDF)</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
