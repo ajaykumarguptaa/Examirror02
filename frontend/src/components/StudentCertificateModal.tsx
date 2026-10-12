@@ -165,10 +165,10 @@ export const StudentCertificateModal = ({ student, onClose, onOpenMarksheet }: a
           </button>
         </div>
 
-        {/* Certificate Body */}
-        <div className="p-6 overflow-y-auto flex-1 flex justify-center bg-gray-50 relative group">
+        {/* Certificate Body (Responsive scroll wrapper for mobile) */}
+        <div className="p-3 sm:p-6 overflow-y-auto overflow-x-auto flex-1 flex justify-start sm:justify-center bg-gray-50 relative group no-scrollbar">
 
-          <div className="certificate-wrapper w-full flex justify-center">
+          <div className="certificate-wrapper min-w-[650px] sm:min-w-0 flex justify-center shrink-0 w-full">
             <OfficialCertificateCard
               id="printable-certificate"
               student={{

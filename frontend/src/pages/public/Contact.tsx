@@ -167,7 +167,7 @@ const Contact = () => {
       </section>
 
       {/* Main Content Grid */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full -mt-8 relative z-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full mt-4 sm:-mt-8 relative z-20">
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 

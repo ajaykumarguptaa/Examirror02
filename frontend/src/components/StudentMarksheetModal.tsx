@@ -590,12 +590,13 @@ export const StudentMarksheetModal = ({
             </div>
           )}
 
-          {/* PRINTABLE OFFICIAL MARKSHEET CONTAINER */}
-          <div 
-            id="printable-marksheet" 
-            className="w-full max-w-[780px] bg-white text-slate-900 border-2 border-blue-900 shadow-xl relative rounded-xl p-6 sm:p-8 overflow-hidden font-sans select-none"
-            style={{ minHeight: '1000px' }}
-          >
+          {/* PRINTABLE OFFICIAL MARKSHEET CONTAINER (With mobile responsive scroll wrapper) */}
+          <div className="w-full overflow-x-auto flex justify-start sm:justify-center py-2 no-scrollbar">
+            <div 
+              id="printable-marksheet" 
+              className="w-full max-w-[780px] min-w-[580px] sm:min-w-[700px] bg-white text-slate-900 border-2 border-blue-900 shadow-xl relative rounded-xl p-4 sm:p-8 overflow-hidden font-sans select-none shrink-0"
+              style={{ minHeight: '1000px' }}
+            >
             {/* Ornate Corner Accents */}
             <div className="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-blue-800" />
             <div className="absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 border-blue-800" />
@@ -966,6 +967,7 @@ export const StudentMarksheetModal = ({
 
             </div>
           </div>
+        </div>
 
         </div>
 

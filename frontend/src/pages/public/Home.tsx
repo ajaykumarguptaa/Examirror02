@@ -574,22 +574,22 @@ const Home = () => {
                   <motion.div
                     animate={{ y: [0, -6, 0] }}
                     transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                    className="absolute -top-4 -right-2 sm:-right-4 bg-white text-slate-900 border border-slate-200 px-3.5 py-2 rounded-2xl shadow-xl flex items-center gap-2.5 z-20"
+                    className="absolute -top-3 right-2 sm:-top-4 sm:-right-4 bg-white text-slate-900 border border-slate-200 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-xl flex items-center gap-2 sm:gap-2.5 z-20"
                   >
-                    <div className="w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xs font-black shadow-sm">
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xs font-black shadow-sm">
                       ✓
                     </div>
                     <div className="text-left">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Government</div>
-                      <div className="text-xs font-black text-emerald-600">Recognized</div>
+                      <div className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Government</div>
+                      <div className="text-[11px] sm:text-xs font-black text-emerald-600">Recognized</div>
                     </div>
                   </motion.div>
 
-                  {/* Floating Badge: Bottom-Left (Student Portal & QR Verification) */}
+                  {/* Floating Badge: Bottom-Left (Student Portal & QR Verification - Desktop/Tablet only to avoid mobile overlap) */}
                   <motion.div
                     animate={{ y: [0, 6, 0] }}
                     transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-                    className="absolute -bottom-4 -left-2 sm:-left-4 bg-white text-slate-900 border border-slate-200 px-3.5 py-2.5 rounded-2xl shadow-xl flex items-center gap-3 z-20"
+                    className="hidden sm:flex absolute -bottom-4 -left-2 sm:-left-4 bg-white text-slate-900 border border-slate-200 px-3.5 py-2.5 rounded-2xl shadow-xl items-center gap-3 z-20"
                   >
                     <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center text-sm font-black shadow-sm">
                       ★
@@ -641,12 +641,12 @@ const Home = () => {
 
       {/* 3. Impact Stats Counters (Ultra Clean Light Floating Cards) */}
       {stats?.enabled !== false && visibleStats.length > 0 && (
-        <section className="relative z-20 -mt-8 w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 mb-8">
+        <section className="relative z-20 mt-6 sm:-mt-8 w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 mb-8">
           <StaggerContainer
             staggerDelay={0.08}
-            className={`grid gap-5 text-center ${visibleStats.length === 1 ? 'grid-cols-1 max-w-md mx-auto' :
-              visibleStats.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
-                visibleStats.length === 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'
+            className={`grid gap-3 sm:gap-5 text-center ${visibleStats.length === 1 ? 'grid-cols-1 max-w-md mx-auto' :
+              visibleStats.length === 2 ? 'grid-cols-2' :
+                visibleStats.length === 3 ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'
               }`}
           >
             {visibleStats.map((stat, idx) => {
@@ -666,18 +666,18 @@ const Home = () => {
                     whileHover={{ y: -6, scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ duration: 0.2 }}
-                    className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md border border-slate-200 relative overflow-hidden group flex flex-col justify-between h-full cursor-default"
+                    className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-md border border-slate-200 relative overflow-hidden group flex flex-col justify-between h-full cursor-default"
                   >
                     <div>
-                      <div className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight group-hover:text-blue-600 transition-colors duration-200">
+                      <div className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight group-hover:text-blue-600 transition-colors duration-200">
                         <NumberCounter value={stat.value} durationMs={1400} />
                       </div>
-                      <div className="text-xs font-bold text-slate-600 mt-1.5 leading-snug">
+                      <div className="text-[11px] sm:text-xs font-bold text-slate-600 mt-1 sm:mt-1.5 leading-snug">
                         {stat.label}
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-center gap-1 text-[11px] font-extrabold text-blue-600">
+                    <div className="mt-3 pt-2.5 sm:mt-4 sm:pt-3 border-t border-slate-100 flex items-center justify-center gap-1 text-[10px] sm:text-[11px] font-extrabold text-blue-600">
                       <Sparkles size={12} className="text-amber-500" />
                       <span>Verified Milestone</span>
                     </div>

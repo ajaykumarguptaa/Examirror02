@@ -236,8 +236,8 @@ const VerifyStudent = () => {
           <div className="bg-white border border-slate-300 rounded-xl shadow-md overflow-hidden print:border-none print:shadow-none">
 
             {/* Header: Clean Navy Blue Institutional Bar */}
-            <div className="bg-[#0f172a] text-white p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-3.5 text-center sm:text-left">
+            <div className="bg-[#0f172a] text-white p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-center sm:items-start gap-4 text-center sm:text-left">
+              <div className="flex flex-col sm:flex-row items-center gap-3.5 text-center sm:text-left">
                 <div className="w-12 h-12 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
                   <ShieldCheck size={28} className="text-emerald-400" />
                 </div>
@@ -257,7 +257,7 @@ const VerifyStudent = () => {
 
               <button
                 onClick={() => window.print()}
-                className="bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs shrink-0"
+                className="w-full sm:w-auto bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 px-4 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs shrink-0"
               >
                 <Printer size={14} /> Print Verification Slip
               </button>
