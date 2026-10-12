@@ -33,10 +33,13 @@ interface GalleryItem {
 
 const formatImageUrl = (src: string) => {
   if (!src) return '';
+  if (src.startsWith('http://localhost:3000')) {
+    return src.replace('http://localhost:3000', '');
+  }
   if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:image/')) {
     return src;
   }
-  return `http://localhost:3000${src.startsWith('/') ? '' : '/'}${src}`;
+  return src.startsWith('/') ? src : `/${src}`;
 };
 
 const GalleryCustomizer = () => {

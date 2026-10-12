@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { ExamirrorOfficialStamp } from '../common/ExamirrorOfficialStamp';
+import { getAssetUrl } from '../../utils/axiosSetup';
 
 interface AuthoritySignatureModalProps {
   isOpen: boolean;
@@ -220,7 +221,7 @@ export const AuthoritySignatureModal: React.FC<AuthoritySignatureModalProps> = (
                     {sigPreview ? (
                       <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-2xs">
                         <img 
-                          src={sigPreview.startsWith('data:') ? sigPreview : `http://localhost:3000${sigPreview}`} 
+                          src={sigPreview.startsWith('data:') ? sigPreview : getAssetUrl(sigPreview)} 
                           alt="Authority Signature Preview" 
                           className="max-h-16 max-w-[180px] object-contain"
                         />
@@ -269,7 +270,7 @@ export const AuthoritySignatureModal: React.FC<AuthoritySignatureModalProps> = (
                     {stampPreview ? (
                       <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-2xs">
                         <img 
-                          src={stampPreview.startsWith('data:') ? stampPreview : `http://localhost:3000${stampPreview}`} 
+                          src={stampPreview.startsWith('data:') ? stampPreview : getAssetUrl(stampPreview)} 
                           alt="Official Stamp Preview" 
                           className="w-16 h-16 object-contain rotate-[-6deg]"
                         />
@@ -308,7 +309,7 @@ export const AuthoritySignatureModal: React.FC<AuthoritySignatureModalProps> = (
                     <div className="h-10 flex items-end justify-center mb-1 relative w-full">
                       {stampPreview ? (
                         <img 
-                          src={stampPreview.startsWith('data:') ? stampPreview : `http://localhost:3000${stampPreview}`}
+                          src={stampPreview.startsWith('data:') ? stampPreview : getAssetUrl(stampPreview)}
                           alt="Stamp"
                           className="w-10 h-10 object-contain opacity-85 rotate-[-8deg] absolute -top-3 -left-3 pointer-events-none"
                         />
@@ -319,7 +320,7 @@ export const AuthoritySignatureModal: React.FC<AuthoritySignatureModalProps> = (
                       )}
                       {sigPreview ? (
                         <img 
-                          src={sigPreview.startsWith('data:') ? sigPreview : `http://localhost:3000${sigPreview}`}
+                          src={sigPreview.startsWith('data:') ? sigPreview : getAssetUrl(sigPreview)}
                           alt="Signature"
                           className="max-h-8 max-w-[110px] object-contain relative z-10"
                         />

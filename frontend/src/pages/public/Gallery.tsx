@@ -18,10 +18,13 @@ export const Gallery = () => {
   // Helper to format local upload URLs
   const formatImageUrl = (src: string) => {
     if (!src) return '';
+    if (src.startsWith('http://localhost:3000')) {
+      return src.replace('http://localhost:3000', '');
+    }
     if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:image/')) {
       return src;
     }
-    return `http://localhost:3000${src.startsWith('/') ? '' : '/'}${src}`;
+    return src.startsWith('/') ? src : `/${src}`;
   };
 
   // Fetch only authentic uploaded photos from backend database

@@ -33,8 +33,11 @@ import { StudentCertificateModal } from '../../components/StudentCertificateModa
 
 const formatImageSrc = (url: string | null) => {
   if (!url) return 'https://via.placeholder.com/150';
+  if (url.startsWith('http://localhost:3000')) {
+    return url.replace('http://localhost:3000', '');
+  }
   if (url.startsWith('http') || url.startsWith('data:')) return url;
-  return `http://localhost:3000${url.startsWith('/') ? '' : '/'}${url}`;
+  return url.startsWith('/') ? url : `/${url}`;
 };
 
 interface SemesterData {

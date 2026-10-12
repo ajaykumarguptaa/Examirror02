@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { getAssetUrl } from '../../utils/axiosSetup';
 import {
   FileText,
   CheckCircle2,
@@ -139,7 +140,7 @@ const FranchiseRequests = () => {
 
   const handleDownloadFile = (url: string, filename: string) => {
     if (!url) return;
-    const fullUrl = url.startsWith('/') ? `http://localhost:3000${url}` : url;
+    const fullUrl = getAssetUrl(url);
     
     if (fullUrl.startsWith('data:')) {
       const a = document.createElement('a');
@@ -499,7 +500,7 @@ const FranchiseRequests = () => {
                           <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
                             {app.photo_url ? (
                               <img
-                                src={app.photo_url.startsWith('/') ? `http://localhost:3000${app.photo_url}` : app.photo_url}
+                                src={getAssetUrl(app.photo_url)}
                                 alt={headFullName}
                                 className="w-full h-full object-cover"
                               />
@@ -807,7 +808,7 @@ const FranchiseRequests = () => {
                   {getAppDocuments(selectedApp).map((doc) => {
                     const isVerified = !!verifiedDocs[`${selectedApp.id}_${doc.key}`];
                     const hasDoc = !!doc.url;
-                    const fullDocUrl = hasDoc ? (doc.url!.startsWith('/') ? `http://localhost:3000${doc.url}` : doc.url!) : null;
+                    const fullDocUrl = hasDoc ? getAssetUrl(doc.url) : null;
 
                     return (
                       <div

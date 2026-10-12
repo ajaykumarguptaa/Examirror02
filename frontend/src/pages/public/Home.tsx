@@ -1270,7 +1270,7 @@ const Home = () => {
                         <div className="flex items-center gap-3.5">
                           {verificationResult.data.photo_url ? (
                             <img
-                              src={`http://localhost:3000${verificationResult.data.photo_url}`}
+                              src={verificationResult.data.photo_url.startsWith('http://localhost:3000') ? verificationResult.data.photo_url.replace('http://localhost:3000', '') : verificationResult.data.photo_url}
                               alt={verificationResult.data.firstName}
                               className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-xs"
                               onError={(e) => {

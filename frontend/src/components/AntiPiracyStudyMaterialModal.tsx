@@ -6,6 +6,7 @@ import {
   Monitor, Columns, Smartphone, QrCode, Copy, CreditCard, CheckCircle2, ArrowLeft
 } from 'lucide-react';
 import axios from 'axios';
+import { getAssetUrl } from '../utils/axiosSetup';
 
 interface AntiPiracyStudyMaterialModalProps {
   materialId: number | string;
@@ -151,11 +152,7 @@ export const AntiPiracyStudyMaterialModal: React.FC<AntiPiracyStudyMaterialModal
   const hasPdfUrl = materialData?.file_url && (materialData.file_url.includes('pdf') || materialData.file_type === 'PDF');
   const effectiveMode = viewMode === 'AUTO' ? (isHtml ? 'HTML' : hasPdfUrl ? 'PDF' : 'HTML') : viewMode;
 
-  const pdfSource = materialData?.file_url?.startsWith('http') 
-    ? materialData.file_url 
-    : materialData?.file_url?.startsWith('/uploads') 
-      ? `http://localhost:3000${materialData.file_url}` 
-      : materialData?.file_url;
+  const pdfSource = getAssetUrl(materialData?.file_url);
 
   // Prepare full-view interactive HTML document with anti-copy style injection
   const preparedHtmlDoc = useMemo(() => {

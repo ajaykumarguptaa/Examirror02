@@ -2,6 +2,7 @@ import { X, Printer, Download, CheckCircle2, XCircle, ShieldCheck, Award, QrCode
 import { useEffect, useState, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { ExamirrorOfficialStamp } from './common/ExamirrorOfficialStamp';
+import { getAssetUrl } from '../utils/axiosSetup';
 
 export const StudentMarksheetModal = ({ 
   student, 
@@ -611,7 +612,7 @@ export const StudentMarksheetModal = ({
                 {activeStudent.centerLogo ? (
                   <div className="relative mb-3 flex items-center justify-center">
                     <div className="absolute inset-[-12px] rounded-full border-2 border-dashed border-slate-900 opacity-40 animate-spin" style={{ animationDuration: '60s' }} />
-                    <img src={`http://localhost:3000${activeStudent.centerLogo}`} alt="Center Watermark" className="w-36 h-36 object-contain grayscale" />
+                    <img src={getAssetUrl(activeStudent.centerLogo)} alt="Center Watermark" className="w-36 h-36 object-contain grayscale" />
                   </div>
                 ) : (
                   <div className="w-32 h-32 rounded-full border-4 border-double border-slate-900 flex flex-col items-center justify-center mb-3 font-serif font-black text-slate-900 p-2">
@@ -647,7 +648,7 @@ export const StudentMarksheetModal = ({
                 <div className="flex items-center justify-center gap-3.5 my-2">
                   {activeStudent.centerLogo ? (
                     <img 
-                      src={`http://localhost:3000${activeStudent.centerLogo}`} 
+                      src={getAssetUrl(activeStudent.centerLogo)} 
                       alt={centerName} 
                       className="w-14 h-14 object-contain rounded-xl p-1 bg-white border-2 border-blue-800 shadow-md shrink-0" 
                     />
@@ -754,7 +755,7 @@ export const StudentMarksheetModal = ({
                   <div className="w-20 h-24 rounded-lg bg-white border-2 border-blue-700 shadow-xs overflow-hidden relative flex flex-col items-center justify-center p-0.5">
                     {activeStudent.photo_url ? (
                       <img 
-                        src={`http://localhost:3000${activeStudent.photo_url}`} 
+                        src={getAssetUrl(activeStudent.photo_url)} 
                         alt="Candidate Photo" 
                         className="w-full h-full object-cover rounded" 
                       />
@@ -879,7 +880,7 @@ export const StudentMarksheetModal = ({
                       {/* Center Coordinator Stamp (only visible if uploaded by center) */}
                       {centerStamp && (
                         <img 
-                          src={centerStamp.startsWith('http') || centerStamp.startsWith('data:') ? centerStamp : `http://localhost:3000${centerStamp}`}
+                          src={getAssetUrl(centerStamp)}
                           alt="Center Stamp"
                           className="absolute left-2 -bottom-1 w-16 h-16 object-contain opacity-90 mix-blend-multiply rotate-[-12deg] pointer-events-none z-0"
                         />
@@ -888,7 +889,7 @@ export const StudentMarksheetModal = ({
                       {/* Center Coordinator Signature (only visible if uploaded by center) */}
                       {centerSig && (
                         <img 
-                          src={centerSig.startsWith('http') || centerSig.startsWith('data:') ? centerSig : `http://localhost:3000${centerSig}`}
+                          src={getAssetUrl(centerSig)}
                           alt="Coordinator Signature"
                           className="max-h-12 max-w-[130px] object-contain relative z-10 mix-blend-multiply"
                         />

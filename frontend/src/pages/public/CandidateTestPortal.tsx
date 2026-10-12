@@ -1285,7 +1285,7 @@ const CandidateTestPortal: React.FC = () => {
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden opacity-[0.04]">
               <div className="flex flex-col items-center justify-center text-center rotate-[-22deg] transform scale-125">
                 {testInfo.centerLogo ? (
-                  <img src={`http://localhost:3000${testInfo.centerLogo}`} alt="Center Logo" className="w-32 h-32 object-contain grayscale mb-2" />
+                  <img src={testInfo.centerLogo.startsWith('http://localhost:3000') ? testInfo.centerLogo.replace('http://localhost:3000', '') : testInfo.centerLogo} alt="Center Logo" className="w-32 h-32 object-contain grayscale mb-2" />
                 ) : (
                   <div className="w-28 h-28 rounded-full border-4 border-dashed border-slate-900 flex items-center justify-center mb-2 font-serif font-black text-4xl text-slate-900">
                     {testInfo.centerName ? testInfo.centerName.charAt(0) : 'E'}
@@ -1461,7 +1461,7 @@ const CandidateTestPortal: React.FC = () => {
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden opacity-[0.06]">
                       <div className="flex flex-col items-center justify-center text-center rotate-[-22deg] transform scale-115">
                         {testInfo.centerLogo ? (
-                          <img src={`http://localhost:3000${testInfo.centerLogo}`} alt="Center Watermark" className="w-36 h-36 object-contain grayscale mb-3" />
+                          <img src={testInfo.centerLogo.startsWith('http://localhost:3000') ? testInfo.centerLogo.replace('http://localhost:3000', '') : testInfo.centerLogo} alt="Center Watermark" className="w-36 h-36 object-contain grayscale mb-3" />
                         ) : (
                           <div className="w-32 h-32 rounded-full border-4 border-dashed border-indigo-950 flex items-center justify-center mb-3 font-serif font-black text-4xl text-indigo-950">
                             {testInfo.centerName ? testInfo.centerName.charAt(0) : 'C'}
@@ -1498,7 +1498,7 @@ const CandidateTestPortal: React.FC = () => {
                       <div className="flex items-center justify-center gap-3 my-2">
                         {testInfo.centerLogo ? (
                           <img 
-                            src={`http://localhost:3000${testInfo.centerLogo}`} 
+                            src={testInfo.centerLogo.startsWith('http://localhost:3000') ? testInfo.centerLogo.replace('http://localhost:3000', '') : testInfo.centerLogo} 
                             alt={testInfo.centerName} 
                             className="w-14 h-14 object-contain rounded-xl p-1 bg-white border-2 border-indigo-800 shadow-md shrink-0" 
                           />

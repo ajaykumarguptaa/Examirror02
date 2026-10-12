@@ -4,6 +4,7 @@ import {
   Building2, UserCheck, RefreshCw, PenTool, Stamp
 } from 'lucide-react';
 import axios from 'axios';
+import { getAssetUrl } from '../utils/axiosSetup';
 
 interface CenterSignatureUploadModalProps {
   isOpen: boolean;
@@ -181,7 +182,7 @@ export const CenterSignatureUploadModal: React.FC<CenterSignatureUploadModalProp
                 {sigPreview ? (
                   <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-2xs">
                     <img 
-                      src={sigPreview.startsWith('data:') ? sigPreview : `http://localhost:3000${sigPreview}`} 
+                      src={sigPreview.startsWith('data:') ? sigPreview : getAssetUrl(sigPreview)} 
                       alt="Center Signature Preview" 
                       className="max-h-14 max-w-[160px] object-contain"
                     />
@@ -227,7 +228,7 @@ export const CenterSignatureUploadModal: React.FC<CenterSignatureUploadModalProp
                 {stampPreview ? (
                   <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-2xs">
                     <img 
-                      src={stampPreview.startsWith('data:') ? stampPreview : `http://localhost:3000${stampPreview}`} 
+                      src={stampPreview.startsWith('data:') ? stampPreview : getAssetUrl(stampPreview)} 
                       alt="Center Stamp Preview" 
                       className="w-14 h-14 object-contain rotate-[-6deg]"
                     />

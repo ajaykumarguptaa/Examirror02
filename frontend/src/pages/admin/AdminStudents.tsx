@@ -130,10 +130,13 @@ const AdminStudents = () => {
 
   const formatImageSrc = (src?: string) => {
     if (!src) return '';
+    if (src.startsWith('http://localhost:3000')) {
+      return src.replace('http://localhost:3000', '');
+    }
     if (src.startsWith('data:') || src.startsWith('http://') || src.startsWith('https://')) {
       return src;
     }
-    return `http://localhost:3000${src}`;
+    return src.startsWith('/') ? src : `/${src}`;
   };
 
   return (

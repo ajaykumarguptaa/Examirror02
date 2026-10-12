@@ -14,6 +14,7 @@ import { StudentCertificateModal } from '../../components/StudentCertificateModa
 import { AntiPiracyStudyMaterialModal } from '../../components/AntiPiracyStudyMaterialModal';
 import { StudyMaterialPaymentModal } from '../../components/StudyMaterialPaymentModal';
 import { FadeUp, StaggerContainer, StaggerItem } from '../../motion';
+import { getAssetUrl } from '../../utils/axiosSetup';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -126,7 +127,7 @@ const StudentDashboard = () => {
               <div className="relative">
                 <div className="w-16 h-16 sm:w-18 sm:h-18 bg-slate-100 rounded-2xl flex items-center justify-center shrink-0 border border-slate-200 overflow-hidden">
                   {student?.photo_url ? (
-                    <img src={`http://localhost:3000${student.photo_url}`} alt="Profile" className="w-full h-full object-cover" />
+                    <img src={getAssetUrl(student.photo_url)} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-2xl font-bold text-slate-600">{student?.firstName?.charAt(0)}</span>
                   )}

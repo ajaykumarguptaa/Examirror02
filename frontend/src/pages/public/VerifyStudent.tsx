@@ -134,8 +134,8 @@ const VerifyStudent = () => {
 
   const formatImageSrc = (url?: string) => {
     if (!url) return '';
-    if (url.startsWith('/uploads/')) {
-      return `http://localhost:3000${url}`;
+    if (url.startsWith('http://localhost:3000')) {
+      return url.replace('http://localhost:3000', '');
     }
     return url;
   };

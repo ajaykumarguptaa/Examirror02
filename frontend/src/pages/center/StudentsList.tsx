@@ -657,7 +657,9 @@ const StudentsList = () => {
 
   const formatImageSrc = (url?: string) => {
     if (!url) return '';
-    if (url.startsWith('/uploads/')) return `http://localhost:3000${url}`;
+    if (url.startsWith('http://localhost:3000')) {
+      return url.replace('http://localhost:3000', '');
+    }
     return url;
   };
 
@@ -1751,7 +1753,7 @@ const StudentsList = () => {
                         <div className="w-20 h-24 rounded-lg border-2 border-slate-300 overflow-hidden bg-white shrink-0 shadow-xs">
                           {editFormData.photoPreview ? (
                             <img
-                              src={editFormData.photoPreview.startsWith('/uploads') ? `http://localhost:3000${editFormData.photoPreview}` : editFormData.photoPreview}
+                              src={formatImageSrc(editFormData.photoPreview)}
                               alt="Student Preview"
                               className="w-full h-full object-cover"
                             />

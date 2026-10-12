@@ -65,10 +65,35 @@ export const getAuthToken = (url?: string): string | null => {
   return null;
 };
 
+/**
+ * Returns a clean, production-safe URL for any asset or image.
+ * Automatically handles local /uploads paths and strips localhost:3000.
+ */
+export const getAssetUrl = (url?: string | null): string => {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) return trimmed;
+
+  // Strip http://localhost:3000 or http://127.0.0.1:3000
+  if (trimmed.startsWith('http://localhost:3000') || trimmed.startsWith('http://127.0.0.1:3000')) {
+    return trimmed.replace(/^http:\/\/(localhost|127\.0\.0\.1):3000/, '') || '/';
+  }
+
+  return trimmed;
+};
+
 export const setupAxiosInterceptors = () => {
   // Request Interceptor
   axios.interceptors.request.use(
     (config) => {
+      // 1. Automatically normalize hardcoded http://localhost:3000 or http://127.0.0.1:3000
+      if (config.url) {
+        if (config.url.startsWith('http://localhost:3000') || config.url.startsWith('http://127.0.0.1:3000')) {
+          config.url = config.url.replace(/^http:\/\/(localhost|127\.0\.0\.1):3000/, '') || '/';
+        }
+      }
+
       // If authorization header is already explicitly set, respect it
       if (config.headers && config.headers.Authorization) {
         return config;
@@ -107,12 +132,18 @@ export const setupAxiosInterceptors = () => {
     }
   );
 
-  // Also hook native window.fetch so fetch('/api/admin/...') includes Authorization
+  // Also hook native window.fetch so fetch('/api/admin/...') includes Authorization and strips localhost:3000
   if (typeof window !== 'undefined' && window.fetch) {
     const originalFetch = window.fetch;
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
-      const token = getAuthToken(url);
+      let rawUrl = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
+
+      if (rawUrl.startsWith('http://localhost:3000') || rawUrl.startsWith('http://127.0.0.1:3000')) {
+        rawUrl = rawUrl.replace(/^http:\/\/(localhost|127\.0\.0\.1):3000/, '') || '/';
+        input = rawUrl;
+      }
+
+      const token = getAuthToken(rawUrl);
 
       if (token) {
         init = init || {};
