@@ -98,6 +98,7 @@ const FranchiseRegister = () => {
   const [aadharBackName, setAadharBackName] = useState('');
   const [aadharBackData, setAadharBackData] = useState<string | null>(null);
   const [centerPhotosCount, setCenterPhotosCount] = useState(0);
+  const [centerPhotosData, setCenterPhotosData] = useState<string[]>([]);
 
   // Document Compression Stats
   const [docCompression, setDocCompression] = useState<{
@@ -545,6 +546,22 @@ const FranchiseRegister = () => {
     }
   };
 
+  const handleCenterPhotosChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setCenterPhotosCount(files.length);
+    const compressedList: string[] = [];
+    for (const file of files.slice(0, 6)) {
+      try {
+        const res = await compressImageFile(file, { maxWidth: 1000, maxHeight: 800, quality: 0.8, maxSizeKB: 140 });
+        compressedList.push(res.dataUrl);
+      } catch (err) {
+        console.error('Center photo compression error:', err);
+      }
+    }
+    setCenterPhotosData(compressedList);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreed) {
@@ -642,7 +659,7 @@ const FranchiseRegister = () => {
       marksheet_url: marksheetData || '',
       aadhar_front_url: aadharFrontData || '',
       aadhar_back_url: aadharBackData || '',
-      center_photos_url: centerPhotosCount > 0 ? `${centerPhotosCount} photos uploaded` : ''
+      center_photos_url: centerPhotosData.length > 0 ? JSON.stringify(centerPhotosData) : (centerPhotosCount > 0 ? `${centerPhotosCount} photos uploaded` : '')
     };
 
     try {
@@ -1320,7 +1337,7 @@ const FranchiseRegister = () => {
                     type="file"
                     multiple
                     ref={centerPhotosInputRef}
-                    onChange={(e) => setCenterPhotosCount(e.target.files?.length || 0)}
+                    onChange={handleCenterPhotosChange}
                     className="hidden"
                   />
                   <div className="h-10 flex items-center border border-slate-300 rounded-lg overflow-hidden bg-white">

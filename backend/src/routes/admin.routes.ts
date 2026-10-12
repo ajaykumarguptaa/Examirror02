@@ -468,9 +468,9 @@ router.get('/franchise-requests/:id', async (req, res) => {
 });
 
 router.post('/franchise-requests/:id/approve', async (req, res) => {
-  const { centerCode, initialWallet } = req.body;
+  const { centerCode, initialWallet, password } = req.body;
   try {
-    const result = await adminService.approveFranchiseRequest(req.params.id, centerCode, initialWallet);
+    const result = await adminService.approveFranchiseRequest(req.params.id, centerCode, initialWallet, password);
     res.status(200).json({ success: true, message: 'Franchise application approved and Center provisioned successfully!', result });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });

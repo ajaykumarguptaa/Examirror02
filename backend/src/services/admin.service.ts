@@ -589,7 +589,18 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
     return rows[0];
   },
 
-  approveFranchiseRequest: async (id: number | string, centerCode?: string, initialWallet = 500) => {
+  approveFranchiseRequest: async (id: number | string, centerCode?: string, initialWallet = 500, password?: string) => {
+    // Ensure certificate columns exist in centers table
+    try {
+      await db.query(`ALTER TABLE centers ADD COLUMN certificate_number VARCHAR(100)`);
+    } catch (_) {}
+    try {
+      await db.query(`ALTER TABLE centers ADD COLUMN certificate_issued_date DATE`);
+    } catch (_) {}
+    try {
+      await db.query(`ALTER TABLE centers ADD COLUMN certificate_valid_until DATE`);
+    } catch (_) {}
+
     const [rows]: any = await db.query('SELECT * FROM franchise_applications WHERE id = ?', [id]);
     if (!rows || rows.length === 0) {
       throw new Error('Franchise application not found');
@@ -602,38 +613,54 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
 
     const headFullName = `${app.center_head_first_name} ${app.center_head_middle_name ? app.center_head_middle_name + ' ' : ''}${app.center_head_last_name}`.trim();
 
-    // Default password hash for "password123"
-    const defaultPasswordHash = '$2b$10$acAQo2TuK.ru4o7LEVNnhe4C19NaJFcrdt5POcD7XY9j0TqYSi62i';
+    // Determine plain password & bcrypt hash
+    const plainPassword = password && password.trim() ? password.trim() : `Exam@${Math.floor(1000 + Math.random() * 9000)}`;
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(plainPassword, salt);
 
     // 1. Create or update center in centers table
-    const [existingCenter]: any = await db.query('SELECT id FROM centers WHERE center_code = ?', [finalCode]);
+    const [existingCenter]: any = await db.query('SELECT id, certificate_number, certificate_issued_date, certificate_valid_until FROM centers WHERE center_code = ?', [finalCode]);
     let newCenterId: number;
+    let certNumber = `EXAM-ATC-2026-${String(100 + Number(id)).padStart(4, '0')}`;
+    const issueDate = new Date().toISOString().split('T')[0];
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
+    const validUntil = nextYear.toISOString().split('T')[0];
 
     if (existingCenter && existingCenter.length > 0) {
       newCenterId = existingCenter[0].id;
+      certNumber = existingCenter[0].certificate_number || certNumber;
       await db.query(`
         UPDATE centers SET
           name = ?, head_name = ?, head_image_url = ?, email = ?, phone = ?,
           address = ?, address_line2 = ?, state = ?, district = ?, city = ?, pincode = ?,
+          password_hash = ?,
+          certificate_number = COALESCE(certificate_number, ?),
+          certificate_issued_date = COALESCE(certificate_issued_date, CURDATE()),
+          certificate_valid_until = COALESCE(certificate_valid_until, DATE_ADD(CURDATE(), INTERVAL 1 YEAR)),
           status = 'active'
         WHERE id = ?
       `, [
         app.center_name, headFullName, app.photo_url || '', app.email, app.phone,
         app.address_line1, app.address_line2 || '', app.state, app.district, app.city, app.pincode,
+        passwordHash, certNumber,
         newCenterId
       ]);
     } else {
       const [insertRes]: any = await db.query(`
         INSERT INTO centers (
           center_code, password_hash, name, head_name, head_image_url, email, phone,
-          address, address_line2, state, district, city, pincode, joined_date, wallet_balance, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE(), ?, 'active')
+          address, address_line2, state, district, city, pincode, joined_date, wallet_balance, status,
+          certificate_number, certificate_issued_date, certificate_valid_until
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE(), ?, 'active', ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR))
       `, [
-        finalCode, defaultPasswordHash, app.center_name, headFullName, app.photo_url || '',
+        finalCode, passwordHash, app.center_name, headFullName, app.photo_url || '',
         app.email, app.phone, app.address_line1, app.address_line2 || '',
-        app.state, app.district, app.city, app.pincode, initialWallet
+        app.state, app.district, app.city, app.pincode, initialWallet, certNumber
       ]);
       newCenterId = insertRes.insertId;
+      certNumber = `EXAM-ATC-2026-${String(newCenterId).padStart(4, '0')}`;
+      await db.query('UPDATE centers SET certificate_number = ? WHERE id = ?', [certNumber, newCenterId]);
     }
 
     // 2. Mark application Approved
@@ -645,7 +672,19 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
       centerCode: finalCode,
       centerName: app.center_name,
       headName: headFullName,
-      defaultPassword: 'password123'
+      headPhoto: app.photo_url || '',
+      email: app.email,
+      phone: app.phone,
+      address: app.address_line1,
+      addressLine2: app.address_line2 || '',
+      city: app.city,
+      district: app.district,
+      state: app.state,
+      pincode: app.pincode,
+      plainPassword,
+      certificateNumber: certNumber,
+      issueDate,
+      validUntil
     };
   },
 

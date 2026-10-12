@@ -21,6 +21,15 @@ router.get('/:centerId/dashboard', async (req, res) => {
   }
 });
 
+router.get('/:centerId/certificate', async (req, res) => {
+  try {
+    const data = await centerService.getCenterCertificate(req.params.centerId);
+    res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    res.status(404).json({ success: false, message: error.message });
+  }
+});
+
 router.get('/:centerId/stats', async (req, res) => {
   try {
     const data = await centerService.getStats(req.params.centerId);

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, BookOpen, CheckSquare, IndianRupee, Sparkles, TrendingUp, Clock, ArrowRight, UserPlus, CheckCircle2 } from 'lucide-react';
+import { Users, BookOpen, CheckSquare, IndianRupee, Sparkles, TrendingUp, Clock, ArrowRight, UserPlus, CheckCircle2, Award, ShieldCheck, Download, Printer, FileCheck } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import axios from 'axios';
 import { StaggerContainer, StaggerItem, InteractiveCard, NumberCounter, FadeUp } from '../../motion';
+import CenterCertificateModal from '../../components/CenterCertificateModal';
 
 const DEFAULT_CHART = [
   { name: 'January', Students: 0 },
@@ -37,6 +38,7 @@ const CenterDashboard = () => {
   const [centerProfile, setCenterProfile] = useState<any>(null);
   const [chartData, setChartData] = useState<any[]>(DEFAULT_CHART);
   const [recentStudents, setRecentStudents] = useState<any[]>([]);
+  const [showCertModal, setShowCertModal] = useState(false);
 
   useEffect(() => {
     axios.get(`http://localhost:3000/api/center/${centerId}/dashboard`)
@@ -100,6 +102,18 @@ const CenterDashboard = () => {
                     Center Code: <span className="font-bold text-gray-900">{centerProfile.code || 'N/A'}</span>
                   </p>
                 </div>
+
+                {/* Hero Action: Claim Certificate */}
+                <div className="flex items-center justify-center sm:justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCertModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-amber-500/25 hover:shadow-lg transition-all transform active:scale-95 cursor-pointer"
+                  >
+                    <Award size={18} className="text-amber-100" />
+                    <span>Claim Center Certificate</span>
+                  </button>
+                </div>
               </div>
               
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-y-3 gap-x-6 text-sm text-gray-600 font-medium">
@@ -122,6 +136,67 @@ const CenterDashboard = () => {
           </div>
         </FadeUp>
       )}
+
+      {/* Prominent Center Affiliation & Authorization Certificate Banner */}
+      <FadeUp delay={0.08}>
+        <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-amber-500/30">
+          {/* Subtle Background Glow & Watermark */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="flex items-start gap-4 sm:gap-5 max-w-2xl">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 p-0.5 shadow-lg shadow-amber-500/30 shrink-0">
+                <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                  <Award size={32} className="text-amber-400 animate-pulse" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2.5 py-0.5 bg-amber-400/20 border border-amber-400/40 text-amber-300 rounded-full text-[11px] font-black uppercase tracking-wider">
+                    Official Recognition
+                  </span>
+                  <span className="px-2.5 py-0.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-full text-[11px] font-bold flex items-center gap-1">
+                    <ShieldCheck size={12} /> Verified & Authorized
+                  </span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                  Center Authorization & Affiliation Certificate
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Your authorized training center certificate has been officially issued under Examirror accreditation. Print and display this certificate at your study center.
+                </p>
+                <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-amber-200/90 font-mono">
+                  <span>Cert No: <b className="text-white">{centerProfile?.certificate_number || `EXAM-ATC-2026-${String(centerProfile?.id || centerId).padStart(4, '0')}`}</b></span>
+                  <span>•</span>
+                  <span>Center Code: <b className="text-white">{centerProfile?.code || 'ATC-PENDING'}</b></span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
+              <button
+                type="button"
+                onClick={() => setShowCertModal(true)}
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/30 hover:shadow-xl transition-all transform active:scale-95 cursor-pointer"
+              >
+                <Award size={18} className="text-slate-950" />
+                <span>Claim & View Certificate</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCertModal(true)}
+                className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-sm rounded-xl border border-white/20 hover:border-white/30 transition-all cursor-pointer backdrop-blur-sm"
+                title="Print or Download Certificate"
+              >
+                <Printer size={16} />
+                <span className="hidden sm:inline">Print / HD PDF</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </FadeUp>
 
       {/* Stats Cards Row with Stagger & NumberCounter */}
       <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -392,6 +467,14 @@ const CenterDashboard = () => {
         </FadeUp>
 
       </div>
+
+      {/* Center Affiliation & Authorization Certificate Modal */}
+      <CenterCertificateModal
+        center={centerProfile}
+        isOpen={showCertModal}
+        onClose={() => setShowCertModal(false)}
+      />
+
     </div>
   );
 };

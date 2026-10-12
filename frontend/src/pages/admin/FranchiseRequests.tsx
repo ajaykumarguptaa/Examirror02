@@ -35,8 +35,12 @@ import {
   Lock,
   Sparkles,
   HelpCircle,
-  GraduationCap
+  GraduationCap,
+  Award,
+  Share2,
+  Copy
 } from 'lucide-react';
+import { CenterCertificateModal } from '../../components/CenterCertificateModal';
 
 interface FranchiseApplication {
   id: number;
@@ -90,10 +94,10 @@ const FranchiseRequests = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedApp, setSelectedApp] = useState<FranchiseApplication | null>(null);
-  
+
   // Document Verification State (key: `${appId}_${docKey}`)
   const [verifiedDocs, setVerifiedDocs] = useState<Record<string, boolean>>({});
-  
+
   // Full screen document preview & inspector state
   const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; docKey: string; appId: number } | null>(null);
   const [zoomScale, setZoomScale] = useState(1);
@@ -102,10 +106,14 @@ const FranchiseRequests = () => {
   // Approval Modal & Action State
   const [approvingApp, setApprovingApp] = useState<FranchiseApplication | null>(null);
   const [customCenterCode, setCustomCenterCode] = useState('');
+  const [customPassword, setCustomPassword] = useState('108@Ajaydev');
   const [initialWallet, setInitialWallet] = useState(500);
   const [actionLoading, setActionLoading] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [approvalResult, setApprovalResult] = useState<any | null>(null);
+  const [certModalOpen, setCertModalOpen] = useState(false);
+  const [certCenterData, setCertCenterData] = useState<any | null>(null);
+  const [copiedCreds, setCopiedCreds] = useState(false);
 
   // Soft Delete & Real-Time Zebtish Captcha State
   const [deleteTargetApp, setDeleteTargetApp] = useState<FranchiseApplication | null>(null);
@@ -143,7 +151,7 @@ const FranchiseRequests = () => {
   const handleDownloadFile = (url: string, filename: string) => {
     if (!url) return;
     const fullUrl = getAssetUrl(url);
-    
+
     if (fullUrl.startsWith('data:')) {
       const a = document.createElement('a');
       a.href = fullUrl;
@@ -170,14 +178,49 @@ const FranchiseRequests = () => {
     }
   };
 
-  const getAppDocuments = (app: FranchiseApplication) => [
-    { key: 'photo', label: 'Passport Photo', category: 'Biometric Headshot', url: app.photo_url, filename: `${app.center_head_first_name}_Photo.png` },
-    { key: 'signature', label: 'Director Signature', category: 'Legal Signature', url: app.signature_url, filename: `${app.center_head_first_name}_Signature.png` },
-    { key: 'marksheet', label: 'Graduation Marksheet / Degree', category: 'Degree (Min. Graduate)', url: app.marksheet_url, filename: `${app.center_head_first_name}_Graduation_Marksheet.png` },
-    { key: 'aadhar_front', label: 'Aadhar Card (Front)', category: 'Identity Proof', url: app.aadhar_front_url, filename: `${app.center_head_first_name}_Aadhar_Front.png` },
-    { key: 'aadhar_back', label: 'Aadhar Card (Back)', category: 'Address Proof', url: app.aadhar_back_url, filename: `${app.center_head_first_name}_Aadhar_Back.png` },
-    { key: 'center_photos', label: 'Center Infrastructure', category: 'Premises Photos', url: app.center_photos_url, filename: `${app.center_head_first_name}_Center_Photos.png` },
-  ];
+  const getAppDocuments = (app: FranchiseApplication) => {
+    const list: Array<{ key: string; label: string; category: string; url?: string; filename: string }> = [
+      { key: 'photo', label: 'Center Head Photo', category: 'Biometric Headshot', url: app.photo_url, filename: `${app.center_head_first_name}_Photo.png` },
+      { key: 'signature', label: 'Center Head Signature', category: 'Legal Signature', url: app.signature_url, filename: `${app.center_head_first_name}_Signature.png` },
+      { key: 'marksheet', label: 'Graduation Marksheet / Degree', category: 'Degree (Min. Graduate)', url: app.marksheet_url, filename: `${app.center_head_first_name}_Graduation_Marksheet.png` },
+      { key: 'aadhar_front', label: 'Aadhar Card (Front)', category: 'Identity Proof', url: app.aadhar_front_url, filename: `${app.center_head_first_name}_Aadhar_Front.png` },
+      { key: 'aadhar_back', label: 'Aadhar Card (Back)', category: 'Address Proof', url: app.aadhar_back_url, filename: `${app.center_head_first_name}_Aadhar_Back.png` },
+    ];
+
+    let centerPhotos: string[] = [];
+    if (app.center_photos_url) {
+      if (app.center_photos_url.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(app.center_photos_url);
+          if (Array.isArray(parsed)) centerPhotos = parsed;
+        } catch (_) { }
+      } else if (!app.center_photos_url.includes('photos uploaded')) {
+        centerPhotos = [app.center_photos_url];
+      }
+    }
+
+    if (centerPhotos.length > 0) {
+      centerPhotos.forEach((photoUrl, idx) => {
+        list.push({
+          key: `center_photo_${idx + 1}`,
+          label: `Center Photo #${idx + 1}`,
+          category: 'Premises Photos',
+          url: photoUrl,
+          filename: `${app.center_head_first_name}_Center_Photo_${idx + 1}.png`
+        });
+      });
+    } else {
+      list.push({
+        key: 'center_photos',
+        label: 'Center Infrastructure',
+        category: 'Premises Photos',
+        url: app.center_photos_url && !app.center_photos_url.includes('uploaded') ? app.center_photos_url : undefined,
+        filename: `${app.center_head_first_name}_Center_Photos.png`
+      });
+    }
+
+    return list;
+  };
 
   const handleDownloadAllDocs = (app: FranchiseApplication) => {
     const docs = getAppDocuments(app).filter(d => !!d.url);
@@ -217,7 +260,8 @@ const FranchiseRequests = () => {
     try {
       const res = await axios.post(`http://localhost:3000/api/admin/franchise-requests/${approvingApp.id}/approve`, {
         centerCode: customCenterCode || undefined,
-        initialWallet: Number(initialWallet) || 500
+        initialWallet: Number(initialWallet) || 500,
+        password: customPassword || undefined
       });
       if (res.data?.success) {
         setApprovalResult(res.data.result);
@@ -344,12 +388,11 @@ const FranchiseRequests = () => {
 
   return (
     <div className="space-y-6">
-      
+
       {/* Toast Alert */}
       {toast && (
-        <div className={`p-4 rounded-xl flex items-center justify-between text-xs font-bold border animate-in slide-in-from-top ${
-          toast.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'
-        }`}>
+        <div className={`p-4 rounded-xl flex items-center justify-between text-xs font-bold border animate-in slide-in-from-top ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'
+          }`}>
           <div className="flex items-center gap-2">
             {toast.type === 'success' ? <CheckCircle2 size={18} className="text-emerald-600" /> : <AlertCircle size={18} className="text-rose-600" />}
             <span>{toast.text}</span>
@@ -415,7 +458,7 @@ const FranchiseRequests = () => {
 
       {/* Search & Filter Toolbar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
-        
+
         {/* Status Filter Tabs */}
         <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
           {[
@@ -428,13 +471,12 @@ const FranchiseRequests = () => {
             <button
               key={tab.key}
               onClick={() => setFilterStatus(tab.key)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 ${
-                filterStatus === tab.key
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 ${filterStatus === tab.key
                   ? tab.key === 'trash'
                     ? 'bg-rose-900 text-white shadow-xs'
                     : 'bg-indigo-900 text-white shadow-xs'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+                }`}
             >
               {tab.icon && <tab.icon size={13} />}
               <span>{tab.label}</span>
@@ -495,7 +537,7 @@ const FranchiseRequests = () => {
 
                   return (
                     <tr key={app.id} className={`hover:bg-slate-50/80 transition-colors ${isTrash ? 'bg-slate-50/60 opacity-85' : ''}`}>
-                      
+
                       {/* Center Head */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
@@ -541,15 +583,14 @@ const FranchiseRequests = () => {
 
                       {/* Status */}
                       <td className="py-3.5 px-4 text-center">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                          app.status === 'Approved'
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${app.status === 'Approved'
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                             : app.status === 'Rejected'
-                            ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                            : app.status === 'Trash'
-                            ? 'bg-slate-200 text-slate-700 border border-slate-300'
-                            : 'bg-amber-100 text-amber-800 border border-amber-300'
-                        }`}>
+                              ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                              : app.status === 'Trash'
+                                ? 'bg-slate-200 text-slate-700 border border-slate-300'
+                                : 'bg-amber-100 text-amber-800 border border-amber-300'
+                          }`}>
                           {app.status === 'Approved' ? <CheckCircle2 size={11} /> : app.status === 'Rejected' ? <XCircle size={11} /> : app.status === 'Trash' ? <Archive size={11} /> : <AlertCircle size={11} />}
                           <span>{app.status === 'Trash' ? 'Trash (Soft Deleted)' : app.status}</span>
                         </span>
@@ -558,7 +599,7 @@ const FranchiseRequests = () => {
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          
+
                           {/* Preview Dossier */}
                           <button
                             onClick={() => setSelectedApp(app)}
@@ -608,6 +649,37 @@ const FranchiseRequests = () => {
                                 </button>
                               )}
 
+                              {app.status === 'Approved' && (
+                                <button
+                                  onClick={() => {
+                                    setCertCenterData({
+                                      id: app.id,
+                                      centerName: app.center_name,
+                                      centerCode: `EXAMc2026-${String(100 + app.id).padStart(3, '0')}`,
+                                      headName: `${app.center_head_first_name} ${app.center_head_last_name}`,
+                                      headPhoto: app.photo_url,
+                                      email: app.email,
+                                      phone: app.phone,
+                                      address: app.address_line1,
+                                      addressLine2: app.address_line2,
+                                      city: app.city,
+                                      district: app.district,
+                                      state: app.state,
+                                      pincode: app.pincode,
+                                      certificateNumber: `EXAM-ATC-2026-${String(100 + app.id).padStart(4, '0')}`,
+                                      issueDate: app.created_at,
+                                      validUntil: '2027-03-31'
+                                    });
+                                    setCertModalOpen(true);
+                                  }}
+                                  className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-lg text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                                  title="View Center Certificate"
+                                >
+                                  <Award size={13} className="text-amber-600" />
+                                  <span>Certificate</span>
+                                </button>
+                              )}
+
                               {/* Delete / Soft Delete Trigger Button */}
                               <button
                                 onClick={() => openDeleteModal(app, 'soft')}
@@ -635,7 +707,7 @@ const FranchiseRequests = () => {
       {selectedApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh] text-slate-800 animate-in zoom-in-95 duration-200">
-            
+
             {/* Modal Header */}
             <div className="p-5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -659,29 +731,28 @@ const FranchiseRequests = () => {
 
             {/* Modal Body */}
             <div className="p-6 space-y-6 overflow-y-auto">
-              
+
               {/* Application Status Banner */}
               <div className="flex items-center justify-between p-4 rounded-2xl border bg-slate-50">
                 <div className="flex items-center gap-3">
-                  <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
-                    selectedApp.status === 'Approved'
+                  <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${selectedApp.status === 'Approved'
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                       : selectedApp.status === 'Rejected'
-                      ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                      : selectedApp.status === 'Trash'
-                      ? 'bg-slate-200 text-slate-700 border border-slate-300'
-                      : 'bg-amber-100 text-amber-800 border border-amber-300'
-                  }`}>
+                        ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                        : selectedApp.status === 'Trash'
+                          ? 'bg-slate-200 text-slate-700 border border-slate-300'
+                          : 'bg-amber-100 text-amber-800 border border-amber-300'
+                    }`}>
                     {selectedApp.status === 'Trash' ? 'Trash (Soft Deleted)' : selectedApp.status}
                   </span>
                   <span className="text-xs text-slate-600 font-medium">
                     {selectedApp.status === 'Approved'
                       ? 'This study center has been approved and activated in the portal.'
                       : selectedApp.status === 'Rejected'
-                      ? 'This application was declined.'
-                      : selectedApp.status === 'Trash'
-                      ? 'This application is in Trash (Soft Deleted). Documents remain preserved.'
-                      : 'Pending verification and center provisioning.'}
+                        ? 'This application was declined.'
+                        : selectedApp.status === 'Trash'
+                          ? 'This application is in Trash (Soft Deleted). Documents remain preserved.'
+                          : 'Pending verification and center provisioning.'}
                   </span>
                 </div>
 
@@ -822,9 +893,8 @@ const FranchiseRequests = () => {
                     return (
                       <div
                         key={doc.key}
-                        className={`bg-slate-50/80 rounded-2xl p-3.5 border transition-all flex flex-col justify-between gap-3 ${
-                          isVerified ? 'border-emerald-300 bg-emerald-50/30' : 'border-slate-200 hover:border-slate-300'
-                        }`}
+                        className={`bg-slate-50/80 rounded-2xl p-3.5 border transition-all flex flex-col justify-between gap-3 ${isVerified ? 'border-emerald-300 bg-emerald-50/30' : 'border-slate-200 hover:border-slate-300'
+                          }`}
                       >
                         {/* Header: Title & Category */}
                         <div className="flex items-start justify-between gap-2">
@@ -895,11 +965,10 @@ const FranchiseRequests = () => {
                               <button
                                 type="button"
                                 onClick={() => toggleDocVerification(selectedApp.id, doc.key)}
-                                className={`flex-1 py-1.5 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                                  isVerified
+                                className={`flex-1 py-1.5 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${isVerified
                                     ? 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-700'
                                     : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
-                                }`}
+                                  }`}
                               >
                                 <CheckCircle2 size={13} className={isVerified ? 'text-white' : 'text-slate-400'} />
                                 <span>{isVerified ? 'Verified ✓' : 'Verify'}</span>
@@ -998,7 +1067,7 @@ const FranchiseRequests = () => {
       {previewDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-in fade-in duration-150">
           <div className="relative max-w-4xl w-full max-h-[95vh] flex flex-col bg-slate-900 rounded-3xl border border-slate-700 overflow-hidden shadow-2xl">
-            
+
             {/* Inspector Top Controls Bar */}
             <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between text-white text-xs">
               <div className="flex items-center gap-2">
@@ -1043,11 +1112,10 @@ const FranchiseRequests = () => {
                 <button
                   type="button"
                   onClick={() => toggleDocVerification(previewDoc.appId, previewDoc.docKey)}
-                  className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
-                    verifiedDocs[`${previewDoc.appId}_${previewDoc.docKey}`]
+                  className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${verifiedDocs[`${previewDoc.appId}_${previewDoc.docKey}`]
                       ? 'bg-emerald-600 text-white'
                       : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                  }`}
+                    }`}
                 >
                   <CheckCircle2 size={13} />
                   <span>{verifiedDocs[`${previewDoc.appId}_${previewDoc.docKey}`] ? 'Verified' : 'Verify'}</span>
@@ -1108,30 +1176,101 @@ const FranchiseRequests = () => {
 
             {approvalResult ? (
               <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs space-y-2">
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs space-y-3">
                   <div className="font-bold text-emerald-900 text-sm flex items-center gap-1.5">
-                    <Check size={16} /> Study Center Successfully Created!
+                    <Check size={18} className="text-emerald-600 stroke-[3]" />
+                    <span>Study Center Successfully Created & Activated!</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-emerald-200 text-emerald-800">
+
+                  <p className="text-[11px] text-emerald-700 leading-relaxed">
+                    Accreditation and Login credentials for <strong>{approvalResult.centerName}</strong> have been generated. You can share these credentials directly with the Center Director.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2.5 p-3 rounded-xl bg-white border border-emerald-200 text-slate-800">
                     <div>
-                      <span className="text-[10px] text-emerald-600 block">Center Code</span>
-                      <span className="font-mono font-bold text-xs">{approvalResult.centerCode}</span>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase block">Center Code (Login ID)</span>
+                      <span className="font-mono font-black text-xs text-indigo-950">{approvalResult.centerCode}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-emerald-600 block">Default Password</span>
-                      <span className="font-mono font-bold text-xs">{approvalResult.defaultPassword}</span>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase block">Portal Password</span>
+                      <span className="font-mono font-black text-xs text-emerald-800">{approvalResult.plainPassword || approvalResult.defaultPassword}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase block">Director Name</span>
+                      <span className="font-bold text-xs truncate block">{approvalResult.headName}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase block">Certificate No</span>
+                      <span className="font-mono font-bold text-[11px] text-slate-700 truncate block">{approvalResult.certificateNumber}</span>
                     </div>
                   </div>
                 </div>
+
+                {/* Sharing and Action Buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = `*EXAMIRROR EDUTECH - STUDY CENTER ACTIVATION*\n\n` +
+                        `Dear ${approvalResult.headName},\n` +
+                        `Congratulations! Your center *${approvalResult.centerName}* has been officially approved & accredited by Examirror Edutech Private Limited.\n\n` +
+                        `🔑 *Center Login ID:* ${approvalResult.centerCode}\n` +
+                        `🔐 *Password:* ${approvalResult.plainPassword || approvalResult.defaultPassword}\n` +
+                        `📜 *Certificate ID:* ${approvalResult.certificateNumber}\n\n` +
+                        `👉 *Login Portal URL:*\n${window.location.origin}/login\n\n` +
+                        `You can login to your Center Dashboard and download your Official Center Affiliation Certificate anytime!`;
+                      navigator.clipboard.writeText(text);
+                      setCopiedCreds(true);
+                      setTimeout(() => setCopiedCreds(false), 2500);
+                    }}
+                    className="py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    {copiedCreds ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                    <span>{copiedCreds ? 'Copied Details!' : 'Copy Credentials'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = `*EXAMIRROR EDUTECH - STUDY CENTER ACTIVATION*\n\n` +
+                        `Dear ${approvalResult.headName},\n` +
+                        `Congratulations! Your center *${approvalResult.centerName}* has been officially approved & accredited by Examirror Edutech Private Limited.\n\n` +
+                        `🔑 *Center Login ID:* ${approvalResult.centerCode}\n` +
+                        `🔐 *Password:* ${approvalResult.plainPassword || approvalResult.defaultPassword}\n` +
+                        `📜 *Certificate ID:* ${approvalResult.certificateNumber}\n\n` +
+                        `👉 *Login Portal URL:*\n${window.location.origin}/login\n\n` +
+                        `Please login to your Center Dashboard to claim your Affiliation Certificate.`;
+                      const phoneClean = (approvalResult.phone || '').replace(/[^0-9]/g, '');
+                      const targetPhone = phoneClean.length === 10 ? `91${phoneClean}` : phoneClean;
+                      window.open(`https://wa.me/${targetPhone}?text=${encodeURIComponent(text)}`, '_blank');
+                    }}
+                    className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Share2 size={14} />
+                    <span>WhatsApp Share</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCertCenterData(approvalResult);
+                    setCertModalOpen(true);
+                  }}
+                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                >
+                  <Award size={15} />
+                  <span>View & Download Center Certificate</span>
+                </button>
 
                 <button
                   onClick={() => {
                     setApprovingApp(null);
                     setApprovalResult(null);
                   }}
-                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl cursor-pointer"
+                  className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer"
                 >
-                  Done
+                  Close
                 </button>
               </div>
             ) : (
@@ -1145,6 +1284,18 @@ const FranchiseRequests = () => {
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono font-bold text-slate-800 bg-slate-50 focus:bg-white outline-none focus:border-indigo-500"
                   />
                   <span className="text-[10px] text-slate-400 mt-1 block">Default auto-generated code for 2026 session</span>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Center Login Password</label>
+                  <input
+                    type="text"
+                    value={customPassword}
+                    onChange={(e) => setCustomPassword(e.target.value)}
+                    placeholder="Enter password (e.g. Exam@2026)"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono font-bold text-slate-800 bg-slate-50 focus:bg-white outline-none focus:border-indigo-500"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">Secure credentials for Center Admin portal login</span>
                 </div>
 
                 <div>
@@ -1172,7 +1323,7 @@ const FranchiseRequests = () => {
                     className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md cursor-pointer flex items-center gap-1.5"
                   >
                     {actionLoading && <RefreshCw size={13} className="animate-spin" />}
-                    <span>Confirm & Activate</span>
+                    <span>Confirm & Activate Center</span>
                   </button>
                 </div>
               </div>
@@ -1185,7 +1336,7 @@ const FranchiseRequests = () => {
       {deleteTargetApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 text-slate-800 animate-in zoom-in-95 duration-200">
-            
+
             {/* Modal Header */}
             <div className="p-5 bg-gradient-to-r from-slate-900 to-rose-950 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1209,17 +1360,16 @@ const FranchiseRequests = () => {
 
             {/* Mode Switcher Tabs */}
             <div className="p-5 space-y-4">
-              
+
               {deleteTargetApp.status !== 'Trash' && (
                 <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl gap-1 text-xs font-bold">
                   <button
                     type="button"
                     onClick={() => setDeleteMode('soft')}
-                    className={`py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      deleteMode === 'soft'
+                    className={`py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${deleteMode === 'soft'
                         ? 'bg-white text-indigo-900 shadow-xs'
                         : 'text-slate-500 hover:text-slate-800'
-                    }`}
+                      }`}
                   >
                     <Archive size={14} />
                     <span>Soft Delete (Trash)</span>
@@ -1230,11 +1380,10 @@ const FranchiseRequests = () => {
                       setDeleteMode('permanent');
                       refreshZebtishCaptcha();
                     }}
-                    className={`py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      deleteMode === 'permanent'
+                    className={`py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${deleteMode === 'permanent'
                         ? 'bg-rose-600 text-white shadow-xs'
                         : 'text-slate-500 hover:text-rose-700'
-                    }`}
+                      }`}
                   >
                     <ShieldAlert size={14} />
                     <span>Permanent Purge</span>
@@ -1282,7 +1431,7 @@ const FranchiseRequests = () => {
                   </div>
                 </div>
               ) : (
-                
+
                 /* Mode 2: PERMANENT PURGE WITH REAL-TIME ZEBTISH WORD CAPTCHA */
                 <div className="space-y-4 text-xs">
                   <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 space-y-1 text-rose-900">
@@ -1316,10 +1465,10 @@ const FranchiseRequests = () => {
 
                     {/* Styled Visual Zebtish Captcha Canvas Card */}
                     <div className="relative overflow-hidden rounded-2xl bg-slate-950 p-4 border border-slate-800 flex items-center justify-between select-none shadow-inner">
-                      
+
                       {/* Security Background Grid Pattern */}
                       <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:8px_8px]" />
-                      
+
                       {/* Distorted Wavy Security Line SVG Overlay */}
                       <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" preserveAspectRatio="none">
                         <path d="M0,20 Q60,5 120,25 T240,15 T360,30 T480,10" fill="none" stroke="#f43f5e" strokeWidth="2" />
@@ -1363,13 +1512,12 @@ const FranchiseRequests = () => {
                           placeholder="Type security word above to unlock..."
                           value={captchaInput}
                           onChange={(e) => setCaptchaInput(e.target.value.toUpperCase())}
-                          className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono font-bold uppercase tracking-wider outline-none transition-all ${
-                            captchaMatches
+                          className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono font-bold uppercase tracking-wider outline-none transition-all ${captchaMatches
                               ? 'border-emerald-500 bg-emerald-50/50 text-emerald-900 ring-2 ring-emerald-500/20'
                               : captchaInput.length > 0
-                              ? 'border-rose-300 bg-rose-50/30 text-rose-900'
-                              : 'border-slate-300 bg-white text-slate-800 focus:border-indigo-500'
-                          }`}
+                                ? 'border-rose-300 bg-rose-50/30 text-rose-900'
+                                : 'border-slate-300 bg-white text-slate-800 focus:border-indigo-500'
+                            }`}
                         />
 
                         {captchaMatches && (
@@ -1409,11 +1557,10 @@ const FranchiseRequests = () => {
                       type="button"
                       disabled={!captchaMatches || deleteProcessing}
                       onClick={() => handlePermanentDelete(deleteTargetApp.id)}
-                      className={`px-5 py-2.5 font-bold rounded-xl shadow-md flex items-center gap-1.5 transition-all ${
-                        captchaMatches && !deleteProcessing
+                      className={`px-5 py-2.5 font-bold rounded-xl shadow-md flex items-center gap-1.5 transition-all ${captchaMatches && !deleteProcessing
                           ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer shadow-rose-600/30'
                           : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-                      }`}
+                        }`}
                     >
                       {deleteProcessing ? <RefreshCw size={13} className="animate-spin" /> : <Trash2 size={14} />}
                       <span>Permanently Delete Application</span>
@@ -1422,12 +1569,17 @@ const FranchiseRequests = () => {
 
                 </div>
               )}
-
             </div>
-
           </div>
         </div>
       )}
+
+      {/* CENTER AFFILIATION CERTIFICATE MODAL */}
+      <CenterCertificateModal
+        center={certCenterData}
+        isOpen={certModalOpen}
+        onClose={() => setCertModalOpen(false)}
+      />
 
     </div>
   );

@@ -324,6 +324,24 @@ export const publicService = {
       aadharBackUrl = saveBase64File(aadharBackUrl, 'aadhar-back', 'franchise');
     }
 
+    let finalCenterPhotosUrl = data.center_photos_url || '';
+    if (typeof finalCenterPhotosUrl === 'string' && finalCenterPhotosUrl.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(finalCenterPhotosUrl);
+        if (Array.isArray(parsed)) {
+          const savedList = parsed.map((item, idx) => {
+            if (typeof item === 'string' && item.startsWith('data:')) {
+              return saveBase64File(item, `center-infra-${idx + 1}`, 'franchise');
+            }
+            return item;
+          });
+          finalCenterPhotosUrl = JSON.stringify(savedList);
+        }
+      } catch (_) {}
+    } else if (typeof finalCenterPhotosUrl === 'string' && finalCenterPhotosUrl.startsWith('data:')) {
+      finalCenterPhotosUrl = saveBase64File(finalCenterPhotosUrl, 'center-infra', 'franchise');
+    }
+
     const [res]: any = await db.query(
       `INSERT INTO franchise_applications (
         center_head_first_name, center_head_middle_name, center_head_last_name,
@@ -360,7 +378,7 @@ export const publicService = {
         marksheetUrl,
         aadharFrontUrl,
         aadharBackUrl,
-        data.center_photos_url || ''
+        finalCenterPhotosUrl
       ]
     );
 

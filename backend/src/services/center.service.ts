@@ -732,13 +732,33 @@ export const centerService = {
     const [freeTestsRow]: any = await db.query('SELECT COUNT(*) as count FROM free_tests WHERE centerId = ?', [centerId]);
     const [examsRow]: any = await db.query('SELECT COUNT(*) as count FROM exams WHERE centerId = ?', [centerId]);
     const [coursesRow]: any = await db.query('SELECT COUNT(*) as count FROM center_courses WHERE centerId = ?', [centerId]);
-    const [centerRows]: any = await db.query('SELECT wallet_balance, name, center_code, email, phone, city, state, status FROM centers WHERE id = ?', [centerId]);
+    const [centerRows]: any = await db.query(`
+      SELECT 
+        id, wallet_balance, name, center_code, head_name, head_image_url, email, phone,
+        address, address_line2, city, district, state, pincode, status, joined_date,
+        certificate_number, certificate_issued_date, certificate_valid_until
+      FROM centers WHERE id = ?
+    `, [centerId]);
 
     const studentsCount = (studentsRow && studentsRow[0] && studentsRow[0].count) || 0;
     const freeTestsCount = (freeTestsRow && freeTestsRow[0] && freeTestsRow[0].count) || 0;
     const examsCount = (examsRow && examsRow[0] && examsRow[0].count) || 0;
     const coursesCount = (coursesRow && coursesRow[0] && coursesRow[0].count) || 0;
     const walletBalance = (centerRows && centerRows[0] && centerRows[0].wallet_balance) || 0;
+
+    let certNum = centerRows && centerRows[0] ? centerRows[0].certificate_number : null;
+    if (!certNum && centerRows && centerRows[0]) {
+      certNum = `EXAM-ATC-2026-${String(centerId).padStart(4, '0')}`;
+      try {
+        await db.query(`
+          UPDATE centers 
+          SET certificate_number = ?, 
+              certificate_issued_date = COALESCE(certificate_issued_date, CURDATE()),
+              certificate_valid_until = COALESCE(certificate_valid_until, DATE_ADD(CURDATE(), INTERVAL 1 YEAR))
+          WHERE id = ?
+        `, [certNum, centerId]);
+      } catch (_) {}
+    }
 
     const [chartData]: any = await db.query(`
       SELECT MONTHNAME(created_at) as month, COUNT(*) as count 
@@ -758,11 +778,24 @@ export const centerService = {
     `, [centerId]);
 
     const centerProfile = centerRows && centerRows.length > 0 ? {
+      id: centerRows[0].id,
       name: centerRows[0].name,
       code: centerRows[0].center_code,
+      headName: centerRows[0].head_name || centerRows[0].name,
+      headPhoto: centerRows[0].head_image_url || '',
       email: centerRows[0].email,
       phone: centerRows[0].phone,
+      address: centerRows[0].address || '',
+      addressLine2: centerRows[0].address_line2 || '',
+      city: centerRows[0].city || '',
+      district: centerRows[0].district || '',
+      state: centerRows[0].state || '',
+      pincode: centerRows[0].pincode || '',
       location: `${centerRows[0].city || ''}, ${centerRows[0].state || ''}`.trim().replace(/^,|,$/g, ''),
+      joinedDate: centerRows[0].joined_date,
+      certificateNumber: certNum || `EXAM-ATC-2026-${String(centerRows[0].id).padStart(4, '0')}`,
+      certificateIssuedDate: centerRows[0].certificate_issued_date || centerRows[0].joined_date || new Date().toISOString().split('T')[0],
+      certificateValidUntil: centerRows[0].certificate_valid_until || '2027-03-31',
       status: centerRows[0].status
     } : null;
 
@@ -777,6 +810,56 @@ export const centerService = {
       },
       chartData: chartData || [],
       recentStudents: recentStudents || []
+    };
+  },
+
+  getCenterCertificate: async (centerIdOrCode: string | number) => {
+    const [rows]: any = await db.query(`
+      SELECT 
+        id, name, center_code, head_name, head_image_url, email, phone,
+        address, address_line2, city, district, state, pincode, status, joined_date,
+        certificate_number, certificate_issued_date, certificate_valid_until
+      FROM centers 
+      WHERE id = ? OR center_code = ?
+    `, [centerIdOrCode, centerIdOrCode]);
+
+    if (!rows || rows.length === 0) {
+      throw new Error('Study Center not found');
+    }
+    const c = rows[0];
+    let certNum = c.certificate_number;
+    if (!certNum) {
+      certNum = `EXAM-ATC-2026-${String(c.id).padStart(4, '0')}`;
+      try {
+        await db.query(`
+          UPDATE centers 
+          SET certificate_number = ?, 
+              certificate_issued_date = COALESCE(certificate_issued_date, CURDATE()),
+              certificate_valid_until = COALESCE(certificate_valid_until, DATE_ADD(CURDATE(), INTERVAL 1 YEAR))
+          WHERE id = ?
+        `, [certNum, c.id]);
+      } catch (_) {}
+    }
+
+    return {
+      id: c.id,
+      centerName: c.name,
+      centerCode: c.center_code,
+      headName: c.head_name || c.name,
+      headPhoto: c.head_image_url || '',
+      email: c.email,
+      phone: c.phone,
+      address: c.address,
+      addressLine2: c.address_line2,
+      city: c.city,
+      district: c.district,
+      state: c.state,
+      pincode: c.pincode,
+      fullAddress: [c.address, c.address_line2, c.city, c.district, c.state, c.pincode].filter(Boolean).join(', '),
+      status: c.status,
+      certificateNumber: certNum,
+      issueDate: c.certificate_issued_date || c.joined_date || new Date().toISOString().split('T')[0],
+      validUntil: c.certificate_valid_until || '2027-03-31'
     };
   },
 
