@@ -546,6 +546,7 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
         dob VARCHAR(20),
         gender VARCHAR(20),
         marital_status VARCHAR(20),
+        qualification VARCHAR(100) DEFAULT 'Graduate',
         center_name VARCHAR(200) NOT NULL,
         address_line1 VARCHAR(255) NOT NULL,
         address_line2 VARCHAR(255),
@@ -563,6 +564,10 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    try {
+      await db.query(`ALTER TABLE franchise_applications ADD COLUMN qualification VARCHAR(100) DEFAULT 'Graduate'`);
+    } catch (_) {}
 
     let query = 'SELECT * FROM franchise_applications';
     const params: any[] = [];

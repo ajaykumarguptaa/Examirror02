@@ -67,6 +67,7 @@ const FranchiseRegister = () => {
   const [dob, setDob] = useState(() => getMaxEligibleDob());
   const [gender, setGender] = useState('');
   const [maritalStatus, setMaritalStatus] = useState('');
+  const [qualification, setQualification] = useState('Graduate');
 
   // Office Details
   const [centerName, setCenterName] = useState('');
@@ -555,6 +556,22 @@ const FranchiseRegister = () => {
       return;
     }
 
+    if (qualification === 'Matric' || qualification === 'Intermediate' || qualification.includes('Not Eligible')) {
+      setToast({
+        type: 'error',
+        text: 'Minimum qualification requirement for Center Head is Graduation. Matric (10th) and Intermediate (12th) pass candidates are not eligible to register.'
+      });
+      return;
+    }
+
+    if (!marksheetData) {
+      setToast({
+        type: 'error',
+        text: 'Please upload your official Graduation Marksheet or Degree Certificate.'
+      });
+      return;
+    }
+
     setSubmitting(true);
     setToast(null);
 
@@ -572,6 +589,7 @@ const FranchiseRegister = () => {
       dob,
       gender,
       marital_status: maritalStatus,
+      qualification,
       center_name: centerName,
       address_line1: addressLine1,
       address_line2: addressLine2,
@@ -860,6 +878,44 @@ const FranchiseRegister = () => {
                   </select>
                 </div>
               </div>
+
+              {/* Center Head Highest Qualification (Minimum Graduation Requirement) */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-slate-700 font-medium text-xs sm:text-sm">
+                    Center Head Qualification (Min. Graduate)*
+                  </label>
+                  {(qualification === 'Matric' || qualification === 'Intermediate') && (
+                    <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                      Not Eligible ⚠️
+                    </span>
+                  )}
+                </div>
+                <select
+                  required
+                  value={qualification}
+                  onChange={(e) => setQualification(e.target.value)}
+                  className={`w-full px-3.5 py-2.5 border rounded-lg outline-none text-slate-800 text-xs sm:text-sm bg-white ${
+                    qualification === 'Matric' || qualification === 'Intermediate'
+                      ? 'border-rose-400 focus:border-rose-600 bg-rose-50/20'
+                      : 'border-slate-300 focus:border-slate-500'
+                  }`}
+                >
+                  <option value="Graduate">Graduate (B.A / B.Sc / B.Com / BCA / B.Tech / BBA / Other Bachelor Degree) ✓</option>
+                  <option value="Post Graduate">Post Graduate (M.A / M.Sc / M.Com / MCA / M.Tech / MBA / Other Master Degree) ✓</option>
+                  <option value="Doctorate / Ph.D">Doctorate / Ph.D / Higher Qualification ✓</option>
+                  <option value="Intermediate">12th / Intermediate (Not Eligible for Center Registration ⚠️)</option>
+                  <option value="Matric">10th / Matriculation (Not Eligible for Center Registration ⚠️)</option>
+                </select>
+                {(qualification === 'Matric' || qualification === 'Intermediate') && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 text-xs font-medium flex items-start gap-2">
+                    <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Ineligible:</strong> Study Center registration strictly requires minimum <strong>Graduation (Bachelor's Degree)</strong>. Candidates with only Matric (10th) or Intermediate (12th) pass qualifications cannot register an authorized center.
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="w-full h-px bg-slate-200" />
@@ -1103,10 +1159,10 @@ const FranchiseRegister = () => {
                   </div>
                 </div>
 
-                {/* Marksheet */}
+                {/* Graduation Marksheet / Degree Certificate */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="block text-slate-700 font-medium">Marksheet*</label>
+                    <label className="block text-slate-700 font-medium">Graduation Marksheet / Degree*</label>
                     {docCompression['marksheet'] && (
                       <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
                         <FileCheck2 size={11} /> {docCompression['marksheet'].sizeKB} KB
@@ -1128,9 +1184,12 @@ const FranchiseRegister = () => {
                       Choose File
                     </button>
                     <span className="px-3 text-slate-600 text-[11px] truncate flex-1 font-medium">
-                      {marksheetName || 'no file selected'}
+                      {marksheetName || 'Upload Graduation Marksheet / Degree'}
                     </span>
                   </div>
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    Upload Bachelor Degree Certificate or Graduation Marksheet (10th/12th marksheets not accepted)
+                  </p>
                 </div>
 
               </div>

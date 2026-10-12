@@ -239,6 +239,7 @@ export const publicService = {
         district VARCHAR(100) NOT NULL,
         state VARCHAR(100) NOT NULL,
         pincode VARCHAR(20) NOT NULL,
+        qualification VARCHAR(100) DEFAULT 'Graduate',
         photo_url TEXT,
         signature_url TEXT,
         marksheet_url TEXT,
@@ -249,6 +250,10 @@ export const publicService = {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    try {
+      await db.query(`ALTER TABLE franchise_applications ADD COLUMN qualification VARCHAR(100) DEFAULT 'Graduate'`);
+    } catch (_) {}
 
     if (data.dob) {
       const birthDate = new Date(data.dob);
@@ -262,6 +267,14 @@ export const publicService = {
         if (age < 18) {
           throw new Error(`Applicant must be at least 18 years of age for Center Head registration (Provided age: ${age} years).`);
         }
+      }
+    }
+
+    // Minimum qualification validation: Candidate must be at least Graduate
+    if (data.qualification) {
+      const qLower = String(data.qualification).toLowerCase();
+      if (qLower.includes('matric') || qLower.includes('10th') || qLower.includes('12th') || qLower.includes('inter')) {
+        throw new Error('Minimum eligibility requirement for Center Head registration is Graduation. Candidates with only Matric (10th) or Intermediate (12th) are not eligible.');
       }
     }
 
@@ -295,10 +308,10 @@ export const publicService = {
         center_head_first_name, center_head_middle_name, center_head_last_name,
         father_first_name, father_middle_name, father_last_name,
         phone, email, aadhar_number, pan_number,
-        dob, gender, marital_status,
+        dob, gender, marital_status, qualification,
         center_name, address_line1, address_line2, city, district, state, pincode,
         photo_url, signature_url, marksheet_url, aadhar_front_url, aadhar_back_url, center_photos_url
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.center_head_first_name || '',
         data.center_head_middle_name || '',
@@ -313,6 +326,7 @@ export const publicService = {
         data.dob || '',
         data.gender || '',
         data.marital_status || '',
+        data.qualification || 'Graduate',
         data.center_name || '',
         data.address_line1 || '',
         data.address_line2 || '',

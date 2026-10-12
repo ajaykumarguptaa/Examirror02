@@ -49,6 +49,12 @@ const FranchiseRequirements = () => {
       highlight: true
     },
     {
+      title: 'Center Head: Minimum Graduate',
+      desc: 'Center Director / Signatory must be a Graduate. Matric (10th) or 12th pass alone are not eligible.',
+      icon: Award,
+      highlight: true
+    },
+    {
       title: '100 Sq. ft. (or more) Area',
       desc: 'Dedicated lab and theory classroom area suitable for seated computer batches.',
       icon: Maximize2,
@@ -101,10 +107,10 @@ const FranchiseRequirements = () => {
       badge: 'Mandatory'
     },
     {
-      title: 'Educational Qualification Certificates',
-      desc: 'Copies of Matriculation (10th), Intermediate (12th), Graduation, ITI, Computer Diploma, PGDCA, or higher degrees.',
+      title: 'Graduation Marksheet / Degree Certificate',
+      desc: 'Self-attested copy of Graduation Marksheet or Bachelor\'s Degree Certificate (B.A, B.Sc, B.Com, BCA, B.Tech, etc.). Note: Candidates with only Matriculation (10th) or Intermediate (12th) are strictly not eligible for center registration.',
       icon: GraduationCap,
-      badge: 'Mandatory'
+      badge: 'Mandatory (Graduate+)'
     },
     {
       title: 'Center Head Passport Size Photographs',

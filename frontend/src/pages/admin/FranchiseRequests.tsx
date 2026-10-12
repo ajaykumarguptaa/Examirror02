@@ -34,7 +34,8 @@ import {
   Archive,
   Lock,
   Sparkles,
-  HelpCircle
+  HelpCircle,
+  GraduationCap
 } from 'lucide-react';
 
 interface FranchiseApplication {
@@ -52,6 +53,7 @@ interface FranchiseApplication {
   dob?: string;
   gender?: string;
   marital_status?: string;
+  qualification?: string;
   center_name: string;
   address_line1: string;
   address_line2?: string;
@@ -171,7 +173,7 @@ const FranchiseRequests = () => {
   const getAppDocuments = (app: FranchiseApplication) => [
     { key: 'photo', label: 'Passport Photo', category: 'Biometric Headshot', url: app.photo_url, filename: `${app.center_head_first_name}_Photo.png` },
     { key: 'signature', label: 'Director Signature', category: 'Legal Signature', url: app.signature_url, filename: `${app.center_head_first_name}_Signature.png` },
-    { key: 'marksheet', label: 'Qualification Marksheet', category: 'Academic Proof', url: app.marksheet_url, filename: `${app.center_head_first_name}_Qualification.png` },
+    { key: 'marksheet', label: 'Graduation Marksheet / Degree', category: 'Degree (Min. Graduate)', url: app.marksheet_url, filename: `${app.center_head_first_name}_Graduation_Marksheet.png` },
     { key: 'aadhar_front', label: 'Aadhar Card (Front)', category: 'Identity Proof', url: app.aadhar_front_url, filename: `${app.center_head_first_name}_Aadhar_Front.png` },
     { key: 'aadhar_back', label: 'Aadhar Card (Back)', category: 'Address Proof', url: app.aadhar_back_url, filename: `${app.center_head_first_name}_Aadhar_Back.png` },
     { key: 'center_photos', label: 'Center Infrastructure', category: 'Premises Photos', url: app.center_photos_url, filename: `${app.center_head_first_name}_Center_Photos.png` },
@@ -739,6 +741,13 @@ const FranchiseRequests = () => {
                   <div>
                     <span className="text-[10px] text-slate-500 font-medium">Marital Status</span>
                     <div className="font-bold text-slate-900 mt-0.5">{selectedApp.marital_status || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-medium">Qualification</span>
+                    <div className="font-bold text-emerald-700 mt-0.5 flex items-center gap-1">
+                      <GraduationCap size={13} className="text-emerald-600" />
+                      <span>{selectedApp.qualification || 'Graduate'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
