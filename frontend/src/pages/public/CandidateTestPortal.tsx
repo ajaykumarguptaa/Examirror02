@@ -32,6 +32,7 @@ import {
   Building2
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { onlyDigits, onlyNameLetters, isValidIndianPhone } from '../../utils/validators';
 
 interface Question {
   id: number;
@@ -351,6 +352,10 @@ const CandidateTestPortal: React.FC = () => {
     e.preventDefault();
     if (!studentName.trim()) {
       alert('Please enter your full name');
+      return;
+    }
+    if (studentMobile.trim() && !isValidIndianPhone(studentMobile.trim())) {
+      alert('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
       return;
     }
     if (!agreeRules) {
@@ -806,7 +811,7 @@ const CandidateTestPortal: React.FC = () => {
                       required
                       placeholder="e.g. Rahul Sharma"
                       value={studentName}
-                      onChange={(e) => setStudentName(e.target.value)}
+                      onChange={(e) => setStudentName(onlyNameLetters(e.target.value))}
                       className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                     />
                   </div>
@@ -837,9 +842,11 @@ const CandidateTestPortal: React.FC = () => {
                     <label className="block text-xs font-bold text-slate-700 mb-1">Mobile Number (Optional)</label>
                     <input
                       type="tel"
-                      placeholder="e.g. 9876543210"
+                      inputMode="numeric"
+                      maxLength={10}
+                      placeholder="e.g. 9876543210 (10 Digits)"
                       value={studentMobile}
-                      onChange={(e) => setStudentMobile(e.target.value)}
+                      onChange={(e) => setStudentMobile(onlyDigits(e.target.value, 10))}
                       className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                     />
                   </div>

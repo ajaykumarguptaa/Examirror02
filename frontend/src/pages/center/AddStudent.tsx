@@ -2,6 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, ChevronDown, CheckCircle2, AlertCircle, User, Camera, FileCheck2, CheckCircle, ExternalLink, Clock, Lock } from 'lucide-react';
 import axios from 'axios';
 import { compressImageFile } from '../../utils/imageCompressor';
+import {
+  onlyDigits,
+  onlyNameLetters,
+  formatPAN,
+  isValidIndianPhone,
+  isValidAadhaar,
+  isValidPAN,
+  isValidPincode
+} from '../../utils/validators';
 
 const AddStudent = () => {
   const getCenterId = () => {
@@ -263,6 +272,26 @@ const AddStudent = () => {
       return;
     }
 
+    if (!isValidIndianPhone(parentMobile)) {
+      setFeedback({ type: 'error', text: 'Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.' });
+      return;
+    }
+
+    if (!isValidPincode(pincode)) {
+      setFeedback({ type: 'error', text: 'Please enter a valid 6-digit area pincode.' });
+      return;
+    }
+
+    if (studentIdType === 'Aadhaar Card' && !isValidAadhaar(idCardNo)) {
+      setFeedback({ type: 'error', text: 'Aadhaar Card number must be exactly 12 digits.' });
+      return;
+    }
+
+    if (studentIdType === 'PAN Card' && !isValidPAN(idCardNo)) {
+      setFeedback({ type: 'error', text: 'PAN Card number must be in valid format (e.g., ABCDE1234F).' });
+      return;
+    }
+
     if (!isSelectedCourseReady) {
       setFeedback({
         type: 'error',
@@ -424,7 +453,7 @@ const AddStudent = () => {
                         required
                         placeholder="Student Fullname *"
                         value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
+                        onChange={(e) => setFullName(onlyNameLetters(e.target.value))}
                         className="w-full text-sm font-medium text-[#1e293b] placeholder-gray-500 outline-none bg-transparent"
                       />
                     </div>
@@ -439,7 +468,7 @@ const AddStudent = () => {
                           required
                           placeholder="Father/Husband name *"
                           value={fatherHusbandName}
-                          onChange={(e) => setFatherHusbandName(e.target.value)}
+                          onChange={(e) => setFatherHusbandName(onlyNameLetters(e.target.value))}
                           className="w-full text-sm font-medium text-[#1e293b] placeholder-gray-500 outline-none bg-transparent"
                         />
                       </div>
@@ -454,7 +483,7 @@ const AddStudent = () => {
                         required
                         placeholder="Mother name *"
                         value={motherName}
-                        onChange={(e) => setMotherName(e.target.value)}
+                        onChange={(e) => setMotherName(onlyNameLetters(e.target.value))}
                         className="w-full text-sm font-medium text-[#1e293b] placeholder-gray-500 outline-none bg-transparent"
                       />
                     </div>
@@ -465,9 +494,11 @@ const AddStudent = () => {
                     <input
                       type="tel"
                       required
-                      placeholder="Parent's Mobile No. *"
+                      inputMode="numeric"
+                      maxLength={10}
+                      placeholder="Parent's Mobile No. (10 Digits) *"
                       value={parentMobile}
-                      onChange={(e) => setParentMobile(e.target.value)}
+                      onChange={(e) => setParentMobile(onlyDigits(e.target.value, 10))}
                       className="w-full text-sm font-medium text-[#1e293b] placeholder-gray-500 outline-none bg-transparent"
                     />
                   </div>
@@ -549,9 +580,11 @@ const AddStudent = () => {
                       <input
                         type="text"
                         required
-                        placeholder="Area Pincode (6 Digit) *"
+                        inputMode="numeric"
+                        maxLength={6}
+                        placeholder="Area Pincode (6 Digits) *"
                         value={pincode}
-                        onChange={(e) => setPincode(e.target.value)}
+                        onChange={(e) => setPincode(onlyDigits(e.target.value, 6))}
                         className="w-full text-sm font-medium text-[#1e293b] placeholder-gray-500 outline-none bg-transparent"
                       />
                     </div>
@@ -807,10 +840,14 @@ const AddStudent = () => {
                     <div className="flex items-center justify-between">
                       <select
                         value={studentIdType}
-                        onChange={(e) => setStudentIdType(e.target.value)}
+                        onChange={(e) => {
+                          setStudentIdType(e.target.value);
+                          setIdCardNo('');
+                        }}
                         className="w-full bg-transparent text-sm font-medium text-[#1e293b] outline-none appearance-none cursor-pointer pr-4"
                       >
                         <option value="Aadhaar Card">Aadhaar Card</option>
+                        <option value="PAN Card">PAN Card</option>
                         <option value="Voter ID">Voter ID</option>
                         <option value="Passport">Passport</option>
                         <option value="Driving License">Driving License</option>
@@ -825,9 +862,25 @@ const AddStudent = () => {
                     <input
                       type="text"
                       required
-                      placeholder="ID Card No *"
+                      inputMode={studentIdType === 'Aadhaar Card' ? 'numeric' : 'text'}
+                      maxLength={studentIdType === 'Aadhaar Card' ? 12 : studentIdType === 'PAN Card' ? 10 : 30}
+                      placeholder={
+                        studentIdType === 'Aadhaar Card'
+                          ? 'Aadhaar Number (12 Digits) *'
+                          : studentIdType === 'PAN Card'
+                          ? 'PAN Card Number (10 Alphanumeric, e.g. ABCDE1234F) *'
+                          : 'ID Card No *'
+                      }
                       value={idCardNo}
-                      onChange={(e) => setIdCardNo(e.target.value)}
+                      onChange={(e) => {
+                        if (studentIdType === 'Aadhaar Card') {
+                          setIdCardNo(onlyDigits(e.target.value, 12));
+                        } else if (studentIdType === 'PAN Card') {
+                          setIdCardNo(formatPAN(e.target.value));
+                        } else {
+                          setIdCardNo(e.target.value);
+                        }
+                      }}
                       className="w-full text-sm font-medium text-[#1e293b] placeholder-gray-500 outline-none bg-transparent"
                     />
                   </div>

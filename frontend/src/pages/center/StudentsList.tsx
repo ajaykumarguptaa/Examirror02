@@ -51,6 +51,15 @@ import { BatchIdCardModal } from "../../components/BatchIdCardModal";
 import { OfficialCertificateCard } from "../../components/OfficialCertificateCard";
 
 import { compressImageFile } from '../../utils/imageCompressor';
+import {
+  onlyDigits,
+  onlyNameLetters,
+  formatPAN,
+  isValidIndianPhone,
+  isValidAadhaar,
+  isValidPAN,
+  isValidPincode
+} from '../../utils/validators';
 
 interface Semester {
   num: number;
@@ -513,6 +522,10 @@ const StudentsList = () => {
   const handleSaveQuickEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudent) return;
+    if (quickPhone && !isValidIndianPhone(quickPhone)) {
+      setFeedback({ type: 'error', text: 'Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.' });
+      return;
+    }
     try {
       setIsProcessing(true);
       const res = await axios.put(`http://localhost:3000/api/center/students/${selectedStudent.id}`, {
@@ -536,6 +549,22 @@ const StudentsList = () => {
   const handleSaveAdvancedEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudent) return;
+    if (editFormData.phone && !isValidIndianPhone(editFormData.phone)) {
+      setFeedback({ type: 'error', text: 'Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.' });
+      return;
+    }
+    if (editFormData.pincode && !isValidPincode(editFormData.pincode)) {
+      setFeedback({ type: 'error', text: 'Please enter a valid 6-digit area pincode.' });
+      return;
+    }
+    if (editFormData.idType === 'Aadhaar Card' && editFormData.idNumber && !isValidAadhaar(editFormData.idNumber)) {
+      setFeedback({ type: 'error', text: 'Aadhaar Card number must be exactly 12 digits.' });
+      return;
+    }
+    if (editFormData.idType === 'PAN Card' && editFormData.idNumber && !isValidPAN(editFormData.idNumber)) {
+      setFeedback({ type: 'error', text: 'PAN Card number must be in format ABCDE1234F.' });
+      return;
+    }
     setShowAdvancedEditConfirm(true);
   };
 
@@ -1336,7 +1365,7 @@ const StudentsList = () => {
                   type="text"
                   required
                   value={quickFirstName}
-                  onChange={(e) => setQuickFirstName(e.target.value)}
+                  onChange={(e) => setQuickFirstName(onlyNameLetters(e.target.value))}
                   className="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-indigo-600 font-medium"
                 />
               </div>
@@ -1346,16 +1375,19 @@ const StudentsList = () => {
                   type="text"
                   required
                   value={quickLastName}
-                  onChange={(e) => setQuickLastName(e.target.value)}
+                  onChange={(e) => setQuickLastName(onlyNameLetters(e.target.value))}
                   className="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-indigo-600 font-medium"
                 />
               </div>
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Mobile Phone</label>
+                <label className="block font-bold text-gray-700 mb-1">Mobile Phone (10 Digits)</label>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="10-digit mobile number"
                   value={quickPhone}
-                  onChange={(e) => setQuickPhone(e.target.value)}
+                  onChange={(e) => setQuickPhone(onlyDigits(e.target.value, 10))}
                   className="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-indigo-600 font-medium"
                 />
               </div>
@@ -1471,7 +1503,7 @@ const StudentsList = () => {
                           type="text"
                           required
                           value={editFormData.firstName}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: onlyNameLetters(e.target.value) }))}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-indigo-600 font-medium"
                         />
                       </div>
@@ -1481,7 +1513,7 @@ const StudentsList = () => {
                           type="text"
                           required
                           value={editFormData.lastName}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: onlyNameLetters(e.target.value) }))}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-indigo-600 font-medium"
                         />
                       </div>
@@ -1493,7 +1525,7 @@ const StudentsList = () => {
                         <input
                           type="text"
                           value={editFormData.fatherName}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, fatherName: e.target.value }))}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, fatherName: onlyNameLetters(e.target.value) }))}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-indigo-600 font-medium"
                         />
                       </div>
@@ -1502,7 +1534,7 @@ const StudentsList = () => {
                         <input
                           type="text"
                           value={editFormData.motherName}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, motherName: e.target.value }))}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, motherName: onlyNameLetters(e.target.value) }))}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-indigo-600 font-medium"
                         />
                       </div>
@@ -1545,12 +1577,15 @@ const StudentsList = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <label className="block font-bold text-gray-700 mb-1">Mobile Phone *</label>
+                        <label className="block font-bold text-gray-700 mb-1">Mobile Phone (10 Digits) *</label>
                         <input
                           type="tel"
                           required
+                          inputMode="numeric"
+                          maxLength={10}
+                          placeholder="10-digit mobile"
                           value={editFormData.phone}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, phone: e.target.value }))}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, phone: onlyDigits(e.target.value, 10) }))}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-indigo-600 font-medium"
                         />
                       </div>
@@ -1699,12 +1734,14 @@ const StudentsList = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <label className="block font-bold text-gray-700 mb-1">Pincode</label>
+                        <label className="block font-bold text-gray-700 mb-1">Pincode (6 Digits)</label>
                         <input
                           type="text"
+                          inputMode="numeric"
+                          maxLength={6}
                           placeholder="e.g. 800001"
                           value={editFormData.pincode}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, pincode: e.target.value }))}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, pincode: onlyDigits(e.target.value, 6) }))}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-indigo-600 font-mono"
                         />
                       </div>
@@ -1740,12 +1777,12 @@ const StudentsList = () => {
                         <label className="block font-bold text-gray-700 mb-1">Identity Document Type</label>
                         <select
                           value={editFormData.idType}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, idType: e.target.value }))}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, idType: e.target.value, idNumber: '' }))}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-indigo-600 bg-white"
                         >
                           <option value="Aadhaar Card">Aadhaar Card</option>
-                          <option value="Voter ID">Voter ID</option>
                           <option value="PAN Card">PAN Card</option>
+                          <option value="Voter ID">Voter ID</option>
                           <option value="School / College ID">School / College ID</option>
                           <option value="Driving License">Driving License</option>
                           <option value="Passport">Passport</option>
@@ -1755,9 +1792,26 @@ const StudentsList = () => {
                         <label className="block font-bold text-gray-700 mb-1">Identity Document Number</label>
                         <input
                           type="text"
-                          placeholder="e.g. 1234 5678 9012"
+                          inputMode={editFormData.idType === 'Aadhaar Card' ? 'numeric' : 'text'}
+                          maxLength={editFormData.idType === 'Aadhaar Card' ? 12 : editFormData.idType === 'PAN Card' ? 10 : 30}
+                          placeholder={
+                            editFormData.idType === 'Aadhaar Card'
+                              ? '12-digit Aadhaar Number'
+                              : editFormData.idType === 'PAN Card'
+                              ? '10-char PAN (ABCDE1234F)'
+                              : 'ID Number'
+                          }
                           value={editFormData.idNumber}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, idNumber: e.target.value }))}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (editFormData.idType === 'Aadhaar Card') {
+                              setEditFormData(prev => ({ ...prev, idNumber: onlyDigits(val, 12) }));
+                            } else if (editFormData.idType === 'PAN Card') {
+                              setEditFormData(prev => ({ ...prev, idNumber: formatPAN(val) }));
+                            } else {
+                              setEditFormData(prev => ({ ...prev, idNumber: val }));
+                            }
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-indigo-600 font-mono"
                         />
                       </div>

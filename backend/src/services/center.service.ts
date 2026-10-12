@@ -298,6 +298,27 @@ export const centerService = {
     // Zero enrollment fee deduction at admission time (fee deduction occurs upon certificate generation)
     const tokensRequired = 0;
 
+    // Strict Input Validations
+    if (!data.firstName || !data.firstName.trim()) {
+      throw new Error('Student first name is required.');
+    }
+
+    if (data.phone && !/^[6-9]\d{9}$/.test(String(data.phone).trim())) {
+      throw new Error('Please provide a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
+    }
+
+    if (data.pincode && !/^\d{6}$/.test(String(data.pincode).trim())) {
+      throw new Error('Please provide a valid 6-digit postal Pincode.');
+    }
+
+    if (data.idType === 'Aadhaar Card' && data.idNumber && !/^\d{12}$/.test(String(data.idNumber).trim())) {
+      throw new Error('Aadhaar Card number must be exactly 12 digits.');
+    }
+
+    if (data.idType === 'PAN Card' && data.idNumber && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(String(data.idNumber).trim().toUpperCase())) {
+      throw new Error('PAN Card number must be a valid 10-character alphanumeric code (e.g. ABCDE1234F).');
+    }
+
     // Save images/documents locally to disk in uploads/students/
     const savedPhotoUrl = saveBase64File(data.photoUrl, 'photo');
     const savedIdCardUrl = saveBase64File(data.idCardUrl, 'idcard');
@@ -488,6 +509,24 @@ export const centerService = {
 
       status: 'status'
     };
+
+    if (updateData.phone && !/^[6-9]\d{9}$/.test(String(updateData.phone).trim())) {
+      throw new Error('Please provide a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
+    }
+
+    if (updateData.pincode && !/^\d{6}$/.test(String(updateData.pincode).trim())) {
+      throw new Error('Please provide a valid 6-digit postal Pincode.');
+    }
+
+    const effectiveIdType = updateData.idType || updateData.id_type;
+    const effectiveIdNumber = updateData.idNumber || updateData.id_number;
+    if (effectiveIdType === 'Aadhaar Card' && effectiveIdNumber && !/^\d{12}$/.test(String(effectiveIdNumber).trim())) {
+      throw new Error('Aadhaar Card number must be exactly 12 digits.');
+    }
+
+    if (effectiveIdType === 'PAN Card' && effectiveIdNumber && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(String(effectiveIdNumber).trim().toUpperCase())) {
+      throw new Error('PAN Card number must be a valid 10-character alphanumeric code (e.g. ABCDE1234F).');
+    }
 
     const finalFields: Record<string, any> = {};
 

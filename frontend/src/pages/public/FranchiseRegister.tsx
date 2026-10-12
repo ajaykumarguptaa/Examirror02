@@ -21,6 +21,16 @@ import {
 } from 'lucide-react';
 import { compressImageFile, compressCanvas } from '../../utils/imageCompressor';
 import SEO from '../../components/SEO';
+import {
+  onlyDigits,
+  onlyNameLetters,
+  formatPAN,
+  isValidIndianPhone,
+  isValidAadhaar,
+  isValidPAN,
+  isValidPincode,
+  isValidEmail
+} from '../../utils/validators';
 
 const INDIAN_STATES = [
   'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar',
@@ -564,6 +574,36 @@ const FranchiseRegister = () => {
       return;
     }
 
+    if (!headFirstName.trim() || !headLastName.trim()) {
+      setToast({ type: 'error', text: 'Please enter Center Head First and Last name.' });
+      return;
+    }
+
+    if (!isValidIndianPhone(phone)) {
+      setToast({ type: 'error', text: 'Please enter a valid 10-digit mobile number (starting with 6, 7, 8, or 9).' });
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setToast({ type: 'error', text: 'Please enter a valid email address.' });
+      return;
+    }
+
+    if (!isValidAadhaar(aadharNumber)) {
+      setToast({ type: 'error', text: 'Please enter a valid 12-digit Aadhaar number.' });
+      return;
+    }
+
+    if (panNumber && !isValidPAN(panNumber)) {
+      setToast({ type: 'error', text: 'Please enter a valid 10-character PAN number (format: 5 letters, 4 digits, 1 letter, e.g. ABCDE1234F).' });
+      return;
+    }
+
+    if (!isValidPincode(pincode)) {
+      setToast({ type: 'error', text: 'Please enter a valid 6-digit postal pincode.' });
+      return;
+    }
+
     if (!marksheetData) {
       setToast({
         type: 'error',
@@ -718,14 +758,14 @@ const FranchiseRegister = () => {
                     required
                     placeholder="First name*"
                     value={headFirstName}
-                    onChange={(e) => setHeadFirstName(e.target.value)}
+                    onChange={(e) => setHeadFirstName(onlyNameLetters(e.target.value))}
                     className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800"
                   />
                   <input
                     type="text"
                     placeholder="Middle name"
                     value={headMiddleName}
-                    onChange={(e) => setHeadMiddleName(e.target.value)}
+                    onChange={(e) => setHeadMiddleName(onlyNameLetters(e.target.value))}
                     className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800"
                   />
                   <input
@@ -733,7 +773,7 @@ const FranchiseRegister = () => {
                     required
                     placeholder="Last name*"
                     value={headLastName}
-                    onChange={(e) => setHeadLastName(e.target.value)}
+                    onChange={(e) => setHeadLastName(onlyNameLetters(e.target.value))}
                     className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800"
                   />
                 </div>
@@ -748,14 +788,14 @@ const FranchiseRegister = () => {
                     required
                     placeholder="First name*"
                     value={fatherFirstName}
-                    onChange={(e) => setFatherFirstName(e.target.value)}
+                    onChange={(e) => setFatherFirstName(onlyNameLetters(e.target.value))}
                     className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800"
                   />
                   <input
                     type="text"
                     placeholder="Middle name"
                     value={fatherMiddleName}
-                    onChange={(e) => setFatherMiddleName(e.target.value)}
+                    onChange={(e) => setFatherMiddleName(onlyNameLetters(e.target.value))}
                     className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800"
                   />
                   <input
@@ -763,7 +803,7 @@ const FranchiseRegister = () => {
                     required
                     placeholder="Last name*"
                     value={fatherLastName}
-                    onChange={(e) => setFatherLastName(e.target.value)}
+                    onChange={(e) => setFatherLastName(onlyNameLetters(e.target.value))}
                     className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800"
                   />
                 </div>
@@ -774,20 +814,25 @@ const FranchiseRegister = () => {
                 <div>
                   <input
                     type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
                     required
-                    placeholder="Phone number*"
+                    placeholder="10-Digit Mobile number*"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800"
+                    onChange={(e) => setPhone(onlyDigits(e.target.value, 10))}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800 font-medium"
                   />
+                  {phone && phone.length < 10 && (
+                    <p className="text-[10px] text-amber-600 mt-0.5">{phone.length}/10 digits entered</p>
+                  )}
                 </div>
                 <div>
                   <input
                     type="email"
                     required
-                    placeholder="Email*"
+                    placeholder="Email address*"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value.trim())}
                     className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800"
                   />
                 </div>
@@ -798,21 +843,30 @@ const FranchiseRegister = () => {
                 <div>
                   <input
                     type="text"
+                    inputMode="numeric"
+                    maxLength={12}
                     required
-                    placeholder="Aadhar number*"
+                    placeholder="12-Digit Aadhar number*"
                     value={aadharNumber}
-                    onChange={(e) => setAadharNumber(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800"
+                    onChange={(e) => setAadharNumber(onlyDigits(e.target.value, 12))}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800 font-medium tracking-wide"
                   />
+                  {aadharNumber && aadharNumber.length < 12 && (
+                    <p className="text-[10px] text-amber-600 mt-0.5">{aadharNumber.length}/12 digits entered</p>
+                  )}
                 </div>
                 <div>
                   <input
                     type="text"
-                    placeholder="PAN number"
+                    maxLength={10}
+                    placeholder="10-Char PAN number (e.g. ABCDE1234F)"
                     value={panNumber}
-                    onChange={(e) => setPanNumber(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800"
+                    onChange={(e) => setPanNumber(formatPAN(e.target.value))}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800 uppercase font-medium tracking-wide"
                   />
+                  {panNumber && panNumber.length < 10 && (
+                    <p className="text-[10px] text-amber-600 mt-0.5">{panNumber.length}/10 characters entered</p>
+                  )}
                 </div>
               </div>
 
@@ -992,11 +1046,13 @@ const FranchiseRegister = () => {
                   </select>
                   <input
                     type="text"
+                    inputMode="numeric"
+                    maxLength={6}
                     required
-                    placeholder="Pin/Zip code*"
+                    placeholder="6-Digit Pin code*"
                     value={pincode}
-                    onChange={(e) => setPincode(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800"
+                    onChange={(e) => setPincode(onlyDigits(e.target.value, 6))}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800 font-medium"
                   />
                 </div>
               </div>

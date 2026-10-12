@@ -278,6 +278,27 @@ export const publicService = {
       }
     }
 
+    // Strict Input Validations
+    if (!data.phone || !/^[6-9]\d{9}$/.test(String(data.phone).trim())) {
+      throw new Error('Please provide a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
+    }
+
+    if (!data.aadhar_number || !/^\d{12}$/.test(String(data.aadhar_number).trim())) {
+      throw new Error('Please provide a valid 12-digit Aadhaar number.');
+    }
+
+    if (data.pan_number && String(data.pan_number).trim() && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(String(data.pan_number).trim().toUpperCase())) {
+      throw new Error('Please provide a valid 10-character PAN number (e.g. ABCDE1234F).');
+    }
+
+    if (!data.pincode || !/^\d{6}$/.test(String(data.pincode).trim())) {
+      throw new Error('Please provide a valid 6-digit postal Pincode.');
+    }
+
+    if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(data.email).trim())) {
+      throw new Error('Please provide a valid email address.');
+    }
+
     let photoUrl = data.photo_url || '';
     if (photoUrl.startsWith('data:image/')) {
       photoUrl = saveBase64File(photoUrl, 'head-photo', 'franchise');
@@ -361,6 +382,11 @@ export const publicService = {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    const phone = String(data.phone || '').trim();
+    if (phone && !/^[6-9]\d{9}$/.test(phone)) {
+      throw new Error('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
+    }
 
     const [res]: any = await db.query(
       `INSERT INTO contact_queries (full_name, phone, email, inquiry_type, course, message, status)

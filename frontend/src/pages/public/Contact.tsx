@@ -22,6 +22,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import SEO from '../../components/SEO';
+import { onlyDigits, onlyNameLetters, isValidIndianPhone, isValidEmail } from '../../utils/validators';
 
 const INQUIRY_TYPES = [
   { id: 'admission', label: 'Course Admission', icon: BookOpen },
@@ -51,6 +52,16 @@ const Contact = () => {
     e.preventDefault();
     if (!formData.fullName.trim() || !formData.phone.trim()) {
       alert('Please fill in your Full Name and Phone Number.');
+      return;
+    }
+
+    if (!isValidIndianPhone(formData.phone)) {
+      setErrorMessage('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
+      return;
+    }
+
+    if (formData.email && !isValidEmail(formData.email)) {
+      setErrorMessage('Please enter a valid email address.');
       return;
     }
 
@@ -278,7 +289,7 @@ const Contact = () => {
                           type="text"
                           required
                           value={formData.fullName}
-                          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                          onChange={(e) => setFormData({ ...formData, fullName: onlyNameLetters(e.target.value) })}
                           className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50/50 border border-slate-300 text-slate-900 text-xs font-semibold focus:bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
                           placeholder="e.g. Ajay Kumar"
                         />
@@ -287,7 +298,7 @@ const Contact = () => {
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Phone Number <span className="text-rose-500">*</span>
+                        Phone Number (10 Digits) <span className="text-rose-500">*</span>
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -296,10 +307,12 @@ const Contact = () => {
                         <input
                           type="tel"
                           required
+                          inputMode="numeric"
+                          maxLength={10}
                           value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          onChange={(e) => setFormData({ ...formData, phone: onlyDigits(e.target.value, 10) })}
                           className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50/50 border border-slate-300 text-slate-900 text-xs font-semibold focus:bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
-                          placeholder="e.g. "
+                          placeholder="10-digit mobile number"
                         />
                       </div>
                     </div>
