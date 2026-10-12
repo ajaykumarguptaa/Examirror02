@@ -43,8 +43,8 @@ const AddStudent = () => {
   const [courseId, setCourseId] = useState<string>('');
   const [courseFee, setCourseFee] = useState<string>('');
   const [duration, setDuration] = useState<string>('');
-  const [sessionFrom, setSessionFrom] = useState('2026-09-27');
-  const [sessionTo, setSessionTo] = useState('2026-09-27');
+  const [sessionFrom, setSessionFrom] = useState(() => new Date().toISOString().split('T')[0]);
+  const [sessionTo, setSessionTo] = useState(() => new Date().toISOString().split('T')[0]);
 
   // Documents & Photo
   const [studentIdType, setStudentIdType] = useState('Aadhaar Card');
@@ -120,6 +120,40 @@ const AddStudent = () => {
   const selectedCourse = courses.find(c => c.id === Number(courseId));
   const isSelectedCourseReady = selectedCourse ? (selectedCourse.questionsCount || 0) > 0 : false;
 
+  // Helper to extract months from duration string (e.g., "6 Months", "3 Month(s)", "1 Year")
+  const parseDurationInMonths = (durStr: string): number => {
+    if (!durStr) return 0;
+    const lower = durStr.toLowerCase().trim();
+    if (lower.includes('year')) {
+      const numMatch = lower.match(/\d+/);
+      const years = numMatch ? parseInt(numMatch[0], 10) : 1;
+      return years * 12;
+    }
+    if (lower.includes('month')) {
+      const numbers = lower.match(/\d+/g);
+      if (numbers && numbers.length > 0) {
+        const maxNum = Math.max(...numbers.map(n => parseInt(n, 10)));
+        return maxNum > 0 ? maxNum : 3;
+      }
+      return 3;
+    }
+    const numMatch = lower.match(/\d+/);
+    return numMatch ? parseInt(numMatch[0], 10) : 0;
+  };
+
+  const calculateSessionTo = (startDate: string, durStr: string): string => {
+    if (!startDate) return '';
+    const months = parseDurationInMonths(durStr);
+    if (months <= 0) return startDate;
+    const d = new Date(startDate);
+    if (isNaN(d.getTime())) return startDate;
+    d.setMonth(d.getMonth() + months);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   const handleCourseSelect = (cid: string) => {
     setCourseId(cid);
     const found = courses.find(c => c.id === Number(cid));
@@ -127,14 +161,30 @@ const AddStudent = () => {
       if (found.fee !== undefined && found.fee !== null) {
         setCourseFee(String(found.fee));
       }
-      if (found.duration) {
-        setDuration(found.duration);
+      const dur = found.duration || '';
+      setDuration(dur);
+      if (dur && sessionFrom) {
+        setSessionTo(calculateSessionTo(sessionFrom, dur));
       }
     } else {
       setCourseFee('');
       setDuration('');
     }
   };
+
+  const handleSessionFromChange = (newFrom: string) => {
+    setSessionFrom(newFrom);
+    if (duration && newFrom) {
+      setSessionTo(calculateSessionTo(newFrom, duration));
+    }
+  };
+
+  // Sync sessionTo whenever duration or sessionFrom changes
+  useEffect(() => {
+    if (duration && sessionFrom) {
+      setSessionTo(calculateSessionTo(sessionFrom, duration));
+    }
+  }, [duration, sessionFrom]);
 
   // Enrollment is free; certificate fee is deducted only upon certificate generation
   const requiredTokens = 0;
@@ -250,7 +300,7 @@ const AddStudent = () => {
         pincode,
         city: city || district,
         state,
-        courseFee: Number(courseFee) || 0,
+        courseFee: Number(String(courseFee).replace(/[^0-9.]/g, '')) || 0,
         sessionStart: sessionFrom,
         sessionEnd: sessionTo,
         idType: studentIdType,
@@ -595,10 +645,12 @@ const AddStudent = () => {
                       </div>
                     </div>
 
-                    {/* Course Duration (Auto-fetched & Un-editable) */}
-                    <div className="relative border border-[#cbd5e1] rounded-md px-3 py-1.5 bg-slate-50">
+                    {/* Course Duration (Auto-fetched & Strictly Locked) */}
+                    <div className="relative border border-[#cbd5e1] rounded-md px-3 py-1.5 bg-slate-100/90 cursor-not-allowed select-none">
                       <div className="flex items-center justify-between">
-                        <label className="block text-[11px] font-semibold text-slate-600 leading-tight">Course Duration * (Auto-fetched)</label>
+                        <label className="block text-[11px] font-semibold text-slate-600 leading-tight flex items-center gap-1">
+                          <Lock size={11} className="text-slate-400" /> Course Duration * (Locked)
+                        </label>
                         {duration && (
                           <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-1.5 py-0.5 rounded border border-emerald-300">
                             Auto-fetched
@@ -609,19 +661,23 @@ const AddStudent = () => {
                         type="text"
                         readOnly
                         required
-                        placeholder="Select course to auto-fetch duration *"
+                        tabIndex={-1}
+                        onKeyDown={(e) => e.preventDefault()}
+                        placeholder="Select course to auto-fetch duration"
                         value={duration}
-                        className="w-full text-sm font-semibold text-slate-800 placeholder-gray-400 outline-none bg-transparent cursor-not-allowed select-none"
+                        className="w-full text-sm font-bold text-slate-700 placeholder-gray-400 outline-none bg-transparent cursor-not-allowed pointer-events-none mt-0.5"
                       />
                     </div>
                   </div>
 
                   {/* Row 10: Total Course Fee in Center & Academic Status */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Total Course Fee in Center (Auto-fetched & Un-editable) */}
-                    <div className="relative border border-[#cbd5e1] rounded-md px-3 py-1.5 bg-slate-50">
+                    {/* Total Course Fee in Center (Auto-fetched & Strictly Locked) */}
+                    <div className="relative border border-[#cbd5e1] rounded-md px-3 py-1.5 bg-slate-100/90 cursor-not-allowed select-none">
                       <div className="flex items-center justify-between">
-                        <label className="block text-[11px] font-semibold text-slate-600 leading-tight">Total Course Fee in Center (₹) * (Auto-fetched)</label>
+                        <label className="block text-[11px] font-semibold text-slate-600 leading-tight flex items-center gap-1">
+                          <Lock size={11} className="text-slate-400" /> Total Course Fee in Center (₹) * (Locked)
+                        </label>
                         {courseFee && (
                           <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-1.5 py-0.5 rounded border border-emerald-300">
                             Auto-fetched
@@ -629,12 +685,14 @@ const AddStudent = () => {
                         )}
                       </div>
                       <input
-                        type="number"
+                        type="text"
                         readOnly
                         required
-                        placeholder="Select course to auto-fetch fee *"
-                        value={courseFee}
-                        className="w-full text-sm font-bold text-indigo-700 placeholder-gray-400 outline-none bg-transparent cursor-not-allowed select-none"
+                        tabIndex={-1}
+                        onKeyDown={(e) => e.preventDefault()}
+                        placeholder="Select course to auto-fetch fee"
+                        value={courseFee ? `₹${courseFee}` : ''}
+                        className="w-full text-sm font-black text-indigo-700 placeholder-gray-400 outline-none bg-transparent cursor-not-allowed pointer-events-none mt-0.5"
                       />
                     </div>
 
@@ -657,27 +715,34 @@ const AddStudent = () => {
                     </div>
                   </div>
 
-                  {/* Row 11: Session From & Session to */}
+                  {/* Row 11: Session From & Session to (Auto-calculated from duration) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="border border-[#cbd5e1] rounded-md px-3 py-1.5 focus-within:border-[#6366f1] bg-white">
-                      <label className="block text-[11px] font-semibold text-[#6366f1] leading-tight">Session From *</label>
+                      <label className="block text-[11px] font-semibold text-[#6366f1] leading-tight">Session From (Start Date) *</label>
                       <input
                         type="date"
                         required
                         value={sessionFrom}
-                        onChange={(e) => setSessionFrom(e.target.value)}
-                        className="w-full text-sm font-medium text-[#1e293b] outline-none bg-transparent cursor-pointer"
+                        onChange={(e) => handleSessionFromChange(e.target.value)}
+                        className="w-full text-sm font-medium text-[#1e293b] outline-none bg-transparent cursor-pointer mt-0.5"
                       />
                     </div>
 
-                    <div className="border border-[#cbd5e1] rounded-md px-3 py-1.5 focus-within:border-[#6366f1] bg-white">
-                      <label className="block text-[11px] font-semibold text-[#6366f1] leading-tight">Session to *</label>
+                    <div className="border border-[#cbd5e1] rounded-md px-3 py-1.5 bg-slate-50 focus-within:border-[#6366f1]">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[11px] font-semibold text-[#6366f1] leading-tight">Session to (Completion Date) *</label>
+                        {duration && (
+                          <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-1.5 py-0.5 rounded border border-emerald-300">
+                            Auto (+{duration})
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="date"
                         required
                         value={sessionTo}
                         onChange={(e) => setSessionTo(e.target.value)}
-                        className="w-full text-sm font-medium text-[#1e293b] outline-none bg-transparent cursor-pointer"
+                        className="w-full text-sm font-bold text-slate-800 outline-none bg-transparent cursor-pointer mt-0.5"
                       />
                     </div>
                   </div>
