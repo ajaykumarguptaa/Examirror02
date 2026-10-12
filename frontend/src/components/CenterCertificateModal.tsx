@@ -46,8 +46,93 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.examirror.in';
   const verifyUrl = `${origin}/verify/center/${encodeURIComponent(center.centerCode)}`;
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    const certElement = document.getElementById('center-affiliation-certificate');
+    if (!certElement) return;
+
+    try {
+      setDownloading(true);
+      // Generate ultra crisp canvas so print engine gets the exact pixel-perfect rendered image without any CSS clipping or background stripping
+      const canvas = await html2canvas(certElement, {
+        scale: 2.5,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#fcfbfa',
+        logging: false
+      });
+
+      const imageData = canvas.toDataURL('image/png', 1.0);
+
+      // Open isolated print iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow?.document;
+      if (!doc) {
+        window.print();
+        return;
+      }
+
+      doc.open();
+      doc.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Center Affiliation Certificate - ${center.centerName}</title>
+            <style>
+              @page {
+                size: A4 landscape;
+                margin: 0;
+              }
+              body, html {
+                margin: 0;
+                padding: 0;
+                width: 100vw;
+                height: 100vh;
+                background: #fcfbfa;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              img {
+                width: 100vw;
+                height: 100vh;
+                object-fit: contain;
+                display: block;
+              }
+            </style>
+          </head>
+          <body>
+            <img src="${imageData}" alt="Center Affiliation Certificate" />
+            <script>
+              setTimeout(() => {
+                window.focus();
+                window.print();
+                setTimeout(() => {
+                  if (window.frameElement && window.frameElement.parentNode) {
+                    window.frameElement.parentNode.removeChild(window.frameElement);
+                  }
+                }, 1500);
+              }, 300);
+            </script>
+          </body>
+        </html>
+      `);
+      doc.close();
+    } catch (err) {
+      console.error('Print generation failed, fallback to native window.print:', err);
+      window.print();
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleDownloadImage = async () => {
