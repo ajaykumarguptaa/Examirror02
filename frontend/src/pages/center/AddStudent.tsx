@@ -42,6 +42,7 @@ const AddStudent = () => {
   // Course State
   const [courseId, setCourseId] = useState<string>('');
   const [courseFee, setCourseFee] = useState<string>('');
+  const [duration, setDuration] = useState<string>('');
   const [sessionFrom, setSessionFrom] = useState('2026-09-27');
   const [sessionTo, setSessionTo] = useState('2026-09-27');
 
@@ -118,6 +119,22 @@ const AddStudent = () => {
 
   const selectedCourse = courses.find(c => c.id === Number(courseId));
   const isSelectedCourseReady = selectedCourse ? (selectedCourse.questionsCount || 0) > 0 : false;
+
+  const handleCourseSelect = (cid: string) => {
+    setCourseId(cid);
+    const found = courses.find(c => c.id === Number(cid));
+    if (found) {
+      if (found.fee !== undefined && found.fee !== null) {
+        setCourseFee(String(found.fee));
+      }
+      if (found.duration) {
+        setDuration(found.duration);
+      }
+    } else {
+      setCourseFee('');
+      setDuration('');
+    }
+  };
 
   // Enrollment is free; certificate fee is deducted only upon certificate generation
   const requiredTokens = 0;
@@ -221,7 +238,7 @@ const AddStudent = () => {
         courseId: Number(courseId),
         centerId,
         studentType: studentType === 'New Student' ? 'new' : 'old',
-        duration: selectedCourse?.duration || '3 months',
+        duration: duration || selectedCourse?.duration || '3 months',
         dob,
         gender,
         maritalStatus,
@@ -262,6 +279,8 @@ const AddStudent = () => {
         setCity('');
         setDistrict('');
         setCourseFee('');
+        setDuration('');
+        setCourseId('');
         setIdCardNo('');
         setPhotoPreview(null);
         setIdCardBase64(null);
@@ -546,16 +565,16 @@ const AddStudent = () => {
 
                 <div className="space-y-3">
 
-                  {/* Row 9: Student Course & Total Course Fee in Center */}
+                  {/* Row 9: Student Course & Course Duration */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Student Course Floating Select */}
                     <div className="relative border border-[#cbd5e1] rounded-md px-3 py-1.5 focus-within:border-[#6366f1] bg-white">
-                      <label className="block text-[11px] font-semibold text-[#6366f1] leading-tight">Student Course</label>
+                      <label className="block text-[11px] font-semibold text-[#6366f1] leading-tight">Student Course *</label>
                       <div className="flex items-center justify-between">
                         <select
                           required
                           value={courseId}
-                          onChange={(e) => setCourseId(e.target.value)}
+                          onChange={(e) => handleCourseSelect(e.target.value)}
                           className="w-full bg-transparent text-sm font-medium text-[#1e293b] outline-none appearance-none cursor-pointer pr-4"
                         >
                           <option value="">Select Course</option>
@@ -576,8 +595,39 @@ const AddStudent = () => {
                       </div>
                     </div>
 
+                    {/* Course Duration (Auto-fetched) */}
+                    <div className="relative border border-[#cbd5e1] rounded-md px-3 py-1.5 focus-within:border-[#6366f1] bg-white">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[11px] font-semibold text-[#6366f1] leading-tight">Course Duration *</label>
+                        {duration && (
+                          <span className="text-[10px] text-emerald-600 bg-emerald-50 font-bold px-1.5 py-0.5 rounded border border-emerald-200">
+                            Auto-fetched
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Course Duration (e.g. 3 Months, 6 Months) *"
+                        value={duration}
+                        onChange={(e) => setDuration(e.target.value)}
+                        className="w-full text-sm font-medium text-[#1e293b] placeholder-gray-500 outline-none bg-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 10: Total Course Fee in Center & Academic Status */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Total Course Fee in Center */}
-                    <div className="border border-[#cbd5e1] rounded-md px-3 py-2.5 focus-within:border-[#6366f1] bg-white flex items-center">
+                    <div className="relative border border-[#cbd5e1] rounded-md px-3 py-1.5 focus-within:border-[#6366f1] bg-white">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[11px] font-semibold text-[#6366f1] leading-tight">Total Course Fee in Center (₹) *</label>
+                        {courseFee && (
+                          <span className="text-[10px] text-emerald-600 bg-emerald-50 font-bold px-1.5 py-0.5 rounded border border-emerald-200">
+                            Auto-fetched
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="number"
                         required
@@ -587,9 +637,27 @@ const AddStudent = () => {
                         className="w-full text-sm font-medium text-[#1e293b] placeholder-gray-500 outline-none bg-transparent"
                       />
                     </div>
+
+                    {/* Academic Status (Currently Pursuing / Passout) */}
+                    <div className="relative border border-[#cbd5e1] rounded-md px-3 py-1.5 focus-within:border-[#6366f1] bg-white">
+                      <label className="block text-[11px] font-semibold text-[#6366f1] leading-tight">
+                        Academic Status *
+                      </label>
+                      <div className="flex items-center justify-between">
+                        <select
+                          value={academicStatus}
+                          onChange={(e) => setAcademicStatus(e.target.value as 'pursuing' | 'passout')}
+                          className="w-full bg-transparent text-sm font-semibold text-[#1e293b] outline-none appearance-none cursor-pointer pr-4"
+                        >
+                          <option value="pursuing">Currently Pursuing (Enrolled / Active)</option>
+                          <option value="passout">Passout / Completed Course</option>
+                        </select>
+                        <ChevronDown size={14} className="text-gray-500 absolute right-3 pointer-events-none" />
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Row 10: Session From & Session to */}
+                  {/* Row 11: Session From & Session to */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="border border-[#cbd5e1] rounded-md px-3 py-1.5 focus-within:border-[#6366f1] bg-white">
                       <label className="block text-[11px] font-semibold text-[#6366f1] leading-tight">Session From *</label>
@@ -611,24 +679,6 @@ const AddStudent = () => {
                         onChange={(e) => setSessionTo(e.target.value)}
                         className="w-full text-sm font-medium text-[#1e293b] outline-none bg-transparent cursor-pointer"
                       />
-                    </div>
-                  </div>
-
-                  {/* Row 11: Academic Status (Currently Pursuing / Passout) */}
-                  <div className="relative border border-[#cbd5e1] rounded-md px-3 py-1.5 focus-within:border-[#6366f1] bg-white">
-                    <label className="block text-[11px] font-semibold text-[#6366f1] leading-tight">
-                      Academic Status * (Currently Pursuing / Passout)
-                    </label>
-                    <div className="flex items-center justify-between">
-                      <select
-                        value={academicStatus}
-                        onChange={(e) => setAcademicStatus(e.target.value as 'pursuing' | 'passout')}
-                        className="w-full bg-transparent text-sm font-semibold text-[#1e293b] outline-none appearance-none cursor-pointer pr-4"
-                      >
-                        <option value="pursuing">Currently Pursuing (Enrolled / Active)</option>
-                        <option value="passout">Passout / Completed Course</option>
-                      </select>
-                      <ChevronDown size={14} className="text-gray-500 absolute right-3 pointer-events-none" />
                     </div>
                   </div>
 

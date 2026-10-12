@@ -1581,7 +1581,8 @@ const StudentsList = () => {
                             setEditFormData(prev => ({
                               ...prev,
                               courseId: cid,
-                              duration: found?.duration || prev.duration
+                              duration: found?.duration || prev.duration,
+                              courseFee: found?.fee !== undefined && found?.fee !== null ? Number(found.fee) : prev.courseFee
                             }));
                           }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-indigo-600 bg-white font-medium"
