@@ -12,9 +12,11 @@ import {
   Copy,
   ZoomIn,
   ZoomOut,
-  Maximize2
+  Maximize2,
+  FileText
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { CenterCertificateCard, type CenterCertificateData, CENTER_CERT_WIDTH, CENTER_CERT_HEIGHT } from './CenterCertificateCard';
 
 interface CenterCertificateModalProps {
@@ -53,7 +55,189 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
   const verifyUrl = `${origin}/verify/center/${encodeURIComponent(centerCode)}`;
 
   const handlePrint = () => {
-    window.print();
+    // 1. Remove previous print iframe if existing
+    const oldIframe = document.getElementById('center-cert-print-iframe');
+    if (oldIframe) {
+      try {
+        oldIframe.remove();
+      } catch (_) {}
+    }
+
+    // 2. Create isolated hidden print iframe
+    const iframe = document.createElement('iframe');
+    iframe.id = 'center-cert-print-iframe';
+    iframe.style.position = 'fixed';
+    iframe.style.top = '-9999px';
+    iframe.style.left = '-9999px';
+    iframe.style.width = '1149px';
+    iframe.style.height = '758px';
+    iframe.style.border = '0';
+    iframe.style.opacity = '0';
+    iframe.style.pointerEvents = 'none';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      window.print();
+      return;
+    }
+
+    const certElement = document.getElementById('center-affiliation-certificate');
+    if (!certElement) {
+      window.print();
+      return;
+    }
+
+    // 3. Clone certificate node and neutralize modal transforms
+    const certClone = certElement.cloneNode(true) as HTMLElement;
+    certClone.style.transform = 'none';
+    certClone.style.margin = '0 auto';
+    certClone.style.boxShadow = 'none';
+    certClone.style.position = 'static';
+
+    // 4. Extract parent document stylesheets & font links
+    const headStyles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map(node => node.outerHTML)
+      .join('\n');
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <title>${centerName.replace(/[^a-zA-Z0-9]/g, '_')}_Affiliation_Certificate_${centerCode}</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <script src="https://cdn.tailwindcss.com"></script>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=Great+Vibes&display=swap" rel="stylesheet">
+          ${headStyles}
+          <style>
+            @page {
+              size: A4 landscape;
+              margin: 0;
+            }
+            *, *::before, *::after {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              background: #fcfbfa !important;
+              overflow: hidden !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+            }
+            .print-page-sheet {
+              width: 297mm;
+              height: 210mm;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              overflow: hidden;
+              margin: 0 auto;
+              page-break-after: avoid !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+            .print-cert-scaler {
+              width: ${CENTER_CERT_WIDTH}px;
+              height: ${CENTER_CERT_HEIGHT}px;
+              transform: scale(0.82);
+              transform-origin: center center;
+              box-shadow: none !important;
+              margin: 0 auto;
+              flex-shrink: 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-page-sheet">
+            <div class="print-cert-scaler">
+              ${certClone.outerHTML}
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    const triggerPrint = () => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.error('Iframe print error fallback to window.print:', err);
+        window.print();
+      }
+    };
+
+    // Wait for images inside iframe to complete loading before invoking print
+    const images = Array.from(doc.images);
+    if (images.length === 0) {
+      setTimeout(triggerPrint, 300);
+    } else {
+      let loaded = 0;
+      const onDone = () => {
+        loaded++;
+        if (loaded >= images.length) {
+          setTimeout(triggerPrint, 200);
+        }
+      };
+      images.forEach(img => {
+        if (img.complete) {
+          loaded++;
+        } else {
+          img.addEventListener('load', onDone);
+          img.addEventListener('error', onDone);
+        }
+      });
+      if (loaded >= images.length) {
+        setTimeout(triggerPrint, 300);
+      } else {
+        setTimeout(triggerPrint, 800); // Safety fallback
+      }
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    const certElement = document.getElementById('center-affiliation-certificate');
+    if (!certElement) return;
+
+    try {
+      setDownloading(true);
+      const canvas = await html2canvas(certElement, {
+        scale: 2.5, // 2.5x retina quality for ultra crisp printing & PDF export
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#fcfbfa',
+        logging: false
+      });
+
+      const image = canvas.toDataURL('image/png', 1.0);
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // A4 landscape is exactly 297mm x 210mm
+      pdf.addImage(image, 'PNG', 0, 0, 297, 210, undefined, 'FAST');
+      pdf.save(`${centerName.replace(/[^a-zA-Z0-9]/g, '_')}_Center_Affiliation_Certificate_${centerCode}.pdf`);
+    } catch (err) {
+      console.error('Failed to download center certificate PDF:', err);
+      // Fallback: trigger print dialog to Save as PDF
+      handlePrint();
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleDownloadImage = async () => {
@@ -63,9 +247,9 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
     try {
       setDownloading(true);
       const canvas = await html2canvas(certElement, {
-        scale: 2.5, // 2.5x retina quality for ultra crisp printing & PDF export
+        scale: 2.5, // 2.5x retina quality
         useCORS: true,
-        allowTaint: false,
+        allowTaint: true,
         backgroundColor: '#fcfbfa',
         logging: false
       });
@@ -79,9 +263,7 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
       document.body.removeChild(link);
     } catch (err) {
       console.error('Failed to download center certificate image:', err);
-      // Fallback: trigger print dialog to Save as PDF
-      alert('Direct image export notice: Opening Print preview to Save as PDF.');
-      window.print();
+      handlePrint();
     } finally {
       setDownloading(false);
     }
@@ -104,10 +286,10 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
+    <div className="center-cert-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
       
       {/* Container Card */}
-      <div className="bg-white rounded-3xl max-w-6xl w-full max-h-[96vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden text-slate-800 animate-in zoom-in-95 duration-200">
+      <div className="center-cert-modal-card bg-white rounded-3xl max-w-6xl w-full max-h-[96vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden text-slate-800 animate-in zoom-in-95 duration-200">
         
         {/* Modal Top Bar */}
         <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between shrink-0 border-b border-indigo-900/50">
@@ -174,13 +356,23 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
             </button>
 
             <button
-              onClick={handleDownloadImage}
+              onClick={handleDownloadPdf}
               disabled={downloading}
               className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-amber-500/20 disabled:opacity-50"
-              title="Download HD Certificate"
+              title="Download Official PDF Certificate"
+            >
+              <FileText size={14} />
+              <span>{downloading ? 'Exporting...' : 'Download PDF'}</span>
+            </button>
+
+            <button
+              onClick={handleDownloadImage}
+              disabled={downloading}
+              className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-white/10 disabled:opacity-50"
+              title="Download High-Resolution PNG"
             >
               <Download size={14} />
-              <span>{downloading ? 'Exporting...' : 'Download HD'}</span>
+              <span className="hidden sm:inline">HD PNG</span>
             </button>
 
             <button
@@ -202,13 +394,13 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
         </div>
 
         {/* Modal Certificate Viewport */}
-        <div className="flex-1 overflow-auto bg-slate-300/70 p-4 sm:p-8 flex items-center justify-center min-h-[420px]">
+        <div className="center-cert-modal-viewport flex-1 overflow-auto bg-slate-300/70 p-4 sm:p-8 flex items-center justify-center min-h-[420px]">
           <div 
             style={{
               width: `${Math.round(CENTER_CERT_WIDTH * zoomLevel)}px`,
               height: `${Math.round(CENTER_CERT_HEIGHT * zoomLevel)}px`
             }}
-            className="relative shadow-2xl rounded-sm transition-all shrink-0 my-auto overflow-hidden bg-[#fcfbfa]"
+            className="center-cert-zoom-wrapper relative shadow-2xl rounded-sm transition-all shrink-0 my-auto overflow-hidden bg-[#fcfbfa]"
           >
             <div 
               style={{
@@ -220,6 +412,7 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
                 transform: `scale(${zoomLevel})`,
                 transformOrigin: '0 0'
               }}
+              className="center-cert-scaled-box"
             >
               <CenterCertificateCard center={center} />
             </div>
@@ -249,7 +442,7 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
 
       </div>
 
-      {/* Print-specific style tags for flawless A4 Landscape export */}
+      {/* Print-specific style tags for direct Cmd+P / browser print fallback */}
       <style>{`
         @page {
           size: A4 landscape;
@@ -261,30 +454,56 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
             padding: 0 !important;
             width: 297mm !important;
             height: 210mm !important;
+            min-height: 210mm !important;
             background: #fcfbfa !important;
             overflow: hidden !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
           body * {
             visibility: hidden !important;
+          }
+          /* Neutralize all modal ancestor transforms and containing block traps */
+          .center-cert-modal-overlay,
+          .center-cert-modal-card,
+          .center-cert-modal-viewport,
+          .center-cert-zoom-wrapper,
+          .center-cert-scaled-box {
+            position: static !important;
+            transform: none !important;
+            filter: none !important;
+            backdrop-filter: none !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            width: auto !important;
+            height: auto !important;
+            max-width: none !important;
+            max-height: none !important;
+            display: block !important;
           }
           #center-affiliation-certificate,
           #center-affiliation-certificate * {
             visibility: visible !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
           #center-affiliation-certificate {
             position: fixed !important;
             left: 50% !important;
             top: 50% !important;
-            transform: translate(-50%, -50%) scale(0.91) !important;
+            transform: translate(-50%, -50%) scale(0.82) !important;
             transform-origin: center center !important;
             box-shadow: none !important;
             margin: 0 !important;
-            width: 1149px !important;
-            height: 758px !important;
+            width: ${CENTER_CERT_WIDTH}px !important;
+            height: ${CENTER_CERT_HEIGHT}px !important;
+            page-break-after: avoid !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
