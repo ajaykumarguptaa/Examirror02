@@ -58,10 +58,14 @@ router.post('/upload', (req, res, next) => {
   try {
     if (req.file) {
       const url = `/uploads/branding/${req.file.filename}`;
-      uploadLocalFileToS3(req.file.path, `uploads/branding/${req.file.filename}`).catch((err) => {
-        console.warn('[S3] Notice uploading multer file to S3:', err?.message || err);
+      const s3Key = `uploads/branding/${req.file.filename}`;
+      const s3Url = await uploadLocalFileToS3(req.file.path, s3Key);
+      return res.status(200).json({ 
+        success: true, 
+        url, 
+        s3Url: s3Url || url, 
+        isS3Synced: Boolean(s3Url) 
       });
-      return res.status(200).json({ success: true, url });
     }
 
     if (req.body && req.body.image) {

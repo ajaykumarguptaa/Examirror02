@@ -50,7 +50,8 @@ import {
   Contrast,
   Lock,
   Unlock,
-  Move
+  Move,
+  Cloud
 } from 'lucide-react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
@@ -2342,6 +2343,97 @@ const HomePageCustomizer = () => {
                     />
                   </div>
                 </div>
+
+                {/* HERO VISUAL LAB IMAGE (S3 CLOUD BACKED) */}
+                <div className="pt-4 border-t border-slate-200/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block font-black text-xs text-slate-800">
+                        Hero Visual Image (Front Training Lab Photo)
+                      </label>
+                      <p className="text-[11px] text-slate-500">
+                        Upload a photo from your computer or paste any URL. Uploaded images are automatically saved to your AWS S3 Bucket.
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200 flex items-center gap-1">
+                      <Cloud size={11} /> AWS S3 Synced
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 items-start bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                    {/* Image Preview Box */}
+                    <div className="w-28 h-24 sm:w-32 sm:h-24 rounded-xl overflow-hidden bg-slate-900 border border-slate-300 shrink-0 relative group shadow-xs">
+                      <img
+                        src={data.hero?.heroImage || data.hero?.image || "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=600&q=80"}
+                        alt="Hero Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* Upload Controls */}
+                    <div className="flex-1 space-y-2 w-full">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-sm transition-colors">
+                          <Upload size={13} />
+                          <span>Upload New Hero Image</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const form = new FormData();
+                              form.append('file', file);
+                              try {
+                                const res = await axios.post('/api/public/upload', form, {
+                                  headers: { 'Content-Type': 'multipart/form-data' }
+                                });
+                                if (res.data?.success && res.data.url) {
+                                  setData({
+                                    ...data,
+                                    hero: {
+                                      ...data.hero,
+                                      heroImage: res.data.url
+                                    }
+                                  });
+                                }
+                              } catch (err: any) {
+                                alert('Failed to upload hero image: ' + (err.response?.data?.message || err.message));
+                              }
+                            }}
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setData({
+                              ...data,
+                              hero: {
+                                ...data.hero,
+                                heroImage: "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80"
+                              }
+                            });
+                          }}
+                          className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-bold border border-slate-300 transition-colors cursor-pointer"
+                        >
+                          Reset Default
+                        </button>
+                      </div>
+
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={data.hero?.heroImage || ''}
+                          placeholder="Or paste direct image URL (e.g. /uploads/branding/... or S3 URL)"
+                          onChange={(e) => setData({ ...data, hero: { ...data.hero, heroImage: e.target.value } })}
+                          className="w-full px-3 py-1.5 text-xs font-mono rounded-xl border border-slate-300 outline-none focus:border-indigo-600 bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -3346,7 +3438,7 @@ const HomePageCustomizer = () => {
                       <div className="relative w-full bg-white rounded-2xl border border-slate-200 shadow-xl p-2.5">
                         <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-slate-900">
                           <img
-                            src="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80"
+                            src={data.hero?.heroImage || data.hero?.image || "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80"}
                             alt="Academy Lab Visual"
                             className="w-full h-full object-cover"
                           />

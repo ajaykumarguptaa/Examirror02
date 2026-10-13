@@ -15,7 +15,8 @@ import {
   ArrowUp,
   ArrowDown,
   Eye,
-  ShieldCheck
+  ShieldCheck,
+  Cloud
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -333,6 +334,96 @@ const AboutPageCustomizer = () => {
             onChange={(e) => setData({ ...data, overview: { ...data.overview, mainText: e.target.value } })}
             className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600"
           />
+        </div>
+
+        {/* Section Showcase Image (Server Room / Tech Lab Photo) */}
+        <div className="pt-3 border-t border-slate-100 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block font-bold text-slate-700 text-xs flex items-center gap-1.5">
+              <ImageIcon size={14} className="text-indigo-600" />
+              <span>Section Showcase Image (Empowering India's Next Generation)</span>
+            </label>
+            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+              <Cloud size={10} /> Saved & Synced to AWS S3
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 items-start bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+            {/* Image Preview Box */}
+            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-slate-900 border border-slate-300 shrink-0 relative group shadow-xs">
+              <img
+                src={data.overview?.imageUrl || DEFAULT_ABOUT_SETTINGS.overview.imageUrl}
+                alt="Overview Preview"
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* Upload Controls */}
+            <div className="flex-1 space-y-2.5 w-full">
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-sm transition-colors">
+                  <Upload size={13} />
+                  <span>Upload New Section Image</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const form = new FormData();
+                      form.append('file', file);
+                      try {
+                        const res = await axios.post('/api/public/upload', form, {
+                          headers: { 'Content-Type': 'multipart/form-data' }
+                        });
+                        if (res.data?.success && res.data.url) {
+                          setData({
+                            ...data,
+                            overview: {
+                              ...data.overview,
+                              imageUrl: res.data.url
+                            }
+                          });
+                        }
+                      } catch (err: any) {
+                        alert('Failed to upload overview image: ' + (err.response?.data?.message || err.message));
+                      }
+                    }}
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setData({
+                      ...data,
+                      overview: {
+                        ...data.overview,
+                        imageUrl: DEFAULT_ABOUT_SETTINGS.overview.imageUrl
+                      }
+                    });
+                  }}
+                  className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-bold border border-slate-300 transition-colors cursor-pointer"
+                >
+                  Reset Default
+                </button>
+              </div>
+
+              <div>
+                <input
+                  type="text"
+                  value={data.overview?.imageUrl || ''}
+                  placeholder="Or paste direct image URL (e.g. /uploads/branding/... or S3 URL)"
+                  onChange={(e) => setData({ ...data, overview: { ...data.overview, imageUrl: e.target.value } })}
+                  className="w-full px-3 py-1.5 text-xs font-mono rounded-xl border border-slate-300 outline-none focus:border-indigo-600 bg-white"
+                />
+              </div>
+              <p className="text-[11px] text-slate-500">
+                This image is featured alongside the mission points under "Empowering India's Next Generation of Skilled Professionals".
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -563,7 +563,7 @@ const Home = () => {
                   {/* High Quality Education & Computer Lab Visual */}
                   <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-slate-900">
                     <img
-                      src="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80"
+                      src={homeData?.hero?.heroImage || homeData?.hero?.image || "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80"}
                       alt="Modern Computer Academy Training Lab"
                       className="w-full h-full object-cover"
                     />
