@@ -9,16 +9,18 @@ import {
   ExternalLink,
   ChevronRight,
   Layers,
-  Image
+  Image,
+  Video
 } from 'lucide-react';
 import HomePageCustomizer from './HomePageCustomizer';
 import AboutPageCustomizer from './AboutPageCustomizer';
 import ContactPageCustomizer from './ContactPageCustomizer';
 import GlobalSiteCustomizer from './GlobalSiteCustomizer';
 import GalleryCustomizer from './GalleryCustomizer';
+import TrainingVideosCustomizer from './TrainingVideosCustomizer';
 
 const PageCustomizationHub = () => {
-  const [activeTab, setActiveTab] = useState<'home' | 'about' | 'contact' | 'global' | 'gallery'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'about' | 'contact' | 'gallery' | 'global' | 'training'>('home');
 
   const tabs = [
     {
@@ -50,6 +52,12 @@ const PageCustomizationHub = () => {
       label: 'Global Branding',
       description: 'Site name, top ticker, header & footer copyright',
       icon: Globe
+    },
+    {
+      id: 'training' as const,
+      label: 'Training Videos',
+      description: 'YouTube tutorial links, module guides & live player',
+      icon: Video
     }
   ];
 
@@ -88,7 +96,7 @@ const PageCustomizationHub = () => {
       </div>
 
       {/* Navigation Sub-Tabs Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -132,6 +140,7 @@ const PageCustomizationHub = () => {
         {activeTab === 'contact' && <ContactPageCustomizer />}
         {activeTab === 'gallery' && <GalleryCustomizer />}
         {activeTab === 'global' && <GlobalSiteCustomizer />}
+        {activeTab === 'training' && <TrainingVideosCustomizer />}
       </div>
 
     </div>

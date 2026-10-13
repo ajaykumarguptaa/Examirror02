@@ -689,10 +689,47 @@ router.post('/authority-signature', async (req, res) => {
   }
 });
 
-router.put('/authority-signature', async (req, res) => {
+// --- SUPER ADMIN / TRAINING & TUTORIAL VIDEOS CUSTOMIZER ---
+router.get('/training-videos', async (req, res) => {
   try {
-    const data = await adminService.updateAuthoritySignatureConfig(req.body);
-    res.status(200).json({ success: true, message: 'Authority E-Signature & Stamp updated successfully!', data });
+    const data = await adminService.getAdminTrainingVideos();
+    res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/training-videos', async (req, res) => {
+  try {
+    const data = await adminService.saveAdminTrainingVideo(req.body);
+    res.status(201).json({ success: true, message: 'Training video saved successfully!', data });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+router.put('/training-videos/:id', async (req, res) => {
+  try {
+    const data = await adminService.saveAdminTrainingVideo({ ...req.body, id: req.params.id });
+    res.status(200).json({ success: true, message: 'Training video updated successfully!', data });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+router.delete('/training-videos/:id', async (req, res) => {
+  try {
+    await adminService.deleteAdminTrainingVideo(req.params.id);
+    res.status(200).json({ success: true, message: 'Training video deleted successfully!' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/training-videos/batch', async (req, res) => {
+  try {
+    const data = await adminService.batchSaveAdminTrainingVideos(req.body.videos || req.body);
+    res.status(200).json({ success: true, message: 'All training videos published successfully!', data });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }

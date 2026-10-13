@@ -1324,6 +1324,178 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
     );
 
     return payload;
+  },
+
+  // --- TRAINING VIDEOS MANAGEMENT ---
+  getAdminTrainingVideos: async () => {
+    const [rows] = await db.query(
+      'SELECT * FROM training_videos ORDER BY is_featured DESC, sort_order ASC, id ASC'
+    );
+    return rows;
+  },
+
+  saveAdminTrainingVideo: async (data: {
+    id?: number | string;
+    title: string;
+    url: string;
+    description?: string;
+    duration?: string;
+    module_name?: string;
+    category?: string;
+    is_featured?: boolean | number;
+    is_active?: boolean | number;
+    sort_order?: number;
+    thumbnail?: string;
+  }) => {
+    const extractId = (str?: string): string => {
+      if (!str) return '';
+      const trimmed = str.trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+      const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+      return match ? match[1] : '';
+    };
+
+    const youtubeId = extractId(data.url) || extractId(data.thumbnail);
+    const thumbnail = data.thumbnail || (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : '');
+    const isFeatured = data.is_featured ? 1 : 0;
+    const isActive = data.is_active !== undefined ? (data.is_active ? 1 : 0) : 1;
+    const sortOrder = Number(data.sort_order || 0);
+
+    // If marked as featured, un-feature other videos
+    if (isFeatured) {
+      await db.query('UPDATE training_videos SET is_featured = 0');
+    }
+
+    if (data.id && !String(data.id).startsWith('temp-')) {
+      await db.query(`
+        UPDATE training_videos SET
+          title = ?,
+          url = ?,
+          youtube_id = ?,
+          description = ?,
+          duration = ?,
+          module_name = ?,
+          category = ?,
+          is_featured = ?,
+          is_active = ?,
+          sort_order = ?,
+          thumbnail = ?
+        WHERE id = ?
+      `, [
+        data.title,
+        data.url,
+        youtubeId,
+        data.description || '',
+        data.duration || '08:00',
+        data.module_name || 'Module 01',
+        data.category || 'Portal Guide',
+        isFeatured,
+        isActive,
+        sortOrder,
+        thumbnail,
+        data.id
+      ]);
+      return { id: data.id, ...data, youtube_id: youtubeId, thumbnail };
+    } else {
+      const [res]: any = await db.query(`
+        INSERT INTO training_videos (
+          title, url, youtube_id, description, duration,
+          module_name, category, is_featured, is_active, sort_order, thumbnail
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        data.title,
+        data.url,
+        youtubeId,
+        data.description || '',
+        data.duration || '08:00',
+        data.module_name || 'Module 01',
+        data.category || 'Portal Guide',
+        isFeatured,
+        isActive,
+        sortOrder,
+        thumbnail
+      ]);
+      return { id: res.insertId, ...data, youtube_id: youtubeId, thumbnail };
+    }
+  },
+
+  deleteAdminTrainingVideo: async (id: number | string) => {
+    await db.query('DELETE FROM training_videos WHERE id = ?', [id]);
+    return { success: true };
+  },
+
+  batchSaveAdminTrainingVideos: async (videos: any[]) => {
+    if (!Array.isArray(videos)) return [];
+
+    const extractId = (str?: string): string => {
+      if (!str) return '';
+      const trimmed = str.trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+      const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+      return match ? match[1] : '';
+    };
+
+    // First check existing IDs to delete removed ones if requested, or update/insert
+    for (let idx = 0; idx < videos.length; idx++) {
+      const v = videos[idx];
+      const youtubeId = extractId(v.url) || v.youtube_id || '';
+      const thumb = v.thumbnail || (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : '');
+      const isFeatured = v.is_featured ? 1 : 0;
+      const isActive = v.is_active !== undefined ? (v.is_active ? 1 : 0) : 1;
+
+      if (v.id && !String(v.id).startsWith('temp-')) {
+        await db.query(`
+          UPDATE training_videos SET
+            title = ?,
+            url = ?,
+            youtube_id = ?,
+            description = ?,
+            duration = ?,
+            module_name = ?,
+            category = ?,
+            is_featured = ?,
+            is_active = ?,
+            sort_order = ?,
+            thumbnail = ?
+          WHERE id = ?
+        `, [
+          v.title || 'Tutorial Video',
+          v.url || '',
+          youtubeId,
+          v.description || '',
+          v.duration || '08:00',
+          v.module_name || `Module 0${idx + 1}`,
+          v.category || 'Portal Guide',
+          isFeatured,
+          isActive,
+          idx,
+          thumb,
+          v.id
+        ]);
+      } else {
+        await db.query(`
+          INSERT INTO training_videos (
+            title, url, youtube_id, description, duration,
+            module_name, category, is_featured, is_active, sort_order, thumbnail
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          v.title || 'Tutorial Video',
+          v.url || '',
+          youtubeId,
+          v.description || '',
+          v.duration || '08:00',
+          v.module_name || `Module 0${idx + 1}`,
+          v.category || 'Portal Guide',
+          isFeatured,
+          isActive,
+          idx,
+          thumb
+        ]);
+      }
+    }
+
+    const [rows] = await db.query('SELECT * FROM training_videos ORDER BY is_featured DESC, sort_order ASC, id ASC');
+    return rows;
   }
 };
 

@@ -643,8 +643,15 @@ const initDbSchema = async () => {
     try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_claim_date DATETIME NULL`); } catch (_) {}
     try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_approved_date DATETIME NULL`); } catch (_) {}
     try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_demand_notes TEXT NULL`); } catch (_) {}
-    try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_demanded_docs TEXT NULL`); } catch (_) {}
     try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_uploaded_docs LONGTEXT NULL`); } catch (_) {}
+
+    // Ensure Training Videos Schema
+    try { await db.query(`ALTER TABLE training_videos ADD COLUMN youtube_id VARCHAR(50) NULL`); } catch (_) {}
+    try { await db.query(`ALTER TABLE training_videos ADD COLUMN module_name VARCHAR(100) DEFAULT 'Module 01'`); } catch (_) {}
+    try { await db.query(`ALTER TABLE training_videos ADD COLUMN category VARCHAR(100) DEFAULT 'Portal Guide'`); } catch (_) {}
+    try { await db.query(`ALTER TABLE training_videos ADD COLUMN is_featured TINYINT(1) DEFAULT 0`); } catch (_) {}
+    try { await db.query(`ALTER TABLE training_videos ADD COLUMN is_active TINYINT(1) DEFAULT 1`); } catch (_) {}
+    try { await db.query(`ALTER TABLE training_videos ADD COLUMN sort_order INT DEFAULT 0`); } catch (_) {}
   } catch (err) {
     console.error('Schema initialization warning:', err);
   }

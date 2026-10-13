@@ -1633,7 +1633,7 @@ export const centerService = {
 
   // --- TRAINING VIDEOS ---
   getTrainingVideos: async () => {
-    const [rows] = await db.query('SELECT * FROM training_videos ORDER BY created_at DESC');
+    const [rows] = await db.query('SELECT * FROM training_videos WHERE is_active = 1 ORDER BY is_featured DESC, sort_order ASC, id ASC');
     return rows;
   },
 
