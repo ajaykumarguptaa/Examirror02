@@ -55,68 +55,43 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
   const verifyUrl = `${origin}/verify/center/${encodeURIComponent(centerCode)}`;
 
   const handlePrint = () => {
-    // 1. Remove previous print iframe if existing
-    const oldIframe = document.getElementById('center-cert-print-iframe');
-    if (oldIframe) {
-      try {
-        oldIframe.remove();
-      } catch (_) {}
-    }
-
-    // 2. Create isolated hidden print iframe
-    const iframe = document.createElement('iframe');
-    iframe.id = 'center-cert-print-iframe';
-    iframe.style.position = 'fixed';
-    iframe.style.top = '-9999px';
-    iframe.style.left = '-9999px';
-    iframe.style.width = '1149px';
-    iframe.style.height = '758px';
-    iframe.style.border = '0';
-    iframe.style.opacity = '0';
-    iframe.style.pointerEvents = 'none';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) {
-      window.print();
-      return;
-    }
-
     const certElement = document.getElementById('center-affiliation-certificate');
     if (!certElement) {
       window.print();
       return;
     }
 
-    // 3. Clone certificate node and neutralize modal transforms
+    // 1. Clone certificate element and neutralize zoom transforms
     const certClone = certElement.cloneNode(true) as HTMLElement;
     certClone.style.transform = 'none';
     certClone.style.margin = '0 auto';
     certClone.style.boxShadow = 'none';
     certClone.style.position = 'static';
 
-    // 4. Extract parent document stylesheets & font links
-    const headStyles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-      .map(node => node.outerHTML)
-      .join('\n');
+    const cleanTitle = `${centerName.replace(/[^a-zA-Z0-9]/g, '_')}_Affiliation_Certificate_${centerCode}`;
 
-    doc.open();
-    doc.write(`
+    // 2. Open dedicated print window matching StudentCertificateModal pattern
+    const printWindow = window.open('', '_blank', 'width=1250,height=850');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    printWindow.document.write(`
       <!DOCTYPE html>
       <html lang="en">
         <head>
           <meta charset="utf-8" />
-          <title>${centerName.replace(/[^a-zA-Z0-9]/g, '_')}_Affiliation_Certificate_${centerCode}</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <base href="${origin}/" />
+          <title>${cleanTitle}</title>
           <script src="https://cdn.tailwindcss.com"></script>
           <link rel="preconnect" href="https://fonts.googleapis.com">
           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
           <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=Great+Vibes&display=swap" rel="stylesheet">
-          ${headStyles}
           <style>
             @page {
-              size: A4 landscape;
-              margin: 0;
+              size: A4 landscape !important;
+              margin: 0 !important;
             }
             *, *::before, *::after {
               box-sizing: border-box;
@@ -127,84 +102,121 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
             html, body {
               margin: 0 !important;
               padding: 0 !important;
+              background: #fcfbfa !important;
               width: 100% !important;
               height: 100% !important;
-              background: #fcfbfa !important;
-              overflow: hidden !important;
-              display: flex !important;
-              align-items: center !important;
-              justify-content: center !important;
+              font-family: 'Inter', sans-serif;
             }
-            .print-page-sheet {
+            .font-serif {
+              font-family: 'Cinzel', serif, Georgia;
+            }
+            .font-mono {
+              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            }
+            .font-cursive {
+              font-family: 'Great Vibes', cursive;
+            }
+            .cert-print-container {
               width: 297mm;
               height: 210mm;
               display: flex;
               align-items: center;
               justify-content: center;
-              overflow: hidden;
               margin: 0 auto;
+              overflow: hidden;
               page-break-after: avoid !important;
               page-break-inside: avoid !important;
               break-inside: avoid !important;
             }
-            .print-cert-scaler {
+            .cert-print-scaler {
               width: ${CENTER_CERT_WIDTH}px;
               height: ${CENTER_CERT_HEIGHT}px;
-              transform: scale(0.82);
+              transform: scale(0.96);
               transform-origin: center center;
               box-shadow: none !important;
               margin: 0 auto;
               flex-shrink: 0;
             }
+            @media screen {
+              body {
+                background: #1e293b !important;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                padding: 16px;
+              }
+              .cert-print-container {
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                background: #fcfbfa;
+              }
+            }
+            @media print {
+              body {
+                background: #fcfbfa !important;
+                overflow: hidden !important;
+              }
+              .no-print {
+                display: none !important;
+              }
+            }
           </style>
         </head>
-        <body>
-          <div class="print-page-sheet">
-            <div class="print-cert-scaler">
+        <body class="bg-[#fcfbfa] text-slate-900 m-0 p-0 overflow-hidden">
+          <div class="cert-print-container">
+            <div class="cert-print-scaler">
               ${certClone.outerHTML}
             </div>
           </div>
+          <script>
+            function triggerPrint() {
+              window.focus();
+              window.print();
+              window.onafterprint = function() {
+                window.close();
+              };
+              // Fallback close after printing or cancelling
+              setTimeout(function() {
+                try { window.close(); } catch (_) {}
+              }, 4000);
+            }
+
+            window.onload = function() {
+              var imgs = Array.from(document.images);
+              if (imgs.length === 0) {
+                setTimeout(triggerPrint, 400);
+              } else {
+                var loaded = 0;
+                var total = imgs.length;
+                var fired = false;
+                function check() {
+                  loaded++;
+                  if (loaded >= total && !fired) {
+                    fired = true;
+                    setTimeout(triggerPrint, 350);
+                  }
+                }
+                imgs.forEach(function(img) {
+                  if (img.complete) {
+                    check();
+                  } else {
+                    img.addEventListener('load', check);
+                    img.addEventListener('error', check);
+                  }
+                });
+                setTimeout(function() {
+                  if (!fired) {
+                    fired = true;
+                    triggerPrint();
+                  }
+                }, 1200);
+              }
+            };
+          </script>
         </body>
       </html>
     `);
-    doc.close();
-
-    const triggerPrint = () => {
-      try {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-      } catch (err) {
-        console.error('Iframe print error fallback to window.print:', err);
-        window.print();
-      }
-    };
-
-    // Wait for images inside iframe to complete loading before invoking print
-    const images = Array.from(doc.images);
-    if (images.length === 0) {
-      setTimeout(triggerPrint, 300);
-    } else {
-      let loaded = 0;
-      const onDone = () => {
-        loaded++;
-        if (loaded >= images.length) {
-          setTimeout(triggerPrint, 200);
-        }
-      };
-      images.forEach(img => {
-        if (img.complete) {
-          loaded++;
-        } else {
-          img.addEventListener('load', onDone);
-          img.addEventListener('error', onDone);
-        }
-      });
-      if (loaded >= images.length) {
-        setTimeout(triggerPrint, 300);
-      } else {
-        setTimeout(triggerPrint, 800); // Safety fallback
-      }
-    }
+    printWindow.document.close();
   };
 
   const handleDownloadPdf = async () => {
@@ -445,16 +457,15 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
       {/* Print-specific style tags for direct Cmd+P / browser print fallback */}
       <style>{`
         @page {
-          size: A4 landscape;
-          margin: 0;
+          size: A4 landscape !important;
+          margin: 0 !important;
         }
         @media print {
           html, body {
             margin: 0 !important;
             padding: 0 !important;
-            width: 297mm !important;
-            height: 210mm !important;
-            min-height: 210mm !important;
+            width: 100% !important;
+            height: 100% !important;
             background: #fcfbfa !important;
             overflow: hidden !important;
             -webkit-print-color-adjust: exact !important;
@@ -462,50 +473,49 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
             color-adjust: exact !important;
           }
           body * {
-            visibility: hidden !important;
+            visibility: hidden;
           }
-          /* Neutralize all modal ancestor transforms and containing block traps */
+          /* Neutralize modal wrappers so they don't clip content */
           .center-cert-modal-overlay,
           .center-cert-modal-card,
           .center-cert-modal-viewport,
           .center-cert-zoom-wrapper,
-          .center-cert-scaled-box {
+          .center-cert-scaled-box,
+          .fixed, .absolute, .flex, .flex-col, .overflow-hidden, .overflow-y-auto, .max-h-full {
             position: static !important;
+            overflow: visible !important;
+            max-height: none !important;
+            height: auto !important;
             transform: none !important;
             filter: none !important;
             backdrop-filter: none !important;
-            overflow: visible !important;
             padding: 0 !important;
             margin: 0 !important;
             border: none !important;
             box-shadow: none !important;
             background: transparent !important;
             width: auto !important;
-            height: auto !important;
-            max-width: none !important;
-            max-height: none !important;
-            display: block !important;
           }
           #center-affiliation-certificate,
           #center-affiliation-certificate * {
-            visibility: visible !important;
+            visibility: visible;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
           }
           #center-affiliation-certificate {
-            position: fixed !important;
-            left: 50% !important;
-            top: 50% !important;
-            transform: translate(-50%, -50%) scale(0.82) !important;
-            transform-origin: center center !important;
-            box-shadow: none !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
             margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            transform: scale(0.96) !important;
+            transform-origin: top left !important;
             width: ${CENTER_CERT_WIDTH}px !important;
             height: ${CENTER_CERT_HEIGHT}px !important;
-            page-break-after: avoid !important;
+            page-break-after: always !important;
             page-break-inside: avoid !important;
-            break-inside: avoid !important;
           }
         }
       `}</style>
