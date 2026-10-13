@@ -139,7 +139,9 @@ const initDbSchema = async () => {
       { name: 'status', type: "VARCHAR(50) DEFAULT 'active'" },
       { name: 'logo_url', type: "LONGTEXT" },
       { name: 'custom_pricing_config', type: "JSON" },
-      { name: 'old_student_allowed_until', type: "DATETIME DEFAULT NULL" }
+      { name: 'old_student_allowed_until', type: "DATETIME DEFAULT NULL" },
+      { name: 'certificate_file_url', type: "LONGTEXT" },
+      { name: 'certificate_s3_url', type: "LONGTEXT" }
     ];
 
     for (const col of centerColumns) {
@@ -323,7 +325,11 @@ const initDbSchema = async () => {
       { name: 'academic_status', type: "VARCHAR(50) DEFAULT 'pursuing'" },
       { name: 'enrollment_no', type: "VARCHAR(100)" },
       { name: 'roll_no', type: "VARCHAR(100)" },
-      { name: 'status', type: "VARCHAR(50) DEFAULT 'active'" }
+      { name: 'status', type: "VARCHAR(50) DEFAULT 'active'" },
+      { name: 'certificate_file_url', type: "LONGTEXT" },
+      { name: 'certificate_s3_url', type: "LONGTEXT" },
+      { name: 'marksheet_file_url', type: "LONGTEXT" },
+      { name: 'marksheet_s3_url', type: "LONGTEXT" }
     ];
 
     for (const col of studentColumns) {
@@ -649,6 +655,7 @@ import adminRoutes from './routes/admin.routes';
 import notificationRoutes from './routes/notification.routes';
 import testSeriesRoutes from './routes/testSeries.routes';
 import studyMaterialRoutes from './routes/studyMaterial.routes';
+import certificateRoutes from './routes/certificate.routes';
 import { testSeriesService } from './services/testSeries.service';
 import { studyMaterialService } from './services/studyMaterial.service';
 
@@ -688,6 +695,8 @@ app.use("/api", publicRoutes);
 app.use("/api/v1", publicRoutes);
 
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/certificates", certificateRoutes);
+app.use("/api/v1/certificates", certificateRoutes);
 
 // Catch-all 404 handler for unmatched API routes
 app.use(['/api', '/api/v1'], (req, res) => {

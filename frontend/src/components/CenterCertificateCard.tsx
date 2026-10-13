@@ -194,12 +194,23 @@ export const CenterCertificateCard: React.FC<CenterCertificateCardProps> = ({
           {/* Ribbon Title */}
           <div className="mt-3 relative flex items-center justify-center">
             <div className="absolute inset-x-8 h-[2px] bg-gradient-to-r from-transparent via-[#d97706] to-transparent" />
-            <div className="relative px-8 py-1.5 bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white rounded-full shadow-lg border-2 border-amber-400/90 flex items-center gap-3">
-              <Sparkles size={16} className="text-amber-400 animate-pulse" />
-              <h2 className="text-sm font-black tracking-[0.25em] uppercase text-amber-300 font-serif">
+            <div 
+              className="relative px-8 py-1.5 text-white rounded-full shadow-lg border-2 border-amber-400/90 flex items-center gap-3"
+              style={{
+                backgroundColor: '#0f172a',
+                backgroundImage: 'linear-gradient(to right, #0f172a, #1e293b, #0f172a)',
+                color: '#ffffff',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)'
+              }}
+            >
+              <Sparkles size={16} className="text-amber-400 shrink-0" />
+              <h2 
+                className="text-sm font-black tracking-[0.25em] uppercase font-serif"
+                style={{ color: '#fcd34d', fontFamily: "'Cinzel', serif, Georgia" }}
+              >
                 CERTIFICATE OF AFFILIATION & ACCREDITATION
               </h2>
-              <Sparkles size={16} className="text-amber-400 animate-pulse" />
+              <Sparkles size={16} className="text-amber-400 shrink-0" />
             </div>
           </div>
         </div>

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import axios from '../utils/axiosSetup';
 import { CenterCertificateCard, type CenterCertificateData, CENTER_CERT_WIDTH, CENTER_CERT_HEIGHT } from './CenterCertificateCard';
 
 interface CenterCertificateModalProps {
@@ -182,34 +183,42 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
             }
 
             window.onload = function() {
-              var imgs = Array.from(document.images);
-              if (imgs.length === 0) {
-                setTimeout(triggerPrint, 400);
-              } else {
-                var loaded = 0;
-                var total = imgs.length;
-                var fired = false;
-                function check() {
-                  loaded++;
-                  if (loaded >= total && !fired) {
-                    fired = true;
-                    setTimeout(triggerPrint, 350);
+              function proceed() {
+                var imgs = Array.from(document.images);
+                if (imgs.length === 0) {
+                  setTimeout(triggerPrint, 400);
+                } else {
+                  var loaded = 0;
+                  var total = imgs.length;
+                  var fired = false;
+                  function check() {
+                    loaded++;
+                    if (loaded >= total && !fired) {
+                      fired = true;
+                      setTimeout(triggerPrint, 350);
+                    }
                   }
+                  imgs.forEach(function(img) {
+                    if (img.complete) {
+                      check();
+                    } else {
+                      img.addEventListener('load', check);
+                      img.addEventListener('error', check);
+                    }
+                  });
+                  setTimeout(function() {
+                    if (!fired) {
+                      fired = true;
+                      triggerPrint();
+                    }
+                  }, 1200);
                 }
-                imgs.forEach(function(img) {
-                  if (img.complete) {
-                    check();
-                  } else {
-                    img.addEventListener('load', check);
-                    img.addEventListener('error', check);
-                  }
-                });
-                setTimeout(function() {
-                  if (!fired) {
-                    fired = true;
-                    triggerPrint();
-                  }
-                }, 1200);
+              }
+
+              if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(proceed).catch(proceed);
+              } else {
+                proceed();
               }
             };
           </script>
@@ -243,6 +252,18 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
       // A4 landscape is exactly 297mm x 210mm
       pdf.addImage(image, 'PNG', 0, 0, 297, 210, undefined, 'FAST');
       pdf.save(`${centerName.replace(/[^a-zA-Z0-9]/g, '_')}_Center_Affiliation_Certificate_${centerCode}.pdf`);
+
+      // Automatically store generated PDF in AWS S3 Bucket
+      const pdfBase64 = pdf.output('datauristring');
+      axios.post('/api/certificates/save-to-s3', {
+        type: 'center',
+        identifier: centerCode,
+        fileBase64: pdfBase64,
+        format: 'pdf',
+        title: centerName
+      }).catch(s3Err => {
+        console.warn('[S3] Auto-archive certificate notice:', s3Err?.message || s3Err);
+      });
     } catch (err) {
       console.error('Failed to download center certificate PDF:', err);
       // Fallback: trigger print dialog to Save as PDF
@@ -273,6 +294,17 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      // Automatically store generated HD PNG in AWS S3 Bucket
+      axios.post('/api/certificates/save-to-s3', {
+        type: 'center',
+        identifier: centerCode,
+        fileBase64: image,
+        format: 'png',
+        title: centerName
+      }).catch(s3Err => {
+        console.warn('[S3] Auto-archive certificate PNG notice:', s3Err?.message || s3Err);
+      });
     } catch (err) {
       console.error('Failed to download center certificate image:', err);
       handlePrint();
