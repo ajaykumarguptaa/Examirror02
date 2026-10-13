@@ -298,6 +298,23 @@ router.post('/test/:uid/submit', async (req, res) => {
 
 // --- PUBLIC STUDY MATERIALS API (SEO) ---
 
+router.get('/test-categories', async (req, res) => {
+  try {
+    const [rows]: any = await db.query(`
+      SELECT tc.id, tc.name, tc.slug, tc.description, tc.icon, tc.thumbnail_url, tc.display_order,
+             COUNT(ts.id) AS test_series_count
+      FROM test_categories tc
+      LEFT JOIN test_series ts ON ts.category_id = tc.id AND ts.status = 'PUBLISHED'
+      WHERE tc.status = 'ACTIVE'
+      GROUP BY tc.id
+      ORDER BY tc.display_order ASC, tc.id ASC
+    `);
+    res.status(200).json({ success: true, data: rows });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 router.get('/study-material-categories', async (req, res) => {
   try {
     const [rows]: any = await db.query(`SELECT id, name, slug FROM study_material_categories ORDER BY name ASC`);

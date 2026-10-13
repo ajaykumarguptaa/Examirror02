@@ -18,6 +18,10 @@ export async function initTestSeriesDatabase() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
+  try {
+    await db.query(`ALTER TABLE test_categories ADD COLUMN thumbnail_url TEXT NULL AFTER description`);
+  } catch (e) {}
+
   // 2. Test Payment QR Configurations
   await db.query(`
     CREATE TABLE IF NOT EXISTS test_payment_qr (

@@ -83,6 +83,8 @@ export const TestSeriesManagement = () => {
   const [editingCategory, setEditingCategory] = useState<any | null>(null);
   const [newCatName, setNewCatName] = useState('');
   const [newCatDesc, setNewCatDesc] = useState('');
+  const [newCatThumbnail, setNewCatThumbnail] = useState('');
+  const [isUploadingCatThumb, setIsUploadingCatThumb] = useState(false);
 
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [editingQr, setEditingQr] = useState<any | null>(null);
@@ -997,6 +999,7 @@ export const TestSeriesManagement = () => {
                 setEditingCategory(null);
                 setNewCatName('');
                 setNewCatDesc('');
+                setNewCatThumbnail('');
                 setIsCategoryModalOpen(true);
               }}
               className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
@@ -1007,33 +1010,49 @@ export const TestSeriesManagement = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {categories.map((cat: any) => (
-              <div key={cat.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-start justify-between gap-3 hover:border-slate-300 transition-colors">
-                <div>
-                  <h4 className="font-bold text-slate-900 text-sm">{cat.name}</h4>
-                  <p className="text-xs text-slate-500 line-clamp-2 mt-1">{cat.description || 'No description provided'}</p>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingCategory(cat);
-                      setNewCatName(cat.name || '');
-                      setNewCatDesc(cat.description || '');
-                      setIsCategoryModalOpen(true);
-                    }}
-                    className="p-1.5 text-slate-600 hover:bg-slate-200 rounded-lg cursor-pointer"
-                    title="Edit Category"
-                  >
-                    <Edit size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeletingCategoryTarget(cat)}
-                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer"
-                    title="Delete Category"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+              <div key={cat.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col justify-between gap-3 hover:border-slate-300 transition-colors group">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    {cat.thumbnail_url ? (
+                      <img
+                        src={cat.thumbnail_url}
+                        alt={cat.name}
+                        className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0 shadow-xs"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0 font-bold text-base">
+                        <BookOpen size={20} />
+                      </div>
+                    )}
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm leading-snug">{cat.name}</h4>
+                      <p className="text-xs text-slate-500 line-clamp-2 mt-1">{cat.description || 'No description provided'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingCategory(cat);
+                        setNewCatName(cat.name || '');
+                        setNewCatDesc(cat.description || '');
+                        setNewCatThumbnail(cat.thumbnail_url || '');
+                        setIsCategoryModalOpen(true);
+                      }}
+                      className="p-1.5 text-slate-600 hover:bg-slate-200 rounded-lg cursor-pointer"
+                      title="Edit Category"
+                    >
+                      <Edit size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeletingCategoryTarget(cat)}
+                      className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer"
+                      title="Delete Category"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1492,6 +1511,7 @@ export const TestSeriesManagement = () => {
                         setEditingCategory(null);
                         setNewCatName('');
                         setNewCatDesc('');
+                        setNewCatThumbnail('');
                         setIsCategoryModalOpen(true);
                       }}
                       className="text-blue-600 hover:text-blue-800 text-[11px] font-bold flex items-center gap-0.5 hover:underline cursor-pointer"
@@ -2530,6 +2550,118 @@ export const TestSeriesManagement = () => {
                 className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:border-blue-600"
               />
             </div>
+
+            {/* Category Thumbnail Upload / Cover Banner */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span>Category Thumbnail Banner</span>
+                <span className="text-[10px] text-slate-400 font-normal">Shown on Home Page &amp; Student Discovery</span>
+              </label>
+
+              {newCatThumbnail ? (
+                <div className="relative mb-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-900 aspect-video max-h-36 group">
+                  <img
+                    src={newCatThumbnail}
+                    alt="Category Thumbnail Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => setNewCatThumbnail('')}
+                      className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold rounded-lg flex items-center gap-1 shadow-md cursor-pointer"
+                    >
+                      <Trash2 size={12} /> Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl p-3 text-center bg-slate-50/70 mb-2 transition-colors">
+                  <ImageIcon size={22} className="mx-auto text-slate-400 mb-1" />
+                  <p className="text-[11px] text-slate-600 font-medium">Upload thumbnail image (JPG, PNG, WebP)</p>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <label className={`flex-1 py-1.5 px-3 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center justify-center gap-1.5 transition-colors ${isUploadingCatThumb ? 'opacity-60 pointer-events-none' : ''}`}>
+                  <Upload size={13} className="text-blue-600" />
+                  <span>{isUploadingCatThumb ? 'Uploading...' : 'Upload Image File'}</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploadingCatThumb(true);
+                      try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        const res = await axios.post('/api/public/upload', formData);
+                        if (res.data?.url) {
+                          setNewCatThumbnail(res.data.url);
+                          showToast('success', 'Thumbnail uploaded successfully');
+                        }
+                      } catch {
+                        // Fallback to base64
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          setNewCatThumbnail(reader.result as string);
+                          showToast('success', 'Thumbnail loaded');
+                        };
+                        reader.readAsDataURL(file);
+                      } finally {
+                        setIsUploadingCatThumb(false);
+                      }
+                    }}
+                  />
+                </label>
+                {newCatThumbnail && (
+                  <button
+                    type="button"
+                    onClick={() => setNewCatThumbnail('')}
+                    className="px-2.5 py-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Direct Image URL input */}
+              <div className="mt-2">
+                <input
+                  type="url"
+                  value={newCatThumbnail}
+                  onChange={(e) => setNewCatThumbnail(e.target.value)}
+                  placeholder="Or paste direct image URL (https://...)"
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-[11px] text-slate-700 outline-none focus:border-blue-600 font-mono"
+                />
+              </div>
+
+              {/* Curated Presets */}
+              <div className="mt-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Quick Presets:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: 'Aptitude & Reasoning', url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=600' },
+                    { label: 'SSC & Govt', url: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=600' },
+                    { label: 'Banking & PO', url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=600' },
+                    { label: 'Railways & RRB', url: 'https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&q=80&w=600' },
+                    { label: 'IT & Computer', url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=600' },
+                  ].map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setNewCatThumbnail(preset.url)}
+                      className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 text-[10px] font-medium border border-slate-200 transition-colors cursor-pointer"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-end gap-2 pt-2 border-t">
               <button
                 type="button"
@@ -2549,13 +2681,15 @@ export const TestSeriesManagement = () => {
                     if (editingCategory) {
                       await axios.put(`/api/admin/categories/${editingCategory.id}`, {
                         name: newCatName.trim(),
-                        description: newCatDesc.trim()
+                        description: newCatDesc.trim(),
+                        thumbnail_url: newCatThumbnail.trim()
                       });
                       showToast('success', 'Category updated successfully');
                     } else {
                       const res = await axios.post('/api/admin/categories', {
                         name: newCatName.trim(),
-                        description: newCatDesc.trim()
+                        description: newCatDesc.trim(),
+                        thumbnail_url: newCatThumbnail.trim()
                       });
                       showToast('success', `Category "${newCatName.trim()}" created`);
                       if (res.data?.data?.id) {
@@ -2567,6 +2701,7 @@ export const TestSeriesManagement = () => {
                     setEditingCategory(null);
                     setNewCatName('');
                     setNewCatDesc('');
+                    setNewCatThumbnail('');
                   } catch (err: any) {
                     showToast('error', err.response?.data?.message || 'Failed to save category');
                   }

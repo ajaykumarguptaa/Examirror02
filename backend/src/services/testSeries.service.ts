@@ -12,27 +12,36 @@ export const testSeriesService = {
 
   createCategory: async (data: any) => {
     const { name, slug, description, icon, display_order } = data;
+    let thumbUrl = data.thumbnail_url;
+    if (thumbUrl && thumbUrl.startsWith('data:image/')) {
+      thumbUrl = saveBase64File(thumbUrl, `test-cat-${Date.now()}`, 'test-categories');
+    }
     const finalSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     const [result]: any = await db.query(`
-      INSERT INTO test_categories (name, slug, description, icon, display_order)
-      VALUES (?, ?, ?, ?, ?)
-    `, [name, finalSlug, description || '', icon || 'BookOpen', display_order || 0]);
-    return { id: result.insertId, ...data, slug: finalSlug };
+      INSERT INTO test_categories (name, slug, description, thumbnail_url, icon, display_order)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [name, finalSlug, description || '', thumbUrl || null, icon || 'BookOpen', display_order || 0]);
+    return { id: result.insertId, ...data, thumbnail_url: thumbUrl, slug: finalSlug };
   },
 
   updateCategory: async (id: number | string, data: any) => {
     const { name, slug, description, icon, display_order, status } = data;
+    let thumbUrl = data.thumbnail_url;
+    if (thumbUrl && thumbUrl.startsWith('data:image/')) {
+      thumbUrl = saveBase64File(thumbUrl, `test-cat-${Date.now()}`, 'test-categories');
+    }
     await db.query(`
       UPDATE test_categories
       SET name = COALESCE(?, name),
           slug = COALESCE(?, slug),
           description = COALESCE(?, description),
+          thumbnail_url = CASE WHEN ? IS NOT NULL THEN ? ELSE thumbnail_url END,
           icon = COALESCE(?, icon),
           display_order = COALESCE(?, display_order),
           status = COALESCE(?, status)
       WHERE id = ?
-    `, [name, slug, description, icon, display_order, status, id]);
-    return { id, ...data };
+    `, [name, slug, description, thumbUrl !== undefined ? thumbUrl : null, thumbUrl, icon, display_order, status, id]);
+    return { id, ...data, thumbnail_url: thumbUrl };
   },
 
   deleteCategory: async (id: number | string) => {

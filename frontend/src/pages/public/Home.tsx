@@ -97,6 +97,29 @@ const cardHoverVariant = {
   }
 };
 
+const getCategoryFallbackImage = (name: string) => {
+  const n = (name || '').toLowerCase();
+  if (n.includes('aptitude') || n.includes('reasoning') || n.includes('logic')) {
+    return 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=600&auto=format&fit=crop&q=80';
+  }
+  if (n.includes('ssc') || n.includes('cgl') || n.includes('competitive')) {
+    return 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80';
+  }
+  if (n.includes('bank') || n.includes('ibps') || n.includes('po')) {
+    return 'https://images.unsplash.com/photo-1501167786227-4cba60f6d58f?w=600&auto=format&fit=crop&q=80';
+  }
+  if (n.includes('railway') || n.includes('rrb')) {
+    return 'https://images.unsplash.com/photo-1474487548417-781cb71495f3?w=600&auto=format&fit=crop&q=80';
+  }
+  if (n.includes('tech') || n.includes('computer') || n.includes('it')) {
+    return 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&auto=format&fit=crop&q=80';
+  }
+  if (n.includes('tally') || n.includes('account')) {
+    return 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80';
+  }
+  return 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&auto=format&fit=crop&q=80';
+};
+
 const Home = () => {
   const { data: homeData } = useQuery({
     queryKey: ['homeSettings'],
@@ -133,6 +156,21 @@ const Home = () => {
     queryFn: async () => {
       try {
         const res = await fetch('/api/public/courses');
+        if (!res.ok) throw new Error('Failed');
+        const json = await res.json();
+        return json.data || [];
+      } catch {
+        return [];
+      }
+    }
+  });
+
+  // Dynamic Test Categories with Uploaded Thumbnails from Live Database
+  const { data: publicTestCategories = [] } = useQuery<any[]>({
+    queryKey: ['publicTestCategories'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/public/test-categories');
         if (!res.ok) throw new Error('Failed');
         const json = await res.json();
         return json.data || [];
@@ -1526,6 +1564,109 @@ const Home = () => {
                 ))}
               </div>
             )}
+
+          </div>
+        </section>
+      )}
+
+      {/* 6.5. Dynamic Test Series & Exam Categories Showcase */}
+      {publicTestCategories && publicTestCategories.length > 0 && (
+        <section className="py-20 bg-gradient-to-b from-white via-blue-50/25 to-slate-50/60 border-t border-slate-100 relative w-full overflow-hidden">
+          <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
+            
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+              <FadeUp>
+                <div className="text-left max-w-2xl">
+                  <span className="text-xs font-black text-blue-700 bg-blue-50 border border-blue-200 px-3.5 py-1 rounded-full uppercase tracking-wider inline-flex items-center gap-1.5 shadow-xs">
+                    <Sparkles size={13} className="text-blue-600 animate-pulse" />
+                    <span>Live Mock Tests & Assessments</span>
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 mt-3.5 mb-2 tracking-tight">
+                    National Test Series Categories
+                  </h2>
+                  <p className="text-slate-600 text-xs sm:text-sm font-normal">
+                    Practice with live timed exams, instant scoring, question explanations, and all-India percentile rankings.
+                  </p>
+                </div>
+              </FadeUp>
+
+              <div className="shrink-0 self-start md:self-auto">
+                <Link
+                  to="/student/test-series"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-black inline-flex items-center gap-2 shadow-md shadow-blue-200 transition-all hover:scale-102 active:scale-95"
+                >
+                  <span>Explore All Test Series</span>
+                  <ArrowRight size={15} />
+                </Link>
+              </div>
+            </div>
+
+            {/* Categories Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 text-left">
+              {publicTestCategories.map((cat: any) => (
+                <motion.div
+                  key={cat.id}
+                  whileHover={{ y: -6, scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="card-3d rounded-2xl flex flex-col justify-between group relative overflow-hidden bg-white shadow-md hover:shadow-2xl transition-all duration-300 border border-slate-200/90"
+                >
+                  {/* Category Thumbnail Image Banner */}
+                  <div className="h-44 sm:h-48 w-full relative overflow-hidden bg-slate-900 shrink-0">
+                    <img
+                      src={cat.thumbnail_url || getCategoryFallbackImage(cat.name)}
+                      alt={cat.name}
+                      className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 opacity-95"
+                      loading="lazy"
+                      onError={(e: any) => {
+                        e.target.onerror = null;
+                        e.target.src = getCategoryFallbackImage(cat.name);
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent" />
+
+                    {/* Series Count Badge Overlay */}
+                    <div className="absolute top-3 right-3">
+                      <span className="text-[11px] font-black text-white bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-full inline-flex items-center gap-1.5 shadow-sm border border-white/20">
+                        <Award size={12} className="text-amber-400" />
+                        <span>{cat.test_series_count || 0} Test Series</span>
+                      </span>
+                    </div>
+
+                    {/* Bottom Category Badge Overlay */}
+                    <div className="absolute bottom-3 left-4 right-4">
+                      <span className="text-[10px] font-bold text-blue-200 uppercase tracking-wider block mb-1">
+                        Exam Category
+                      </span>
+                      <h3 className="font-black text-white text-lg sm:text-xl line-clamp-1 group-hover:text-blue-300 transition-colors drop-shadow-sm">
+                        {cat.name}
+                      </h3>
+                    </div>
+                  </div>
+
+                  {/* Card Body & Action */}
+                  <div className="p-5 flex-1 flex flex-col justify-between">
+                    <p className="text-slate-600 text-xs sm:text-sm line-clamp-2 leading-relaxed">
+                      {cat.description || 'Comprehensive national mock tests, topic quizzes and speed tests.'}
+                    </p>
+
+                    <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                        <CheckCircle2 size={13} className="text-emerald-500" />
+                        <span>Instant Solutions & Ranking</span>
+                      </span>
+                      <Link
+                        to="/student/test-series"
+                        className="inline-flex items-center gap-1.5 text-xs font-black text-blue-600 group-hover:text-blue-800 transition-colors cursor-pointer"
+                      >
+                        <span>Start Test</span>
+                        <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                      </Link>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
 
           </div>
         </section>
