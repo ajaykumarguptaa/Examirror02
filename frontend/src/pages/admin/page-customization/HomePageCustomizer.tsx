@@ -2364,7 +2364,7 @@ const HomePageCustomizer = () => {
                     {/* Image Preview Box */}
                     <div className="w-28 h-24 sm:w-32 sm:h-24 rounded-xl overflow-hidden bg-slate-900 border border-slate-300 shrink-0 relative group shadow-xs">
                       <img
-                        src={data.hero?.heroImage || data.hero?.image || "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=600&q=80"}
+                        src={data.hero?.heroImage || "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=600&q=80"}
                         alt="Hero Preview"
                         className="w-full h-full object-cover"
                       />
@@ -3438,7 +3438,7 @@ const HomePageCustomizer = () => {
                       <div className="relative w-full bg-white rounded-2xl border border-slate-200 shadow-xl p-2.5">
                         <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-slate-900">
                           <img
-                            src={data.hero?.heroImage || data.hero?.image || "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80"}
+                            src={data.hero?.heroImage || "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80"}
                             alt="Academy Lab Visual"
                             className="w-full h-full object-cover"
                           />

@@ -64,6 +64,7 @@ import {
   InteractiveButton,
   motionTokens
 } from '../../motion';
+import { Tilt3DCard, SpotlightCard, MagneticButton } from '../../components/ui';
 
 // Standardized Stagger & Item Variants
 const containerVariants = {
@@ -557,81 +558,83 @@ const Home = () => {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="lg:col-span-6 relative flex justify-center lg:justify-end w-full"
               >
-                {/* Main Hero Card Frame */}
-                <div className="relative w-full max-w-xl bg-white rounded-3xl border border-slate-200 shadow-2xl p-3 sm:p-4">
+                {/* Main Hero Card Frame with GSAP 3D Interactive Tilt & Glossy Sheen */}
+                <Tilt3DCard maxTilt={7} scale={1.01} glare={true} className="w-full max-w-xl">
+                  <div className="relative w-full bg-white rounded-3xl border border-slate-200 shadow-2xl p-3 sm:p-4">
 
-                  {/* High Quality Education & Computer Lab Visual */}
-                  <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-slate-900">
-                    <img
-                      src={homeData?.hero?.heroImage || homeData?.hero?.image || "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80"}
-                      alt="Modern Computer Academy Training Lab"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-slate-950/20" />
+                    {/* High Quality Education & Computer Lab Visual */}
+                    <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-slate-900">
+                      <img
+                        src={homeData?.hero?.heroImage || homeData?.hero?.image || "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80"}
+                        alt="Modern Computer Academy Training Lab"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-slate-950/20" />
+                    </div>
+
+                    {/* Floating Badge: Top-Right (Government Recognized) */}
+                    <motion.div
+                      animate={{ y: [0, -6, 0] }}
+                      transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                      className="absolute -top-3 right-2 sm:-top-4 sm:-right-4 bg-white text-slate-900 border border-slate-200 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-xl flex items-center gap-2 sm:gap-2.5 z-20"
+                    >
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xs font-black shadow-sm">
+                        ✓
+                      </div>
+                      <div className="text-left">
+                        <div className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Government</div>
+                        <div className="text-[11px] sm:text-xs font-black text-emerald-600">Recognized</div>
+                      </div>
+                    </motion.div>
+
+                    {/* Floating Badge: Bottom-Left (Student Portal & QR Verification - Desktop/Tablet only to avoid mobile overlap) */}
+                    <motion.div
+                      animate={{ y: [0, 6, 0] }}
+                      transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+                      className="hidden sm:flex absolute -bottom-4 -left-2 sm:-left-4 bg-white text-slate-900 border border-slate-200 px-3.5 py-2.5 rounded-2xl shadow-xl items-center gap-3 z-20"
+                    >
+                      <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center text-sm font-black shadow-sm">
+                        ★
+                      </div>
+                      <div className="text-left">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Student Portal</div>
+                        <div className="text-xs font-black text-amber-600">Instant QR Verify</div>
+                      </div>
+                    </motion.div>
+
+                    {/* Bottom Stats Ribbon */}
+                    <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-xl grid grid-cols-3 gap-2 text-center text-xs">
+                      <div>
+                        <div className="font-black text-slate-900 text-sm">
+                          <NumberCounter 
+                            value={publicStats ? `${(publicStats.certifiedStudentsCount ?? publicStats.studentsCount).toLocaleString('en-IN')}+` : '0+'} 
+                            durationMs={1200} 
+                          />
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-500">Certified</div>
+                      </div>
+                      <div className="border-x border-slate-200">
+                        <div className="font-black text-slate-900 text-sm">
+                          <NumberCounter 
+                            value={publicStats ? `${publicStats.centersCount.toLocaleString('en-IN')}+` : '0+'} 
+                            durationMs={1200} 
+                          />
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-500">Study Centers</div>
+                      </div>
+                      <div>
+                        <div className="font-black text-slate-900 text-sm">
+                          <NumberCounter 
+                            value={publicStats ? `${publicStats.coursesCount}+` : '0+'} 
+                            durationMs={1200} 
+                          />
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-500">Courses</div>
+                      </div>
+                    </div>
+
                   </div>
-
-                  {/* Floating Badge: Top-Right (Government Recognized) */}
-                  <motion.div
-                    animate={{ y: [0, -6, 0] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                    className="absolute -top-3 right-2 sm:-top-4 sm:-right-4 bg-white text-slate-900 border border-slate-200 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-xl flex items-center gap-2 sm:gap-2.5 z-20"
-                  >
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xs font-black shadow-sm">
-                      ✓
-                    </div>
-                    <div className="text-left">
-                      <div className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Government</div>
-                      <div className="text-[11px] sm:text-xs font-black text-emerald-600">Recognized</div>
-                    </div>
-                  </motion.div>
-
-                  {/* Floating Badge: Bottom-Left (Student Portal & QR Verification - Desktop/Tablet only to avoid mobile overlap) */}
-                  <motion.div
-                    animate={{ y: [0, 6, 0] }}
-                    transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-                    className="hidden sm:flex absolute -bottom-4 -left-2 sm:-left-4 bg-white text-slate-900 border border-slate-200 px-3.5 py-2.5 rounded-2xl shadow-xl items-center gap-3 z-20"
-                  >
-                    <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center text-sm font-black shadow-sm">
-                      ★
-                    </div>
-                    <div className="text-left">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Student Portal</div>
-                      <div className="text-xs font-black text-amber-600">Instant QR Verify</div>
-                    </div>
-                  </motion.div>
-
-                  {/* Bottom Stats Ribbon */}
-                  <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-xl grid grid-cols-3 gap-2 text-center text-xs">
-                    <div>
-                      <div className="font-black text-slate-900 text-sm">
-                        <NumberCounter 
-                          value={publicStats ? `${(publicStats.certifiedStudentsCount ?? publicStats.studentsCount).toLocaleString('en-IN')}+` : '0+'} 
-                          durationMs={1200} 
-                        />
-                      </div>
-                      <div className="text-[10px] font-bold text-slate-500">Certified</div>
-                    </div>
-                    <div className="border-x border-slate-200">
-                      <div className="font-black text-slate-900 text-sm">
-                        <NumberCounter 
-                          value={publicStats ? `${publicStats.centersCount.toLocaleString('en-IN')}+` : '0+'} 
-                          durationMs={1200} 
-                        />
-                      </div>
-                      <div className="text-[10px] font-bold text-slate-500">Study Centers</div>
-                    </div>
-                    <div>
-                      <div className="font-black text-slate-900 text-sm">
-                        <NumberCounter 
-                          value={publicStats ? `${publicStats.coursesCount}+` : '0+'} 
-                          durationMs={1200} 
-                        />
-                      </div>
-                      <div className="text-[10px] font-bold text-slate-500">Courses</div>
-                    </div>
-                  </div>
-
-                </div>
+                </Tilt3DCard>
               </motion.div>
 
             </div>
@@ -723,41 +726,43 @@ const Home = () => {
 
                 return (
                   <StaggerItem key={item.id || idx}>
-                    <motion.div
-                      whileHover={{ y: -6, scale: 1.015 }}
-                      whileTap={{ scale: 0.98 }}
-                      transition={{ duration: 0.2 }}
-                      className={`${styles.cardBg} ${styles.border} p-7 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden group h-full`}
-                    >
-                      {/* Card Watermark Number */}
-                      <span className={`absolute -bottom-4 -right-2 text-7xl font-black ${styles.numberColor} select-none pointer-events-none group-hover:scale-110 transition-transform duration-300`}>
-                        0{idx + 1}
-                      </span>
+                    <SpotlightCard className="h-full border-none shadow-none bg-transparent">
+                      <motion.div
+                        whileHover={{ y: -6, scale: 1.015 }}
+                        whileTap={{ scale: 0.98 }}
+                        transition={{ duration: 0.2 }}
+                        className={`${styles.cardBg} ${styles.border} p-7 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden group h-full`}
+                      >
+                        {/* Card Watermark Number */}
+                        <span className={`absolute -bottom-4 -right-2 text-7xl font-black ${styles.numberColor} select-none pointer-events-none group-hover:scale-110 transition-transform duration-300`}>
+                          0{idx + 1}
+                        </span>
 
-                      <div>
-                        {/* Icon Badge */}
-                        <div className={`w-12 h-12 rounded-2xl ${styles.badgeBg} flex items-center justify-center font-black text-base mb-6 shadow-md group-hover:rotate-6 transition-transform duration-300`}>
-                          {idx === 0 ? <Laptop size={22} /> :
-                            idx === 1 ? <HandCoins size={22} /> :
-                              idx === 2 ? <Users size={22} /> : <MapPin size={22} />}
+                        <div>
+                          {/* Icon Badge */}
+                          <div className={`w-12 h-12 rounded-2xl ${styles.badgeBg} flex items-center justify-center font-black text-base mb-6 shadow-md group-hover:rotate-6 transition-transform duration-300`}>
+                            {idx === 0 ? <Laptop size={22} /> :
+                              idx === 1 ? <HandCoins size={22} /> :
+                                idx === 2 ? <Users size={22} /> : <MapPin size={22} />}
+                          </div>
+
+                          <h3 className="font-black text-slate-900 mb-2.5 text-lg group-hover:text-indigo-900 transition-colors">
+                            {item.title}
+                          </h3>
+
+                          <p className="text-slate-600 text-xs leading-relaxed font-normal">
+                            {item.desc}
+                          </p>
                         </div>
 
-                        <h3 className="font-black text-slate-900 mb-2.5 text-lg group-hover:text-indigo-900 transition-colors">
-                          {item.title}
-                        </h3>
-
-                        <p className="text-slate-600 text-xs leading-relaxed font-normal">
-                          {item.desc}
-                        </p>
-                      </div>
-
-                      <div className="pt-6 mt-4 border-t border-slate-200/60 flex items-center justify-between">
-                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${styles.tagBg}`}>
-                          Core Benefit
-                        </span>
-                        <ArrowRight size={15} className={`${styles.accent} group-hover:translate-x-1.5 transition-transform duration-300`} />
-                      </div>
-                    </motion.div>
+                        <div className="pt-6 mt-4 border-t border-slate-200/60 flex items-center justify-between">
+                          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${styles.tagBg}`}>
+                            Core Benefit
+                          </span>
+                          <ArrowRight size={15} className={`${styles.accent} group-hover:translate-x-1.5 transition-transform duration-300`} />
+                        </div>
+                      </motion.div>
+                    </SpotlightCard>
                   </StaggerItem>
                 );
               })}

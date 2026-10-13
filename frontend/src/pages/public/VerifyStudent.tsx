@@ -25,6 +25,7 @@ import SEO from '../../components/SEO';
 import { QrCameraScannerModal } from '../../components/QrCameraScannerModal';
 import { StudentCertificateModal } from '../../components/StudentCertificateModal';
 import { calculateStudentAcademicGrade } from '../../utils/academicGrade';
+import { HoloBadge, Tilt3DCard } from '../../components/ui';
 
 interface VerifiedStudent {
   id: number;
@@ -288,6 +289,15 @@ const VerifyStudent = () => {
               </div>
             </div>
 
+            {/* Hologram Iridescent Security Stamp */}
+            <div className="px-4 sm:px-6 pt-4">
+              <HoloBadge 
+                label="Tamper-Proof Digital Credential"
+                sublabel="DIRECT STUDENT REGISTRY • GOVERNMENT RECOGNIZED"
+                verifiedDate={new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+              />
+            </div>
+
             {/* Main Content Details Grid */}
             <div className="p-6 sm:p-8 space-y-6">
 
@@ -296,14 +306,14 @@ const VerifyStudent = () => {
                 {/* Left Column: Photo & Scannable QR Code */}
                 <div className="md:col-span-1 flex flex-col items-center space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
 
-                  {/* Photo Frame */}
-                  <div className="w-32 h-36 rounded-lg border-2 border-slate-300 overflow-hidden shadow-xs bg-white">
+                  {/* Photo Frame with GSAP 3D Tilt */}
+                  <Tilt3DCard maxTilt={10} scale={1.03} glare={true} className="w-32 h-36 rounded-lg overflow-hidden border-2 border-slate-300 shadow-xs bg-white">
                     <img
                       src={formatImageSrc(student.photo_url) || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.firstName + ' ' + student.lastName)}&background=0f172a&color=fff`}
                       alt={student.firstName}
                       className="w-full h-full object-cover"
                     />
-                  </div>
+                  </Tilt3DCard>
 
                   {/* Name & Roll */}
                   <div className="w-full border-b border-slate-200 pb-3">

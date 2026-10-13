@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import SEO from '../../components/SEO';
+import { SpotlightCard, MagneticButton } from '../../components/ui';
 
 export interface VideoItem {
   id: number;
@@ -330,18 +331,18 @@ export const TrainingVideos: React.FC = () => {
             const thumbUrl = vid.thumbnail || `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
 
             return (
-              <motion.div 
-                key={vid.id || idx}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: idx * 0.05 }}
-                onClick={() => handleSelectVideo(vid)}
-                className={`bg-white rounded-2xl border overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative ${
-                  isCurrent 
-                    ? 'border-indigo-600 ring-2 ring-indigo-500/15 shadow-sm' 
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
+              <SpotlightCard key={vid.id || idx} className="h-full border-none shadow-none bg-transparent">
+                <motion.div 
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: idx * 0.05 }}
+                  onClick={() => handleSelectVideo(vid)}
+                  className={`bg-white rounded-2xl border overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative h-full ${
+                    isCurrent 
+                      ? 'border-indigo-600 ring-2 ring-indigo-500/15 shadow-sm' 
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
                 {/* Thumbnail Header with Play Button */}
                 <div className="h-44 sm:h-48 relative overflow-hidden bg-slate-900 flex items-center justify-center">
                   <img
@@ -428,7 +429,8 @@ export const TrainingVideos: React.FC = () => {
                 </div>
 
               </motion.div>
-            );
+            </SpotlightCard>
+          );
           })}
         </div>
 

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Target, Award, Sparkles, CheckCircle2, ShieldCheck, Users, GraduationCap, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SEO from '../../components/SEO';
+import { Tilt3DCard } from '../../components/ui';
 
 const DEFAULT_ABOUT_DATA = {
   header: {
@@ -137,13 +138,15 @@ const About = () => {
             transition={{ duration: 0.5 }}
             className="lg:col-span-5 relative flex justify-center"
           >
-            <div className="relative z-10 overflow-hidden rounded-3xl border-2 border-slate-200 shadow-md max-w-md w-full aspect-square bg-slate-100">
-              <img
-                src={overviewImage}
-                alt="About Examirror"
-                className="w-full h-full object-cover"
-              />
-            </div>
+            <Tilt3DCard maxTilt={8} scale={1.02} glare={true} className="relative z-10 max-w-md w-full aspect-square">
+              <div className="overflow-hidden rounded-3xl border-2 border-slate-200 shadow-md w-full h-full bg-slate-100">
+                <img
+                  src={overviewImage}
+                  alt="About Examirror"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </Tilt3DCard>
             <div className="absolute top-4 -right-2 w-full h-full max-w-md bg-blue-50 rounded-3xl border border-blue-100 -z-10"></div>
           </motion.div>
 
