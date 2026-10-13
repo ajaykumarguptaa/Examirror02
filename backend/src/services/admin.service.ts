@@ -37,6 +37,7 @@ export const adminService = {
   getAllCenters: async () => {
     const [rows] = await db.query(`
       SELECT c.id, c.center_code, c.name, c.email, c.wallet_balance, c.created_at,
+             c.certificate_status, c.certificate_number, c.certificate_issued_date,
              COUNT(s.id) as studentsCount
       FROM centers c
       LEFT JOIN students s ON s.centerId = c.id
@@ -553,16 +554,170 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
       await db.query(`ALTER TABLE franchise_applications ADD COLUMN qualification VARCHAR(100) DEFAULT 'Graduate'`);
     } catch (_) {}
 
+    // Auto-sync all study centers from centers table into franchise_applications
+    await adminService.syncCentersToFranchiseApplications();
+
     let query = 'SELECT * FROM franchise_applications';
     const params: any[] = [];
     if (status && status !== 'all') {
       query += ' WHERE status = ?';
-      params.push(status);
     }
     query += ' ORDER BY created_at DESC';
 
     const [rows]: any = await db.query(query, params);
     return rows;
+  },
+
+  syncCentersToFranchiseApplications: async () => {
+    try {
+      // Ensure extra columns exist on franchise_applications
+      try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN center_id INT NULL`); } catch (_) {}
+      try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN center_code VARCHAR(50) NULL`); } catch (_) {}
+      try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_number VARCHAR(100) NULL`); } catch (_) {}
+      try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN qualification VARCHAR(100) DEFAULT 'Graduate'`); } catch (_) {}
+      try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_status VARCHAR(50) DEFAULT 'unclaimed'`); } catch (_) {}
+      try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_claim_date DATETIME NULL`); } catch (_) {}
+      try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_approved_date DATETIME NULL`); } catch (_) {}
+      try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_demand_notes TEXT NULL`); } catch (_) {}
+      try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_demanded_docs TEXT NULL`); } catch (_) {}
+      try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_uploaded_docs LONGTEXT NULL`); } catch (_) {}
+
+      const [centers]: any = await db.query('SELECT * FROM centers');
+      const [applications]: any = await db.query('SELECT * FROM franchise_applications');
+
+      for (const c of centers) {
+        // Find existing application match
+        const matchedApp = applications.find((app: any) => {
+          if (app.center_id && Number(app.center_id) === Number(c.id)) return true;
+          if (app.center_code && (c.center_code || '').trim() && app.center_code.trim().toLowerCase() === (c.center_code || '').trim().toLowerCase()) return true;
+          if (c.name && app.center_name && app.center_name.trim().toLowerCase() === c.name.trim().toLowerCase() && c.email && app.email && app.email.trim().toLowerCase() === c.email.trim().toLowerCase()) return true;
+          if (c.email && app.email && app.email.trim().toLowerCase() === c.email.trim().toLowerCase() && (!app.center_id || Number(app.center_id) === Number(c.id))) return true;
+          if (c.name && app.center_name && app.center_name.trim().toLowerCase() === c.name.trim().toLowerCase() && (!app.center_id || Number(app.center_id) === Number(c.id))) return true;
+          return false;
+        });
+
+        const certNum = c.certificate_number || (matchedApp && matchedApp.certificate_number) || `EXAM-ATC-2026-${String(c.id).padStart(4, '0')}`;
+        const certStatus = c.certificate_status || (matchedApp && matchedApp.certificate_status) || 'unclaimed';
+
+        if (matchedApp) {
+          // Update existing application with center_id, center_code, and latest certificate status
+          await db.query(`
+            UPDATE franchise_applications SET
+              center_id = ?,
+              center_code = ?,
+              certificate_number = COALESCE(?, certificate_number),
+              certificate_status = COALESCE(?, certificate_status),
+              certificate_claim_date = COALESCE(?, certificate_claim_date),
+              certificate_approved_date = COALESCE(?, certificate_approved_date),
+              certificate_demand_notes = COALESCE(?, certificate_demand_notes),
+              certificate_demanded_docs = COALESCE(?, certificate_demanded_docs),
+              certificate_uploaded_docs = COALESCE(?, certificate_uploaded_docs)
+            WHERE id = ?
+          `, [
+            c.id,
+            c.center_code,
+            certNum,
+            certStatus,
+            c.certificate_claim_date,
+            c.certificate_approved_date,
+            c.certificate_demand_notes,
+            c.certificate_demanded_docs,
+            c.certificate_uploaded_docs,
+            matchedApp.id
+          ]);
+        } else {
+          // Insert a new application record for this center so it appears in Franchise Requests
+          const rawHead = (c.head_name || 'Center Director').trim();
+          const headParts = rawHead.split(/\s+/);
+          const firstName = headParts[0] || 'Center';
+          const lastName = headParts.length > 1 ? headParts.slice(1).join(' ') : 'Director';
+
+          await db.query(`
+            INSERT INTO franchise_applications (
+              center_id,
+              center_code,
+              center_head_first_name,
+              center_head_middle_name,
+              center_head_last_name,
+              father_first_name,
+              father_middle_name,
+              father_last_name,
+              phone,
+              email,
+              aadhar_number,
+              pan_number,
+              dob,
+              gender,
+              marital_status,
+              qualification,
+              center_name,
+              address_line1,
+              address_line2,
+              city,
+              district,
+              state,
+              pincode,
+              photo_url,
+              signature_url,
+              marksheet_url,
+              aadhar_front_url,
+              aadhar_back_url,
+              center_photos_url,
+              status,
+              certificate_status,
+              certificate_claim_date,
+              certificate_approved_date,
+              certificate_demand_notes,
+              certificate_demanded_docs,
+              certificate_uploaded_docs,
+              certificate_number,
+              created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            c.id,
+            c.center_code || `EXAMc2026-${String(c.id).padStart(3, '0')}`,
+            firstName,
+            '',
+            lastName,
+            firstName,
+            '',
+            lastName,
+            c.phone || '09792580616',
+            c.email || `center${c.id}@examirror.edu.in`,
+            '123456789012',
+            'ABCDE1234F',
+            '1990-01-01',
+            'Male',
+            'Married',
+            'Graduate',
+            c.name,
+            c.address || 'Main Road',
+            c.address_line2 || '',
+            c.city || 'Delhi',
+            c.district || 'New Delhi',
+            c.state || 'Delhi',
+            c.pincode || '110001',
+            c.head_image_url || '/uploads/branding/examirror-logo.png',
+            c.signature_url || '/uploads/branding/center-sig-2-1791087332553-266.png',
+            '/uploads/branding/examirror-logo.png',
+            '/uploads/branding/examirror-logo.png',
+            '/uploads/branding/examirror-logo.png',
+            c.logo_url || 'Center photos on file',
+            'Approved',
+            certStatus,
+            c.certificate_claim_date,
+            c.certificate_approved_date,
+            c.certificate_demand_notes,
+            c.certificate_demanded_docs,
+            c.certificate_uploaded_docs,
+            certNum,
+            c.created_at || c.joined_date || new Date()
+          ]);
+        }
+      }
+    } catch (err) {
+      console.error('Error syncing centers to franchise_applications:', err);
+    }
   },
 
   getFranchiseRequestById: async (id: number | string) => {
@@ -694,14 +849,38 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
 
   // --- CENTER CERTIFICATE GOVERNANCE & DEMAND WORKFLOW ---
   approveCenterCertificate: async (centerIdOrCode: number | string, adminNotes?: string) => {
-    const [centers]: any = await db.query(
-      'SELECT id, name, center_code, email, phone, certificate_number FROM centers WHERE id = ? OR center_code = ?',
-      [centerIdOrCode, centerIdOrCode]
+    let center: any = null;
+
+    // Check if centerIdOrCode corresponds to a franchise_application id
+    const [appRows]: any = await db.query(
+      'SELECT id, center_id, center_code, center_name, email, phone FROM franchise_applications WHERE id = ?',
+      [centerIdOrCode]
     );
-    if (!centers || centers.length === 0) {
+    if (appRows && appRows.length > 0) {
+      const app = appRows[0];
+      const [cRows]: any = await db.query(
+        'SELECT id, name, center_code, email, phone, certificate_number FROM centers WHERE id = ? OR center_code = ? OR name = ? OR email = ?',
+        [app.center_id, app.center_code, app.center_name, app.email]
+      );
+      if (cRows && cRows.length > 0) {
+        center = cRows[0];
+      }
+    }
+
+    if (!center) {
+      const [centers]: any = await db.query(
+        'SELECT id, name, center_code, email, phone, certificate_number FROM centers WHERE id = ? OR center_code = ? OR name = ?',
+        [centerIdOrCode, centerIdOrCode, centerIdOrCode]
+      );
+      if (centers && centers.length > 0) {
+        center = centers[0];
+      }
+    }
+
+    if (!center) {
       throw new Error('Center not found');
     }
-    const center = centers[0];
+
     let certNum = center.certificate_number;
     if (!certNum) {
       certNum = `EXAM-ATC-2026-${String(center.id).padStart(4, '0')}`;
@@ -723,9 +902,10 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
         UPDATE franchise_applications SET
           certificate_status = 'approved',
           certificate_approved_date = NOW(),
-          certificate_demand_notes = NULL
-        WHERE center_name = ? OR email = ? OR phone = ?
-      `, [center.name, center.email, center.phone]);
+          certificate_demand_notes = NULL,
+          certificate_number = ?
+        WHERE center_id = ? OR center_code = ? OR center_name = ? OR email = ? OR phone = ?
+      `, [certNum, center.id, center.center_code, center.name, center.email, center.phone]);
     } catch (_) {}
 
     return {
@@ -741,14 +921,37 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
     notes: string,
     demandedDocs: string[] = []
   ) => {
-    const [centers]: any = await db.query(
-      'SELECT id, name, center_code, email, phone FROM centers WHERE id = ? OR center_code = ?',
-      [centerIdOrCode, centerIdOrCode]
+    let center: any = null;
+
+    const [appRows]: any = await db.query(
+      'SELECT id, center_id, center_code, center_name, email, phone FROM franchise_applications WHERE id = ?',
+      [centerIdOrCode]
     );
-    if (!centers || centers.length === 0) {
+    if (appRows && appRows.length > 0) {
+      const app = appRows[0];
+      const [cRows]: any = await db.query(
+        'SELECT id, name, center_code, email, phone FROM centers WHERE id = ? OR center_code = ? OR name = ? OR email = ?',
+        [app.center_id, app.center_code, app.center_name, app.email]
+      );
+      if (cRows && cRows.length > 0) {
+        center = cRows[0];
+      }
+    }
+
+    if (!center) {
+      const [centers]: any = await db.query(
+        'SELECT id, name, center_code, email, phone FROM centers WHERE id = ? OR center_code = ? OR name = ?',
+        [centerIdOrCode, centerIdOrCode, centerIdOrCode]
+      );
+      if (centers && centers.length > 0) {
+        center = centers[0];
+      }
+    }
+
+    if (!center) {
       throw new Error('Center not found');
     }
-    const center = centers[0];
+
     const docsJson = JSON.stringify(demandedDocs);
 
     await db.query(`
@@ -765,13 +968,26 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
           certificate_status = 'action_required',
           certificate_demand_notes = ?,
           certificate_demanded_docs = ?
-        WHERE center_name = ? OR email = ? OR phone = ?
-      `, [notes, docsJson, center.name, center.email, center.phone]);
+        WHERE center_id = ? OR center_code = ? OR center_name = ? OR email = ? OR phone = ?
+      `, [notes, docsJson, center.id, center.center_code, center.name, center.email, center.phone]);
+    } catch (_) {}
+
+    // Send high priority notification to center
+    try {
+      await notificationService.createNotification(
+        'center',
+        center.id,
+        'Action Required: Documents Demanded for Affiliation Certificate',
+        notes || 'Super Admin has requested additional verification documents before certificate approval.',
+        'warning'
+      );
     } catch (_) {}
 
     return {
       success: true,
-      message: 'Document demand notice sent to center successfully.'
+      message: 'Document demand notice sent to center successfully.',
+      status: 'action_required',
+      demandedDocs
     };
   },
 

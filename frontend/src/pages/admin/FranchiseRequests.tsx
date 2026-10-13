@@ -85,6 +85,8 @@ interface FranchiseApplication {
   certificate_demanded_docs?: string;
   certificate_uploaded_docs?: string;
   certificate_number?: string;
+  center_id?: number;
+  center_code?: string;
 }
 
 // Real-Time Zebtish Security Captcha Generator Utility
@@ -512,6 +514,7 @@ const FranchiseRequests = () => {
     const matchesSearch =
       q === '' ||
       fullName.includes(q) ||
+      (app.center_code || '').toLowerCase().includes(q) ||
       (app.center_name || '').toLowerCase().includes(q) ||
       (app.phone || '').includes(q) ||
       (app.email || '').toLowerCase().includes(q) ||
@@ -727,7 +730,14 @@ const FranchiseRequests = () => {
 
                       {/* Proposed Center & Location */}
                       <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-900">{app.center_name}</div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-slate-900">{app.center_name}</span>
+                          {app.center_code && (
+                            <span className="font-mono text-[10px] font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-md">
+                              {app.center_code}
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                           <MapPin size={11} className="text-slate-400 shrink-0" />
                           <span>{app.city}, {app.district}, {app.state} - {app.pincode}</span>
@@ -874,9 +884,9 @@ const FranchiseRequests = () => {
                                     <button
                                       onClick={() => {
                                         setCertCenterData({
-                                          id: app.id,
+                                          id: app.center_id || app.id,
                                           centerName: app.center_name,
-                                          centerCode: `EXAMc2026-${String(100 + app.id).padStart(3, '0')}`,
+                                          centerCode: app.center_code || `EXAMc2026-${String(100 + app.id).padStart(3, '0')}`,
                                           headName: `${app.center_head_first_name} ${app.center_head_last_name}`,
                                           headPhoto: app.photo_url,
                                           email: app.email,

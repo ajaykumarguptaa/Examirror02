@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Building2, 
   Users, 
@@ -75,6 +76,9 @@ interface CenterItem {
   wallet_balance: number;
   created_at: string;
   studentsCount: number;
+  certificate_status?: string;
+  certificate_number?: string;
+  certificate_issued_date?: string;
 }
 
 interface WalletRequestItem {
@@ -175,6 +179,7 @@ const AdminDashboard = () => {
     totalWalletsSum: 0
   });
 
+  const navigate = useNavigate();
   const [centers, setCenters] = useState<CenterItem[]>([]);
   const [pendingRequests, setPendingRequests] = useState<WalletRequestItem[]>([]);
   const [activities, setActivities] = useState<ActivityItem>({ recentTransactions: [], recentStudents: [] });
@@ -1396,10 +1401,27 @@ const AdminDashboard = () => {
                       <span className="font-mono text-xs font-semibold text-slate-800 bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded-lg">
                         {c.center_code}
                       </span>
-                      <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span>Active Center</span>
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        {c.certificate_status === 'pending' && (
+                          <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                            <Award size={10} /> Cert Claimed
+                          </span>
+                        )}
+                        {c.certificate_status === 'approved' && (
+                          <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <ShieldCheck size={10} /> Affiliated
+                          </span>
+                        )}
+                        {c.certificate_status === 'action_required' && (
+                          <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <AlertCircle size={10} /> Docs Demanded
+                          </span>
+                        )}
+                        <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>Active Center</span>
+                        </span>
+                      </div>
                     </div>
 
                     <h3 className="text-[15px] font-semibold text-slate-900 mt-3.5 group-hover:text-indigo-600 transition-colors line-clamp-1">
@@ -1449,6 +1471,15 @@ const AdminDashboard = () => {
                     </button>
 
                     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/admin/franchise-requests')}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 transition-colors cursor-pointer"
+                        title="Manage Center Affiliation Certificate & KYC"
+                      >
+                        <Award size={15} />
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => handleQuickExportCenter(c.id, c.center_code, c.name)}
