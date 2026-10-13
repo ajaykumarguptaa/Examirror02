@@ -60,7 +60,7 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const category = req.query.category as string;
     let query = `
-      SELECT id, title, description, category, file_type, file_size, price, created_at, status, views_count 
+      SELECT id, title, description, category, thumbnail_url, file_type, file_size, price, created_at, status, views_count 
       FROM study_materials 
       WHERE status = 'PUBLISHED'
     `;

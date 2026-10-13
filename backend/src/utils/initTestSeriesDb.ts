@@ -88,6 +88,15 @@ export async function initTestSeriesDatabase() {
     // Column already exists
   }
 
+  try {
+    await db.query(`
+      ALTER TABLE test_series 
+      ADD COLUMN thumbnail_url TEXT NULL AFTER description
+    `);
+  } catch (e) {
+    // Column already exists
+  }
+
   // 4. Test Series Allowed Centres (for SELECTED_CENTRES scope)
   await db.query(`
     CREATE TABLE IF NOT EXISTS test_series_centres (

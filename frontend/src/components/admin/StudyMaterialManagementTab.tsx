@@ -7,7 +7,7 @@ import {
   Trash2, Edit, RotateCcw, ShieldCheck, Building2, UserCheck, Sparkles,
   ArrowRight, CalendarClock, Send, FileEdit, Clock3, FileText, QrCode,
   Lock, Download, CheckSquare, Square, Share2, Users, ShoppingBag,
-  Code, FileCode, Globe, File
+  Code, FileCode, Globe, File, Image as ImageIcon
 } from 'lucide-react';
 import { AntiPiracyStudyMaterialModal } from '../AntiPiracyStudyMaterialModal';
 
@@ -36,6 +36,7 @@ export const StudyMaterialManagementTab: React.FC = () => {
     title: '',
     category: 'IT & Computer',
     description: '',
+    thumbnail_url: '',
     file_type: 'PDF',
     file_size: '2.5 MB',
     file_url: '',
@@ -223,6 +224,7 @@ export const StudyMaterialManagementTab: React.FC = () => {
       title: '',
       category: 'IT & Computer',
       description: '',
+      thumbnail_url: '',
       file_type: 'PDF',
       file_size: '2.5 MB',
       file_url: '',
@@ -250,6 +252,7 @@ export const StudyMaterialManagementTab: React.FC = () => {
       title: item.title || '',
       category: item.category || 'IT & Computer',
       description: item.description || '',
+      thumbnail_url: item.thumbnail_url || '',
       file_type: item.file_type || 'PDF',
       file_size: item.file_size || '2.5 MB',
       file_url: item.file_url || '',
@@ -496,8 +499,19 @@ export const StudyMaterialManagementTab: React.FC = () => {
               return (
                 <div
                   key={m.id}
-                  className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between gap-4 hover:border-indigo-300 hover:shadow-md transition-all"
+                  className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between gap-4 hover:border-indigo-300 hover:shadow-md transition-all overflow-hidden"
                 >
+                  {m.thumbnail_url && (
+                    <div className="relative -mx-5 -mt-5 mb-1 h-36 overflow-hidden rounded-t-2xl bg-slate-100 border-b border-slate-100">
+                      <img
+                        src={m.thumbnail_url}
+                        alt={m.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-transparent to-transparent" />
+                    </div>
+                  )}
+
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-md">
@@ -820,6 +834,127 @@ export const StudyMaterialManagementTab: React.FC = () => {
                     placeholder="Brief description of key concepts covered..."
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 focus:outline-hidden"
                   />
+                </div>
+
+                {/* Note Cover Thumbnail Upload */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                      <ImageIcon size={15} className="text-indigo-600" />
+                      <span>Note Cover Thumbnail Image</span>
+                    </label>
+                    {formData.thumbnail_url && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, thumbnail_url: '' })}
+                        className="text-[11px] font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 size={12} /> Remove Thumbnail
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                    {/* Preview Box */}
+                    <div className="md:col-span-5 relative aspect-video rounded-xl overflow-hidden border-2 border-dashed border-slate-300 bg-white flex items-center justify-center group shadow-xs">
+                      {formData.thumbnail_url ? (
+                        <>
+                          <img
+                            src={formData.thumbnail_url}
+                            alt="Cover Thumbnail Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="text-[10px] text-white font-bold bg-slate-900/80 px-2 py-1 rounded">
+                              Current Cover
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-3 text-slate-400">
+                          <ImageIcon size={26} className="mx-auto mb-1 text-slate-300" />
+                          <span className="text-[10.5px] font-bold block">No Thumbnail Set</span>
+                          <span className="text-[9.5px]">Upload or choose preset</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Upload & Controls */}
+                    <div className="md:col-span-7 space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <label className="flex-1 py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl border border-indigo-200 flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-2xs">
+                          <Upload size={14} className="text-indigo-600" />
+                          <span>Upload Image (JPG/PNG/WebP)</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              if (file.size > 8 * 1024 * 1024) {
+                                showToast('error', 'Image size must be under 8MB');
+                                return;
+                              }
+                              try {
+                                const fd = new FormData();
+                                fd.append('file', file);
+                                const res = await axios.post('http://localhost:3000/api/public/upload', fd, {
+                                  headers: { 'Content-Type': 'multipart/form-data' }
+                                });
+                                if (res.data?.url || res.data?.s3Url) {
+                                  setFormData({ ...formData, thumbnail_url: res.data.url || res.data.s3Url });
+                                  showToast('success', 'Cover thumbnail uploaded successfully!');
+                                  return;
+                                }
+                              } catch (_) {}
+                              const reader = new FileReader();
+                              reader.onload = () => {
+                                setFormData({ ...formData, thumbnail_url: reader.result as string });
+                                showToast('success', 'Thumbnail loaded from file!');
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                        </label>
+                      </div>
+
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={formData.thumbnail_url}
+                          onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
+                          placeholder="Or paste direct image URL (https://...)"
+                          className="w-full px-3 py-1.5 border border-slate-300 rounded-xl bg-white outline-none text-[11px] text-slate-800"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-slate-400 font-semibold block">Quick Category Presets:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            { label: '💻 Computer & IT', url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=600' },
+                            { label: '📚 Study Guide', url: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=600' },
+                            { label: '📊 Accounting', url: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=600' },
+                            { label: '📝 Lecture Notes', url: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=600' }
+                          ].map((preset) => (
+                            <button
+                              key={preset.label}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, thumbnail_url: preset.url })}
+                              className={`text-[10px] px-2 py-0.5 rounded-lg border font-bold transition-all cursor-pointer ${
+                                formData.thumbnail_url === preset.url
+                                  ? 'bg-indigo-600 text-white border-indigo-600'
+                                  : 'bg-white hover:bg-slate-100 text-slate-600 border-slate-200'
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

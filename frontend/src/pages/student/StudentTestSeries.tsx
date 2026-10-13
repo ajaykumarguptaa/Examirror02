@@ -1415,6 +1415,17 @@ export default function StudentTestSeries() {
                     className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex flex-col justify-between overflow-hidden group"
                   >
                     <div>
+                      {series.thumbnail_url && (
+                        <div className="relative h-36 w-full overflow-hidden bg-slate-100">
+                          <img
+                            src={series.thumbnail_url}
+                            alt={series.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent" />
+                        </div>
+                      )}
+
                       <div className="p-4 pb-3 flex items-center justify-between border-b border-slate-100 bg-slate-50/50">
                         <span className="px-2.5 py-0.5 bg-white text-slate-700 border border-slate-200 text-[11px] font-semibold rounded-md">
                           {series.category_name || 'General'}

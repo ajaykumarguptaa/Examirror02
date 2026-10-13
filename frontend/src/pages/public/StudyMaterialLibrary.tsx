@@ -23,6 +23,7 @@ interface StudyNote {
   title: string;
   category?: string;
   description?: string;
+  thumbnail_url?: string;
   file_type?: string;
   price?: number | string;
   views_count?: number;
@@ -273,27 +274,49 @@ export default function StudyMaterialLibrary() {
                   transition={{ duration: 0.35, delay: index * 0.05 }}
                   className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-all flex flex-col group overflow-hidden"
                 >
+                  {/* Card Thumbnail Banner */}
+                  {note.thumbnail_url ? (
+                    <div className="relative w-full h-44 overflow-hidden bg-slate-100">
+                      <img
+                        src={note.thumbnail_url}
+                        alt={note.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
+                      <span className={`absolute top-3 right-3 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md shadow-xs border ${
+                        isFree ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-amber-500 text-slate-950 border-amber-400'
+                      }`}>
+                        {isFree ? 'FREE ACCESS' : `₹${note.price}`}
+                      </span>
+                      <span className="absolute bottom-3 left-3 text-[10px] font-bold text-white bg-slate-900/80 backdrop-blur-xs px-2.5 py-0.5 rounded-md">
+                        {note.category || 'General'}
+                      </span>
+                    </div>
+                  ) : null}
+
                   {/* Card Content Top */}
                   <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
                     <div>
-                      {/* Icon & Badge Row */}
-                      <div className="flex items-start justify-between gap-3 mb-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-xs ${isHtml
-                            ? 'bg-blue-50 border border-blue-100 text-blue-600'
-                            : 'bg-indigo-50 border border-indigo-100 text-indigo-600'
-                          }`}>
-                          {isHtml ? <FileText size={22} /> : <BookOpen size={22} />}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border ${isFree
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                      {/* Icon & Badge Row (only if no thumbnail banner) */}
+                      {!note.thumbnail_url && (
+                        <div className="flex items-start justify-between gap-3 mb-4">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-xs ${isHtml
+                              ? 'bg-blue-50 border border-blue-100 text-blue-600'
+                              : 'bg-indigo-50 border border-indigo-100 text-indigo-600'
                             }`}>
-                            {isFree ? 'FREE ACCESS' : `₹${note.price}`}
-                          </span>
+                            {isHtml ? <FileText size={22} /> : <BookOpen size={22} />}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border ${isFree
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-amber-50 text-amber-800 border-amber-200'
+                              }`}>
+                              {isFree ? 'FREE ACCESS' : `₹${note.price}`}
+                            </span>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Title */}
                       <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2">

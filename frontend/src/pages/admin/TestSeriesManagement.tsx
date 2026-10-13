@@ -40,7 +40,8 @@ import {
   FileEdit,
   Clock3,
   ListOrdered,
-  FileText
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react';
 import { StudyMaterialManagementTab } from '../../components/admin/StudyMaterialManagementTab';
 import { BulkQuestionJsonImportModal } from '../../components/admin/BulkQuestionJsonImportModal';
@@ -1529,6 +1530,130 @@ export const TestSeriesManagement = () => {
                     onChange={(e) => setSeriesForm({ ...seriesForm, description: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
                   />
+                </div>
+
+                {/* Test Series Thumbnail Upload */}
+                <div className="sm:col-span-2 p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                      <ImageIcon size={15} className="text-blue-600" />
+                      <span>Test Series Cover Thumbnail Image</span>
+                    </label>
+                    {seriesForm.thumbnail_url && (
+                      <button
+                        type="button"
+                        onClick={() => setSeriesForm({ ...seriesForm, thumbnail_url: '' })}
+                        className="text-[11px] font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 size={12} /> Remove Thumbnail
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                    {/* Preview Box */}
+                    <div className="md:col-span-5 relative aspect-video rounded-xl overflow-hidden border-2 border-dashed border-slate-300 bg-white flex items-center justify-center group shadow-xs">
+                      {seriesForm.thumbnail_url ? (
+                        <>
+                          <img
+                            src={seriesForm.thumbnail_url}
+                            alt="Thumbnail Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <span className="text-[10px] text-white font-bold bg-slate-900/80 px-2 py-1 rounded">
+                              Current Cover
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-3 text-slate-400">
+                          <ImageIcon size={28} className="mx-auto mb-1 text-slate-300" />
+                          <span className="text-[10.5px] font-bold block">No Thumbnail Set</span>
+                          <span className="text-[9.5px]">Upload or select a preset</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Upload / URL Controls */}
+                    <div className="md:col-span-7 space-y-2.5">
+                      {/* File Upload Button */}
+                      <div className="flex items-center gap-2">
+                        <label className="flex-1 py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl border border-blue-200 flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-2xs">
+                          <Upload size={14} className="text-blue-600" />
+                          <span>Upload Image (JPG/PNG/WebP)</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              if (file.size > 8 * 1024 * 1024) {
+                                showToast('error', 'Image size must be under 8MB');
+                                return;
+                              }
+                              try {
+                                const fd = new FormData();
+                                fd.append('file', file);
+                                const res = await axios.post('http://localhost:3000/api/public/upload', fd, {
+                                  headers: { 'Content-Type': 'multipart/form-data' }
+                                });
+                                if (res.data?.url || res.data?.s3Url) {
+                                  setSeriesForm({ ...seriesForm, thumbnail_url: res.data.url || res.data.s3Url });
+                                  showToast('success', 'Thumbnail uploaded successfully!');
+                                  return;
+                                }
+                              } catch (_) {}
+                              const reader = new FileReader();
+                              reader.onload = () => {
+                                setSeriesForm({ ...seriesForm, thumbnail_url: reader.result as string });
+                                showToast('success', 'Thumbnail loaded from file!');
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                        </label>
+                      </div>
+
+                      {/* Direct URL input */}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={seriesForm.thumbnail_url}
+                          onChange={(e) => setSeriesForm({ ...seriesForm, thumbnail_url: e.target.value })}
+                          placeholder="Or paste direct image URL (https://...)"
+                          className="w-full px-3 py-1.5 border border-slate-300 rounded-xl bg-white outline-none text-[11px] text-slate-800"
+                        />
+                      </div>
+
+                      {/* Quick Presets */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-slate-400 font-semibold block">Quick Category Presets:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            { label: '🎓 Mock Test', url: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=600' },
+                            { label: '💻 Computer', url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=600' },
+                            { label: '📈 Banking', url: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=600' },
+                            { label: '⚡ Reasoning', url: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=600' }
+                          ].map((preset) => (
+                            <button
+                              key={preset.label}
+                              type="button"
+                              onClick={() => setSeriesForm({ ...seriesForm, thumbnail_url: preset.url })}
+                              className={`text-[10px] px-2 py-0.5 rounded-lg border font-bold transition-all cursor-pointer ${
+                                seriesForm.thumbnail_url === preset.url
+                                  ? 'bg-blue-600 text-white border-blue-600'
+                                  : 'bg-white hover:bg-slate-100 text-slate-600 border-slate-200'
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Free vs Paid & Price */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Sparkles, AlertCircle, FileText, Upload, Eye } from 'lucide-react';
+import { X, Sparkles, AlertCircle, FileText, Upload, Eye, Image as ImageIcon, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 
@@ -13,6 +13,7 @@ export const CreateCenterMaterialModal: React.FC<CreateCenterMaterialModalProps>
     title: '',
     category: 'General',
     description: '',
+    thumbnail_url: '',
     file_type: 'PDF',
     content_text: '',
   });
@@ -87,6 +88,7 @@ export const CreateCenterMaterialModal: React.FC<CreateCenterMaterialModalProps>
         title: form.title,
         category: form.category,
         description: form.description,
+        thumbnail_url: form.thumbnail_url,
         file_type: form.file_type,
         file_url: fileUrl,
         content_text: form.content_text,
@@ -182,6 +184,63 @@ export const CreateCenterMaterialModal: React.FC<CreateCenterMaterialModalProps>
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none"
                 placeholder="Brief description of the material..."
               />
+            </div>
+
+            {/* Note Thumbnail */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                  <ImageIcon size={14} className="text-indigo-600" />
+                  <span>Cover Thumbnail Image (Optional)</span>
+                </label>
+                {form.thumbnail_url && (
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, thumbnail_url: '' })}
+                    className="text-[10px] font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 size={11} /> Remove
+                  </button>
+                )}
+              </div>
+
+              {form.thumbnail_url && (
+                <div className="relative aspect-video max-h-28 rounded-lg overflow-hidden border border-slate-200 bg-white">
+                  <img src={form.thumbnail_url} alt="Cover Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <label className="flex-1 py-1.5 px-3 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-lg border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer text-xs transition-colors">
+                  <Upload size={13} className="text-indigo-600" />
+                  <span>{form.thumbnail_url ? 'Change Image' : 'Upload Image (JPG/PNG/WebP)'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const fd = new FormData();
+                        fd.append('file', file);
+                        const res = await axios.post('http://localhost:3000/api/public/upload', fd, {
+                          headers: { 'Content-Type': 'multipart/form-data' }
+                        });
+                        if (res.data?.url || res.data?.s3Url) {
+                          setForm({ ...form, thumbnail_url: res.data.url || res.data.s3Url });
+                          return;
+                        }
+                      } catch (_) {}
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        setForm({ ...form, thumbnail_url: reader.result as string });
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </label>
+              </div>
             </div>
 
             {form.file_type === 'PDF' ? (

@@ -612,9 +612,15 @@ const StudentDashboard = () => {
                 return (
                   <div key={item.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:border-indigo-200 transition-all flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shrink-0">
-                        <FileText size={16} />
-                      </div>
+                      {item.thumbnail_url ? (
+                        <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
+                          <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shrink-0">
+                          <FileText size={16} />
+                        </div>
+                      )}
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="font-semibold text-xs text-slate-900 line-clamp-1">{item.title}</h4>

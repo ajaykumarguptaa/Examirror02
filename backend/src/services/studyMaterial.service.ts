@@ -5,6 +5,10 @@ export const studyMaterialService = {
   // Auto-publish any scheduled study materials
   autoPublishScheduled: async () => {
     try {
+      try {
+        await db.query(`ALTER TABLE study_materials ADD COLUMN thumbnail_url TEXT NULL AFTER description`);
+      } catch (_) {}
+
       const [res]: any = await db.query(`
         UPDATE study_materials
         SET status = 'PUBLISHED'
@@ -72,6 +76,11 @@ export const studyMaterialService = {
       fileUrl = saveBase64File(fileUrl, `mat-${Date.now()}`, 'study-materials');
     }
 
+    let thumbUrl = data.thumbnail_url;
+    if (thumbUrl && thumbUrl.startsWith('data:image/')) {
+      thumbUrl = saveBase64File(thumbUrl, `mat-thumb-${Date.now()}`, 'study-materials');
+    }
+
     const slug = data.slug || data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') + '-' + Math.floor(Math.random() * 1000);
 
     const formatSqlDate = (d: any) => {
@@ -102,15 +111,16 @@ export const studyMaterialService = {
 
     const [res]: any = await db.query(`
       INSERT INTO study_materials (
-        title, slug, category, description, file_url, file_type, file_size, content_text,
+        title, slug, category, description, thumbnail_url, file_url, file_type, file_size, content_text,
         is_free, price, center_price, student_price, center_distribute_price, payment_qr_id, publish_scope, target_audience,
         course_id, status, scheduled_publish_time, watermark_enabled, created_by_type, created_by_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       data.title,
       slug,
       data.category || 'General',
       data.description || '',
+      thumbUrl || null,
       fileUrl || '',
       data.file_type || 'PDF',
       data.file_size || '2.5 MB',
@@ -143,7 +153,7 @@ export const studyMaterialService = {
       }
     }
 
-    return { id: materialId, ...data, slug, file_url: fileUrl };
+    return { id: materialId, ...data, slug, thumbnail_url: thumbUrl, file_url: fileUrl };
   },
 
   // ADMIN: Update study material
@@ -151,6 +161,11 @@ export const studyMaterialService = {
     let fileUrl = data.file_url;
     if (fileUrl && fileUrl.startsWith('data:')) {
       fileUrl = saveBase64File(fileUrl, `mat-${Date.now()}`, 'study-materials');
+    }
+
+    let thumbUrl = data.thumbnail_url;
+    if (thumbUrl && thumbUrl.startsWith('data:image/')) {
+      thumbUrl = saveBase64File(thumbUrl, `mat-thumb-${Date.now()}`, 'study-materials');
     }
 
     const formatSqlDate = (d: any) => {
@@ -176,6 +191,7 @@ export const studyMaterialService = {
       SET title = COALESCE(?, title),
           category = COALESCE(?, category),
           description = COALESCE(?, description),
+          thumbnail_url = COALESCE(?, thumbnail_url),
           file_url = COALESCE(?, file_url),
           file_type = COALESCE(?, file_type),
           file_size = COALESCE(?, file_size),
@@ -197,6 +213,7 @@ export const studyMaterialService = {
       data.title,
       data.category,
       data.description,
+      thumbUrl !== undefined ? thumbUrl : null,
       fileUrl,
       data.file_type,
       data.file_size,
@@ -544,7 +561,7 @@ export const studyMaterialService = {
     // A. DIRECT STUDENT ACCESS (published to student portal matching scope)
     // B. OR CENTER DISTRIBUTED (center purchased/distributed to their students)
     const [rows]: any = await db.query(`
-      SELECT sm.id, sm.title, sm.slug, sm.category, sm.description, sm.file_type, sm.file_size,
+      SELECT sm.id, sm.title, sm.slug, sm.category, sm.description, sm.thumbnail_url, sm.file_type, sm.file_size,
              sm.is_free, sm.price, sm.student_price, sm.payment_qr_id, sm.publish_scope, sm.target_audience,
              sm.watermark_enabled, sm.downloads_count, sm.views_count, sm.created_at,
              qr.upi_id as qr_upi_id, qr.account_name as qr_account_name, qr.qr_image_url,
