@@ -83,10 +83,15 @@ export const getAssetUrl = (url?: string | null): string => {
   return trimmed;
 };
 
+import { requestProgressBar } from './requestProgressBar';
+
 export const setupAxiosInterceptors = () => {
   // Request Interceptor
   axios.interceptors.request.use(
     (config) => {
+      // Trigger request progress bar
+      requestProgressBar.start();
+
       // 1. Automatically normalize hardcoded http://localhost:3000 or http://127.0.0.1:3000
       if (config.url) {
         if (config.url.startsWith('http://localhost:3000') || config.url.startsWith('http://127.0.0.1:3000')) {
@@ -108,14 +113,19 @@ export const setupAxiosInterceptors = () => {
       return config;
     },
     (error) => {
+      requestProgressBar.complete();
       return Promise.reject(error);
     }
   );
 
   // Response Interceptor for handling session expirations
   axios.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      requestProgressBar.complete();
+      return response;
+    },
     (error) => {
+      requestProgressBar.complete();
       if (error.response && error.response.status === 401) {
         const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
         const url = error.config?.url || '';
@@ -136,6 +146,7 @@ export const setupAxiosInterceptors = () => {
   if (typeof window !== 'undefined' && window.fetch) {
     const originalFetch = window.fetch;
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      requestProgressBar.start();
       let rawUrl = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
 
       if (rawUrl.startsWith('http://localhost:3000') || rawUrl.startsWith('http://127.0.0.1:3000')) {
@@ -154,7 +165,14 @@ export const setupAxiosInterceptors = () => {
         init.headers = headers;
       }
 
-      return originalFetch(input, init);
+      try {
+        const response = await originalFetch(input, init);
+        requestProgressBar.complete();
+        return response;
+      } catch (fetchErr) {
+        requestProgressBar.complete();
+        throw fetchErr;
+      }
     };
   }
 };
