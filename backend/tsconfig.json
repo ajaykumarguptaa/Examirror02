@@ -10,6 +10,7 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "rootDir": "src",
+    "types": ["node"],
     "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*"]

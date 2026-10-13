@@ -5,6 +5,7 @@ import fs from 'fs';
 import { publicService } from '../services/public.service';
 import { adminService } from '../services/admin.service';
 import { saveBase64File } from '../utils/fileStorage';
+import { uploadLocalFileToS3 } from '../utils/s3Storage';
 import { verifyAdmin } from '../middleware/auth.middleware';
 import { publicVerifyLimiter } from '../middleware/rateLimiter';
 import db from '../db';
@@ -57,6 +58,9 @@ router.post('/upload', (req, res, next) => {
   try {
     if (req.file) {
       const url = `/uploads/branding/${req.file.filename}`;
+      uploadLocalFileToS3(req.file.path, `uploads/branding/${req.file.filename}`).catch((err) => {
+        console.warn('[S3] Notice uploading multer file to S3:', err?.message || err);
+      });
       return res.status(200).json({ success: true, url });
     }
 

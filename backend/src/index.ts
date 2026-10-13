@@ -8,6 +8,7 @@ import fs from 'fs';
 import db from './db';
 import studentRoutes from "./routes/student.routes";
 import { initTestSeriesDatabase } from './utils/initTestSeriesDb';
+import { isS3Configured, getS3ObjectStream, syncAllLocalUploadsToS3 } from './utils/s3Storage';
 
 dotenv.config();
 
@@ -62,6 +63,58 @@ app.use('/api', generalApiLimiter);
 
 // Serve local assets and uploads statically
 app.use('/uploads', express.static(uploadsDir));
+
+// Fallback to S3 bucket if file does not exist on local disk
+app.use('/uploads', async (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return next();
+  }
+
+  if (!isS3Configured) {
+    return next();
+  }
+
+  const relativeSubpath = req.path.replace(/^\/+/, '');
+  if (!relativeSubpath) {
+    return next();
+  }
+  const s3Key = `uploads/${relativeSubpath}`;
+
+  try {
+    const s3Obj = await getS3ObjectStream(s3Key);
+    if (!s3Obj) {
+      return next();
+    }
+
+    res.setHeader('Content-Type', s3Obj.contentType);
+    if (s3Obj.contentLength) {
+      res.setHeader('Content-Length', s3Obj.contentLength);
+    }
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+
+    // Cache locally in background so subsequent requests are served immediately
+    const localCachedPath = path.join(uploadsDir, relativeSubpath);
+    const localSubDir = path.dirname(localCachedPath);
+    if (!fs.existsSync(localSubDir)) {
+      fs.mkdirSync(localSubDir, { recursive: true });
+    }
+
+    const chunks: Buffer[] = [];
+    s3Obj.stream.on('data', (chunk) => {
+      chunks.push(Buffer.from(chunk));
+    });
+    s3Obj.stream.on('end', () => {
+      try {
+        fs.writeFileSync(localCachedPath, Buffer.concat(chunks));
+      } catch (_) {}
+    });
+
+    s3Obj.stream.pipe(res);
+  } catch (err: any) {
+    console.error(`[S3] Error streaming ${s3Key} from S3:`, err?.message || err);
+    next();
+  }
+});
 
 // Basic route
 app.get('/api/health', (req, res) => {
@@ -677,5 +730,10 @@ app.listen(port, () => {
   // Run an immediate check on startup
   testSeriesService.autoPublishScheduled().catch(() => {});
   studyMaterialService.autoPublishScheduled().catch(() => {});
+  if (isS3Configured) {
+    syncAllLocalUploadsToS3().catch((err) => {
+      console.warn('[S3] Startup background sync notice:', err?.message || err);
+    });
+  }
 });
 

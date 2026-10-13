@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { uploadBufferToS3 } from './s3Storage';
 
 const BASE_UPLOAD_DIR = path.join(process.cwd(), 'uploads');
 const STUDENTS_DIR = path.join(BASE_UPLOAD_DIR, 'students');
@@ -13,7 +14,7 @@ const BRANDING_DIR = path.join(BASE_UPLOAD_DIR, 'branding');
 });
 
 /**
- * Saves a base64 data string or buffer to local filesystem
+ * Saves a base64 data string or buffer to local filesystem and uploads to AWS S3 bucket
  * @param base64OrUrl Base64 data string (e.g. data:image/png;base64,...) or already existing URL
  * @param prefix File prefix (e.g. 'logo', 'hero', 'photo')
  * @param folder Subfolder under uploads (e.g. 'students', 'branding')
@@ -68,10 +69,17 @@ export const saveBase64File = (
 
   const filename = `${safePrefix}-${Date.now()}-${Math.floor(100 + Math.random() * 900)}.${ext}`;
   const filePath = path.join(targetDir, filename);
+  const s3Key = `uploads/${safeFolder}/${filename}`;
 
   try {
     const buffer = Buffer.from(base64Data, 'base64');
     fs.writeFileSync(filePath, buffer);
+
+    // Concurrently upload to S3 bucket
+    uploadBufferToS3(s3Key, buffer, mimeType).catch((s3Err) => {
+      console.warn(`[S3] Background upload notice for ${s3Key}:`, s3Err?.message || s3Err);
+    });
+
     return `/uploads/${safeFolder}/${filename}`;
   } catch (err) {
     console.error(`Failed to write file ${filename} to disk:`, err);

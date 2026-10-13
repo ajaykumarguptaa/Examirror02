@@ -496,23 +496,7 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
   addGalleryItem: async (imageUrl: string, caption?: string) => {
     let savedUrl = imageUrl;
     if (imageUrl && imageUrl.startsWith('data:image/')) {
-      try {
-        const matches = imageUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-        if (matches && matches.length === 3) {
-          const extension = matches[1].split('/')[1] || 'png';
-          const buffer = Buffer.from(matches[2], 'base64');
-          const fileName = `gallery-${Date.now()}-${Math.floor(Math.random() * 1000)}.${extension}`;
-          const uploadsDir = path.join(__dirname, '../../uploads/gallery');
-          if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-          }
-          const filePath = path.join(uploadsDir, fileName);
-          fs.writeFileSync(filePath, buffer);
-          savedUrl = `/uploads/gallery/${fileName}`;
-        }
-      } catch (e) {
-        console.error('Error saving gallery image to disk:', e);
-      }
+      savedUrl = saveBase64File(imageUrl, 'gallery', 'gallery');
     }
 
     const [result]: any = await db.query(
