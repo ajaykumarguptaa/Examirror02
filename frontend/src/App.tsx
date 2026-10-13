@@ -1,10 +1,7 @@
-import { useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import PublicLayout from './layouts/PublicLayout';
 import CenterLayout from './layouts/CenterLayout';
 import AdminLayout from './layouts/AdminLayout';
-import GlobalProgressBar from './components/common/GlobalProgressBar';
-import { requestProgressBar } from './utils/requestProgressBar';
 
 import Home from './pages/public/Home';
 import About from './pages/public/About';
@@ -57,20 +54,8 @@ import StudentTestSeries from './pages/student/StudentTestSeries';
 import ScrollToTop from './components/ScrollToTop';
 
 function App() {
-  const location = useLocation();
-
-  useEffect(() => {
-    // Trigger smooth progress bar on route navigation
-    requestProgressBar.start();
-    const timer = setTimeout(() => {
-      requestProgressBar.complete();
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [location.pathname, location.search]);
-
   return (
     <>
-      <GlobalProgressBar />
       <ScrollToTop />
       <Routes>
         {/* Public Routes */}
