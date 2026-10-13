@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "graphify": {
+      "serverUrl": "https://api.graphify.com/mcp",
+      "httpUrl": "https://api.graphify.com/mcp",
+      "url": "https://api.graphify.com/mcp"
+    }
+  }
+}
