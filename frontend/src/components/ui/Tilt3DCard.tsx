@@ -39,7 +39,8 @@ export const Tilt3DCard: React.FC<Tilt3DCardProps> = ({
       scale,
       transformPerspective: 1000,
       ease: 'power2.out',
-      duration: 0.4,
+      duration: 0.3,
+      overwrite: 'auto',
     });
 
     if (glare && glareRef.current) {
@@ -49,7 +50,8 @@ export const Tilt3DCard: React.FC<Tilt3DCardProps> = ({
         opacity: 0.25,
         background: `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 65%)`,
         ease: 'power2.out',
-        duration: 0.2,
+        duration: 0.15,
+        overwrite: 'auto',
       });
     }
   };
@@ -60,15 +62,17 @@ export const Tilt3DCard: React.FC<Tilt3DCardProps> = ({
       rotateX: 0,
       rotateY: 0,
       scale: 1,
-      ease: 'elastic.out(1, 0.4)',
-      duration: 0.9,
+      ease: 'power2.out',
+      duration: 0.4,
+      overwrite: 'auto',
     });
 
     if (glare && glareRef.current) {
       gsap.to(glareRef.current, {
         opacity: 0,
         ease: 'power2.out',
-        duration: 0.5,
+        duration: 0.3,
+        overwrite: 'auto',
       });
     }
   };

@@ -1,11 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 
 interface SpotlightCardProps {
   children: React.ReactNode;
   className?: string;
-  spotlightColor?: string; // e.g. "rgba(99, 102, 241, 0.15)" or "rgba(59, 130, 246, 0.2)"
+  spotlightColor?: string;
   spotlightBorderColor?: string;
-  radius?: number; // Radius of spotlight in pixels
+  radius?: number;
 }
 
 export const SpotlightCard: React.FC<SpotlightCardProps> = ({
@@ -16,20 +16,36 @@ export const SpotlightCard: React.FC<SpotlightCardProps> = ({
   radius = 320,
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [opacity, setOpacity] = useState(0);
+  const borderOverlayRef = useRef<HTMLDivElement>(null);
+  const bgOverlayRef = useRef<HTMLDivElement>(null);
+  const rafId = useRef<number | null>(null);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
-    setPosition({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (rafId.current) cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(() => {
+      if (borderOverlayRef.current) {
+        borderOverlayRef.current.style.background = `radial-gradient(${radius}px circle at ${x}px ${y}px, ${spotlightBorderColor}, transparent 60%)`;
+      }
+      if (bgOverlayRef.current) {
+        bgOverlayRef.current.style.background = `radial-gradient(${radius}px circle at ${x}px ${y}px, ${spotlightColor}, transparent 70%)`;
+      }
     });
   };
 
-  const handleMouseEnter = () => setOpacity(1);
-  const handleMouseLeave = () => setOpacity(0);
+  const handleMouseEnter = () => {
+    if (borderOverlayRef.current) borderOverlayRef.current.style.opacity = '1';
+    if (bgOverlayRef.current) bgOverlayRef.current.style.opacity = '1';
+  };
+
+  const handleMouseLeave = () => {
+    if (borderOverlayRef.current) borderOverlayRef.current.style.opacity = '0';
+    if (bgOverlayRef.current) bgOverlayRef.current.style.opacity = '0';
+  };
 
   return (
     <div
@@ -37,24 +53,18 @@ export const SpotlightCard: React.FC<SpotlightCardProps> = ({
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white transition-all duration-300 hover:shadow-xl ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white transition-shadow duration-300 hover:shadow-xl ${className}`}
     >
-      {/* Dynamic Glowing Spotlight Border Overlay */}
+      {/* High Performance Direct GPU Overlay - Zero React State Re-renders */}
       <div
-        className="pointer-events-none absolute -inset-px rounded-[inherit] transition-opacity duration-300 z-10"
-        style={{
-          opacity,
-          background: `radial-gradient(${radius}px circle at ${position.x}px ${position.y}px, ${spotlightBorderColor}, transparent 60%)`,
-        }}
+        ref={borderOverlayRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-px rounded-[inherit] opacity-0 transition-opacity duration-200 z-10 will-change-[background]"
       />
-
-      {/* Subtle Inner Spotlight Sheen */}
       <div
-        className="pointer-events-none absolute inset-0 rounded-[inherit] transition-opacity duration-300 z-0"
-        style={{
-          opacity,
-          background: `radial-gradient(${radius}px circle at ${position.x}px ${position.y}px, ${spotlightColor}, transparent 70%)`,
-        }}
+        ref={bgOverlayRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-0 transition-opacity duration-200 z-0 will-change-[background]"
       />
 
       {/* Card Content */}
