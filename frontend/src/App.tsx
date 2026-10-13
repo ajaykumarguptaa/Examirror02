@@ -52,12 +52,11 @@ import TestPricingSettings from './pages/admin/TestPricingSettings';
 import TestSeriesManagement from './pages/admin/TestSeriesManagement';
 import StudentTestSeries from './pages/student/StudentTestSeries';
 import ScrollToTop from './components/ScrollToTop';
-import { SmoothScroll } from './components/SmoothScroll';
 import { ToastContainer } from './components/ui/Toast';
 
 function App() {
   return (
-    <SmoothScroll>
+    <>
       <ScrollToTop />
       <ToastContainer />
       <Routes>
@@ -137,7 +136,7 @@ function App() {
         <Route path="exam/:examId" element={<StudentExamPortal />} />
       </Route>
     </Routes>
-    </SmoothScroll>
+    </>
   );
 }
 
