@@ -18,10 +18,14 @@ import {
   Map as MapIcon,
   List,
   Sparkles,
-  BookOpen
+  BookOpen,
+  Award,
+  Download,
+  Cloud
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SEO from '../../components/SEO';
+import CenterCertificateModal from '../../components/CenterCertificateModal';
 
 const INDIAN_STATES = [
   'All States',
@@ -180,6 +184,7 @@ export const Centers = () => {
   const [selectedState, setSelectedState] = useState('All States');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCenterForModal, setSelectedCenterForModal] = useState<CenterRecord | null>(null);
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   // TanStack Query for Dynamic Centers from Backend
@@ -614,12 +619,20 @@ export const Centers = () => {
                   Close
                 </button>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCertModalOpen(true)}
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Award size={13} />
+                    <span>View Affiliation Certificate</span>
+                  </button>
                   <a
                     href={getDirectionsUrl(selectedCenterForModal)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1.5"
+                    className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1.5"
                   >
                     <Navigation size={13} />
                     <span>Get Directions</span>
@@ -627,7 +640,7 @@ export const Centers = () => {
                   <Link
                     to={`/contact?center=${encodeURIComponent(selectedCenterForModal.name)}&code=${encodeURIComponent(selectedCenterForModal.code)}`}
                     onClick={() => setSelectedCenterForModal(null)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs inline-flex items-center gap-1.5"
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs inline-flex items-center gap-1.5"
                   >
                     <span>Contact / Inquire</span>
                   </Link>
@@ -637,6 +650,29 @@ export const Centers = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Center Affiliation Certificate Modal */}
+      {isCertModalOpen && selectedCenterForModal && (
+        <CenterCertificateModal
+          center={{
+            id: selectedCenterForModal.id,
+            centerName: selectedCenterForModal.name,
+            centerCode: selectedCenterForModal.code,
+            headName: selectedCenterForModal.headName,
+            headPhoto: selectedCenterForModal.headImageUrl,
+            phone: selectedCenterForModal.phone,
+            email: selectedCenterForModal.email,
+            address: selectedCenterForModal.address,
+            addressLine2: selectedCenterForModal.addressLine2,
+            city: selectedCenterForModal.city,
+            district: selectedCenterForModal.district,
+            state: selectedCenterForModal.state,
+            pincode: selectedCenterForModal.pincode
+          }}
+          isOpen={isCertModalOpen}
+          onClose={() => setIsCertModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

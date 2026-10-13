@@ -16,11 +16,14 @@ import {
   Calendar,
   MapPin,
   FileCheck,
-  Camera
+  Camera,
+  Download,
+  Cloud
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import SEO from '../../components/SEO';
 import { QrCameraScannerModal } from '../../components/QrCameraScannerModal';
+import { StudentCertificateModal } from '../../components/StudentCertificateModal';
 import { calculateStudentAcademicGrade } from '../../utils/academicGrade';
 
 interface VerifiedStudent {
@@ -76,6 +79,7 @@ const VerifyStudent = () => {
   const [error, setError] = useState<string | null>(null);
   const [manualSearch, setManualSearch] = useState('');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
 
   const fetchStudent = async (id: string) => {
     try {
@@ -405,19 +409,31 @@ const VerifyStudent = () => {
 
                   {/* Panel 4: Certificate Record (if issued) */}
                   {student.certificate_number && (
-                    <div className="border border-emerald-300 bg-emerald-50/70 rounded-lg p-3.5 flex items-center justify-between">
+                    <div className="border border-emerald-300 bg-emerald-50/70 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
                       <div className="flex items-center gap-3">
-                        <Award size={22} className="text-emerald-700" />
+                        <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Award size={22} />
+                        </div>
                         <div>
-                          <span className="text-[11px] text-emerald-800 font-bold uppercase block">Official Certificate Issued</span>
-                          <div className="text-slate-900 font-mono font-bold">{student.certificate_number}</div>
+                          <span className="text-[11px] text-emerald-800 font-bold uppercase tracking-wider block">Official Certificate Issued & S3 Archived</span>
+                          <div className="text-slate-900 font-mono font-bold text-sm">{student.certificate_number}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-emerald-900 bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-md">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsCertModalOpen(true)}
+                          className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                          title="View & Download official certificate from cloud"
+                        >
+                          <Cloud size={14} className="text-emerald-200" />
+                          <Download size={13} />
+                          <span>Download Cloud Certificate</span>
+                        </button>
+                        <span className="text-xs font-bold text-emerald-900 bg-emerald-100 border border-emerald-300 px-2.5 py-1.5 rounded-lg">
                           Grade {calculateStudentAcademicGrade(student).grade}
                         </span>
-                        <span className="text-xs bg-emerald-700 text-white font-bold px-3 py-1 rounded-md">
+                        <span className="text-xs bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg">
                           VALIDATED
                         </span>
                       </div>
@@ -491,6 +507,14 @@ const VerifyStudent = () => {
         )}
 
       </div>
+
+      {/* Cloud Certificate Modal */}
+      {isCertModalOpen && student && (
+        <StudentCertificateModal
+          student={student as any}
+          onClose={() => setIsCertModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import fs from 'fs';
 import path from 'path';
 import db from '../db';
-import { uploadBufferToS3, isS3Configured } from '../utils/s3Storage';
+import { uploadBufferToS3, isS3Configured, syncAllLocalUploadsToS3 } from '../utils/s3Storage';
 
 const router = Router();
 
@@ -128,6 +128,26 @@ router.get('/status/:identifier', async (req, res) => {
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/certificates/sync-s3-now
+ * Triggers full synchronization of all local uploads to AWS S3 bucket.
+ */
+router.post('/sync-s3-now', async (req, res) => {
+  try {
+    if (!isS3Configured) {
+      return res.status(400).json({ success: false, message: 'AWS S3 is not configured in .env' });
+    }
+    const stats = await syncAllLocalUploadsToS3();
+    return res.status(200).json({
+      success: true,
+      message: 'S3 Synchronization completed successfully!',
+      stats
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message || 'Sync failed' });
   }
 });
 

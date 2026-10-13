@@ -61,8 +61,12 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 // Apply general API rate limiter
 app.use('/api', generalApiLimiter);
 
-// Serve local assets and uploads statically
-app.use('/uploads', express.static(uploadsDir));
+// Serve local assets and uploads statically with high-speed client & proxy caching (Zero-Cost Edge Cache)
+app.use('/uploads', express.static(uploadsDir, {
+  maxAge: '30d',
+  etag: true,
+  lastModified: true
+}));
 
 // Fallback to S3 bucket if file does not exist on local disk
 app.use('/uploads', async (req, res, next) => {
@@ -743,6 +747,32 @@ app.listen(port, () => {
     syncAllLocalUploadsToS3().catch((err) => {
       console.warn('[S3] Startup background sync notice:', err?.message || err);
     });
+
+    // Schedule automated Nightly S3 backup at 02:00 AM every day (100% Free)
+    const scheduleNightlyS3Sync = () => {
+      const now = new Date();
+      const next2AM = new Date();
+      next2AM.setHours(2, 0, 0, 0);
+      if (now >= next2AM) {
+        next2AM.setDate(next2AM.getDate() + 1);
+      }
+      const delayMs = next2AM.getTime() - now.getTime();
+      const hoursUntil = (delayMs / 3600000).toFixed(2);
+      console.log(`[S3 Cron] ⏰ Next automated nightly sync scheduled at 02:00 AM (in ~${hoursUntil} hours)`);
+
+      setTimeout(async () => {
+        try {
+          console.log('[S3 Cron] 🚀 02:00 AM reached! Executing automated nightly backup to AWS S3...');
+          const result = await syncAllLocalUploadsToS3();
+          console.log(`[S3 Cron] ✔ Nightly backup finished! Checked ${result.total} files, uploaded: ${result.uploaded}, errors: ${result.errors}`);
+        } catch (syncErr: any) {
+          console.error('[S3 Cron] ❌ Nightly sync error:', syncErr?.message || syncErr);
+        }
+        scheduleNightlyS3Sync();
+      }, delayMs);
+    };
+
+    scheduleNightlyS3Sync();
   }
 });
 
