@@ -30,109 +30,30 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
 }) => {
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState<number>(() => {
-    if (typeof window !== 'undefined') {
-      if (window.innerWidth < 640) return 0.5;
-      if (window.innerWidth < 1024) return 0.68;
-      if (window.innerWidth < 1440) return 0.8;
-      return 0.88;
-    }
-    return 0.8;
-  });
-  const certRef = useRef<HTMLDivElement>(null);
+
+  // Helper to calculate exact optimal zoom scale fitting both modal width & height
+  const calculateOptimalZoom = () => {
+    if (typeof window === 'undefined') return 0.75;
+    const modalMaxW = Math.min(window.innerWidth - 32, 1152);
+    const modalMaxH = window.innerHeight * 0.94 - 150; // account for header & footer
+    const scaleW = (modalMaxW - 64) / CENTER_CERT_WIDTH;
+    const scaleH = modalMaxH / CENTER_CERT_HEIGHT;
+    return Math.min(0.95, Math.max(0.35, Number(Math.min(scaleW, scaleH).toFixed(2))));
+  };
+
+  const [zoomLevel, setZoomLevel] = useState<number>(calculateOptimalZoom);
 
   if (!isOpen || !center) return null;
 
+  // Normalize center data
+  const centerCode = center.centerCode || (center as any).code || (center as any).center_code || 'EXAMc2026-101';
+  const centerName = center.centerName || (center as any).name || (center as any).center_name || 'Authorized Study Centre';
+  const certNo = center.certificateNumber || (center as any).certificate_number || `EXAM-ATC-2026-${String(center.id || 101).padStart(4, '0')}`;
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.examirror.in';
-  const verifyUrl = `${origin}/verify/center/${encodeURIComponent(center.centerCode)}`;
+  const verifyUrl = `${origin}/verify/center/${encodeURIComponent(centerCode)}`;
 
-  const handlePrint = async () => {
-    const certElement = document.getElementById('center-affiliation-certificate');
-    if (!certElement) return;
-
-    try {
-      setDownloading(true);
-      // Generate ultra crisp canvas so print engine gets the exact pixel-perfect rendered image without any CSS clipping or background stripping
-      const canvas = await html2canvas(certElement, {
-        scale: 2.5,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#fcfbfa',
-        logging: false
-      });
-
-      const imageData = canvas.toDataURL('image/png', 1.0);
-
-      // Open isolated print iframe
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = '0';
-      document.body.appendChild(iframe);
-
-      const doc = iframe.contentWindow?.document;
-      if (!doc) {
-        window.print();
-        return;
-      }
-
-      doc.open();
-      doc.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Center Affiliation Certificate - ${center.centerName}</title>
-            <style>
-              @page {
-                size: A4 landscape;
-                margin: 0;
-              }
-              body, html {
-                margin: 0;
-                padding: 0;
-                width: 100vw;
-                height: 100vh;
-                background: #fcfbfa;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
-              img {
-                width: 100vw;
-                height: 100vh;
-                object-fit: contain;
-                display: block;
-              }
-            </style>
-          </head>
-          <body>
-            <img src="${imageData}" alt="Center Affiliation Certificate" />
-            <script>
-              setTimeout(() => {
-                window.focus();
-                window.print();
-                setTimeout(() => {
-                  if (window.frameElement && window.frameElement.parentNode) {
-                    window.frameElement.parentNode.removeChild(window.frameElement);
-                  }
-                }, 1500);
-              }, 300);
-            </script>
-          </body>
-        </html>
-      `);
-      doc.close();
-    } catch (err) {
-      console.error('Print generation failed, fallback to native window.print:', err);
-      window.print();
-    } finally {
-      setDownloading(false);
-    }
+  const handlePrint = () => {
+    window.print();
   };
 
   const handleDownloadImage = async () => {
@@ -144,7 +65,7 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
       const canvas = await html2canvas(certElement, {
         scale: 2.5, // 2.5x retina quality for ultra crisp printing & PDF export
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         backgroundColor: '#fcfbfa',
         logging: false
       });
@@ -152,13 +73,15 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
       const image = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
       link.href = image;
-      link.download = `${center.centerName.replace(/[^a-zA-Z0-9]/g, '_')}_Center_Affiliation_Certificate.png`;
+      link.download = `${centerName.replace(/[^a-zA-Z0-9]/g, '_')}_Center_Affiliation_Certificate.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (err) {
-      console.error('Failed to download center certificate:', err);
-      alert('Unable to generate image. Please use the Print button to Save as PDF.');
+      console.error('Failed to download center certificate image:', err);
+      // Fallback: trigger print dialog to Save as PDF
+      alert('Direct image export notice: Opening Print preview to Save as PDF.');
+      window.print();
     } finally {
       setDownloading(false);
     }
@@ -172,10 +95,10 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
 
   const handleShareWhatsApp = () => {
     const msg = `*EXAMIRROR EDUTECH - CENTER ACCREDITATION CERTIFICATE*\n\n` +
-      `🏛️ *Center Name:* ${center.centerName}\n` +
-      `🆔 *Center Code:* ${center.centerCode}\n` +
-      `📜 *Certificate No:* ${center.certificateNumber || 'EXAM-ATC-2026'}\n` +
-      `👤 *Center Director:* ${center.headName}\n\n` +
+      `🏛️ *Center Name:* ${centerName}\n` +
+      `🆔 *Center Code:* ${centerCode}\n` +
+      `📜 *Certificate No:* ${certNo}\n` +
+      `👤 *Center Director:* ${center.headName || 'Center Director'}\n\n` +
       `Official Verification URL:\n${verifyUrl}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -203,7 +126,7 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-300">
-                {center.centerName} &bull; Code: <span className="font-mono font-bold text-amber-300">{center.centerCode}</span>
+                {centerName} &bull; Code: <span className="font-mono font-bold text-amber-300">{centerCode}</span>
               </p>
             </div>
           </div>
@@ -214,7 +137,7 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
             <div className="hidden md:flex items-center bg-white/10 rounded-xl p-1 border border-white/10 gap-1 text-xs">
               <button
                 type="button"
-                onClick={() => setZoomLevel(prev => Math.max(0.4, Number((prev - 0.08).toFixed(2))))}
+                onClick={() => setZoomLevel(prev => Math.max(0.35, Number((prev - 0.06).toFixed(2))))}
                 className="p-1 hover:bg-white/20 rounded-lg text-slate-300 hover:text-white transition-colors cursor-pointer"
                 title="Zoom Out"
               >
@@ -225,7 +148,7 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
               </span>
               <button
                 type="button"
-                onClick={() => setZoomLevel(prev => Math.min(1.2, Number((prev + 0.08).toFixed(2))))}
+                onClick={() => setZoomLevel(prev => Math.min(1.2, Number((prev + 0.06).toFixed(2))))}
                 className="p-1 hover:bg-white/20 rounded-lg text-slate-300 hover:text-white transition-colors cursor-pointer"
                 title="Zoom In"
               >
@@ -233,12 +156,7 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  const defaultZoom = typeof window !== 'undefined'
-                    ? (window.innerWidth < 640 ? 0.5 : window.innerWidth < 1024 ? 0.68 : window.innerWidth < 1440 ? 0.8 : 0.88)
-                    : 0.8;
-                  setZoomLevel(defaultZoom);
-                }}
+                onClick={() => setZoomLevel(calculateOptimalZoom())}
                 className="px-2 py-0.5 hover:bg-white/20 rounded-lg text-[10px] font-bold text-slate-300 hover:text-white transition-colors cursor-pointer"
                 title="Fit to Screen"
               >
@@ -249,7 +167,7 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
             <button
               onClick={handlePrint}
               className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-white/10"
-              title="Print Certificate"
+              title="Print Certificate (Landscape)"
             >
               <Printer size={14} />
               <span className="hidden sm:inline">Print</span>
@@ -284,20 +202,23 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
         </div>
 
         {/* Modal Certificate Viewport */}
-        <div className="flex-1 overflow-auto bg-slate-200/70 p-4 sm:p-8 flex items-center justify-center">
+        <div className="flex-1 overflow-auto bg-slate-300/70 p-4 sm:p-8 flex items-center justify-center min-h-[420px]">
           <div 
             style={{
               width: `${Math.round(CENTER_CERT_WIDTH * zoomLevel)}px`,
               height: `${Math.round(CENTER_CERT_HEIGHT * zoomLevel)}px`
             }}
-            className="relative shadow-2xl rounded-sm transition-all flex items-center justify-center overflow-hidden shrink-0 my-auto"
+            className="relative shadow-2xl rounded-sm transition-all shrink-0 my-auto overflow-hidden bg-[#fcfbfa]"
           >
             <div 
               style={{
-                transform: `scale(${zoomLevel})`,
-                transformOrigin: 'top left',
+                position: 'absolute',
+                top: 0,
+                left: 0,
                 width: `${CENTER_CERT_WIDTH}px`,
-                height: `${CENTER_CERT_HEIGHT}px`
+                height: `${CENTER_CERT_HEIGHT}px`,
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: '0 0'
               }}
             >
               <CenterCertificateCard center={center} />
@@ -320,7 +241,7 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
           </div>
 
           <div className="flex items-center gap-3 text-[11px] text-slate-500">
-            <span>Certificate ID: <strong className="text-slate-800 font-mono">{center.certificateNumber || 'EXAM-ATC-2026'}</strong></span>
+            <span>Certificate ID: <strong className="text-slate-800 font-mono">{certNo}</strong></span>
             <span>&bull;</span>
             <span>Authorized by <strong>Examirror Edutech Pvt. Ltd.</strong></span>
           </div>
@@ -328,25 +249,44 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
 
       </div>
 
-      {/* Print-specific style tags */}
+      {/* Print-specific style tags for flawless A4 Landscape export */}
       <style>{`
+        @page {
+          size: A4 landscape;
+          margin: 0;
+        }
         @media print {
-          body * {
-            visibility: hidden;
-          }
-          #center-affiliation-certificate, #center-affiliation-certificate * {
-            visibility: visible;
-          }
-          #center-affiliation-certificate {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 100vw !important;
-            height: 100vh !important;
-            transform: none !important;
+          html, body {
             margin: 0 !important;
             padding: 0 !important;
+            width: 297mm !important;
+            height: 210mm !important;
+            background: #fcfbfa !important;
+            overflow: hidden !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          body * {
+            visibility: hidden !important;
+          }
+          #center-affiliation-certificate,
+          #center-affiliation-certificate * {
+            visibility: visible !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          #center-affiliation-certificate {
+            position: fixed !important;
+            left: 50% !important;
+            top: 50% !important;
+            transform: translate(-50%, -50%) scale(0.91) !important;
+            transform-origin: center center !important;
             box-shadow: none !important;
+            margin: 0 !important;
+            width: 1149px !important;
+            height: 758px !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
       `}</style>

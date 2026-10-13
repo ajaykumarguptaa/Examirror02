@@ -43,19 +43,33 @@ export const CenterCertificateCard: React.FC<CenterCertificateCardProps> = ({
 }) => {
   const barcodeSvgRef = useRef<SVGSVGElement | null>(null);
 
-  const centerName = (center.centerName || 'AUTHORIZED STUDY CENTER').toUpperCase();
-  const centerCode = center.centerCode || 'EXAMc2026-101';
-  const headName = center.headName || 'Center Director';
-  const certNo = center.certificateNumber || `EXAM-ATC-2026-${String(center.id || 101).padStart(4, '0')}`;
+  const centerCode = center.centerCode || (center as any).code || (center as any).center_code || 'EXAMc2026-101';
+  const centerName = (center.centerName || (center as any).name || (center as any).center_name || 'AUTHORIZED STUDY CENTRE').toUpperCase();
+  const headName = (center.headName || (center as any).head_name || (center as any).directorName || 'Center Director').toUpperCase();
+  const headPhoto = center.headPhoto || (center as any).head_image_url || (center as any).photo_url || (center as any).photo;
+  const certNo = center.certificateNumber || (center as any).certificate_number || `EXAM-ATC-2026-${String(center.id || 101).padStart(4, '0')}`;
 
-  const address = center.fullAddress || [
-    center.address,
-    center.addressLine2,
-    center.city,
-    center.district,
-    center.state,
-    center.pincode
-  ].filter(Boolean).join(', ') || 'Registered Training Center Location';
+  // Clean, non-repetitive address formatting
+  let address = center.fullAddress || (center as any).addressText || '';
+  if (!address) {
+    const rawParts = [
+      center.address || (center as any).address_line1,
+      center.addressLine2 || (center as any).address_line2,
+      center.city,
+      center.district,
+      center.state,
+      center.pincode
+    ].filter(Boolean) as string[];
+
+    const cleanParts = rawParts.filter((item, idx, arr) => {
+      const trimmed = item.trim().toLowerCase();
+      return idx === 0 || !arr.slice(0, idx).some(prev => prev.trim().toLowerCase() === trimmed);
+    });
+    address = cleanParts.join(', ');
+  }
+  if (!address) {
+    address = 'Registered Training Centre Location';
+  }
 
   const issueDateFormatted = center.issueDate
     ? new Date(center.issueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -124,7 +138,7 @@ export const CenterCertificateCard: React.FC<CenterCertificateCardProps> = ({
       
       {/* Large Emblem Watermark */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.045] z-0">
-        <img src="/logo.png" alt="Watermark" className="w-[520px] h-[520px] object-contain filter grayscale" />
+        <img src="/logo.png" alt="Watermark" className="w-[520px] h-[520px] object-contain filter grayscale" crossOrigin="anonymous" />
       </div>
 
       {/* Main Container */}
@@ -151,7 +165,7 @@ export const CenterCertificateCard: React.FC<CenterCertificateCardProps> = ({
             {/* Left: Organization Logo */}
             <div className="flex items-center gap-4">
               <div className="w-20 h-20 rounded-2xl bg-white p-2 border-2 border-amber-400 shadow-md flex items-center justify-center shrink-0">
-                <img src="/logo.png" alt="Examirror Logo" className="w-full h-full object-contain" />
+                <img src="/logo.png" alt="Examirror Logo" className="w-full h-full object-contain" crossOrigin="anonymous" />
               </div>
               <div className="space-y-0.5">
                 <h1 className="text-3xl font-black tracking-tight text-[#0f172a] uppercase font-serif">
@@ -295,13 +309,14 @@ export const CenterCertificateCard: React.FC<CenterCertificateCardProps> = ({
           <div className="col-span-4 flex items-end justify-end gap-4 text-center">
             
             {/* Center Head / Director Specimen */}
-            {center.headPhoto ? (
+            {headPhoto ? (
               <div className="flex flex-col items-center pb-1 shrink-0">
                 <div className="w-14 h-16 rounded-lg overflow-hidden border-2 border-amber-400 shadow-sm bg-white mb-1">
                   <img
-                    src={getAssetUrl(center.headPhoto)}
+                    src={getAssetUrl(headPhoto)}
                     alt="Center Head"
                     className="w-full h-full object-cover"
+                    crossOrigin="anonymous"
                   />
                 </div>
                 <span className="text-[8.5px] font-bold text-slate-600 uppercase tracking-wider">
@@ -318,6 +333,7 @@ export const CenterCertificateCard: React.FC<CenterCertificateCardProps> = ({
                   src="/Blue Circular Tech Emblem Logo.png?v=3" 
                   alt="Official Stamp" 
                   className="w-[74px] h-[74px] object-contain" 
+                  crossOrigin="anonymous"
                 />
               </div>
 
@@ -327,6 +343,7 @@ export const CenterCertificateCard: React.FC<CenterCertificateCardProps> = ({
                   src="/Saurabh_Signature_Final.png?v=3"
                   alt="Signature"
                   className="w-40 h-14 object-contain z-10 mb-0.5 mix-blend-multiply pointer-events-none"
+                  crossOrigin="anonymous"
                 />
 
                 <div className="w-full border-t-[1.5px] border-blue-900/60 text-center pt-1">

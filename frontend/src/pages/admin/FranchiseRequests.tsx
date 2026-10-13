@@ -1129,9 +1129,9 @@ const FranchiseRequests = () => {
                         type="button"
                         onClick={() => {
                           setCertCenterData({
-                            id: selectedApp.id,
+                            id: selectedApp.center_id || selectedApp.id,
                             centerName: selectedApp.center_name,
-                            centerCode: `EXAMc2026-${String(100 + selectedApp.id).padStart(3, '0')}`,
+                            centerCode: selectedApp.center_code || `EXAMc2026-${String(100 + selectedApp.id).padStart(3, '0')}`,
                             headName: `${selectedApp.center_head_first_name} ${selectedApp.center_head_last_name}`,
                             headPhoto: selectedApp.photo_url,
                             email: selectedApp.email,
@@ -1620,9 +1620,9 @@ const FranchiseRequests = () => {
                         type="button"
                         onClick={() => {
                           setCertCenterData({
-                            id: selectedApp.id,
+                            id: selectedApp.center_id || selectedApp.id,
                             centerName: selectedApp.center_name,
-                            centerCode: `EXAMc2026-${String(100 + selectedApp.id).padStart(3, '0')}`,
+                            centerCode: selectedApp.center_code || `EXAMc2026-${String(100 + selectedApp.id).padStart(3, '0')}`,
                             headName: `${selectedApp.center_head_first_name} ${selectedApp.center_head_last_name}`,
                             headPhoto: selectedApp.photo_url,
                             email: selectedApp.email,

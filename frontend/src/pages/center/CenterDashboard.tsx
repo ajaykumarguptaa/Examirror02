@@ -665,7 +665,23 @@ const CenterDashboard = () => {
 
       {/* Center Affiliation & Authorization Certificate Modal */}
       <CenterCertificateModal
-        center={centerProfile}
+        center={centerProfile ? {
+          ...centerProfile,
+          id: centerProfile.id || centerId,
+          centerName: centerProfile.name || centerProfile.centerName || 'AUTHORIZED STUDY CENTRE',
+          centerCode: centerProfile.code || centerProfile.center_code || centerProfile.centerCode || 'EXAMc2026-101',
+          headName: centerProfile.headName || centerProfile.head_name || 'Center Director',
+          headPhoto: centerProfile.head_image_url || centerProfile.photo_url || centerProfile.headPhoto,
+          address: centerProfile.address || centerProfile.address_line1,
+          addressLine2: centerProfile.addressLine2 || centerProfile.address_line2,
+          city: centerProfile.city,
+          district: centerProfile.district,
+          state: centerProfile.state,
+          pincode: centerProfile.pincode,
+          certificateNumber: centerProfile.certificate_number || centerProfile.certificateNumber || `EXAM-ATC-2026-${String(centerProfile.id || centerId).padStart(4, '0')}`,
+          issueDate: centerProfile.certificate_issued_date || centerProfile.joined_date || centerProfile.created_at,
+          validUntil: centerProfile.certificate_valid_until
+        } : null}
         isOpen={showCertModal}
         onClose={() => setShowCertModal(false)}
       />
