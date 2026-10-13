@@ -134,42 +134,16 @@ const CenterDashboard = () => {
                   </p>
                 </div>
 
-                {/* Hero Action: Conditional on certificateStatus */}
+                {/* Top Profile Quick Action */}
                 <div className="flex items-center justify-center sm:justify-end gap-2">
-                  {centerProfile.certificateStatus === 'approved' ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowCertModal(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-amber-500/25 hover:shadow-lg transition-all transform active:scale-95 cursor-pointer"
-                    >
-                      <Award size={18} className="text-amber-100" />
-                      <span>View Center Certificate</span>
-                    </button>
-                  ) : centerProfile.certificateStatus === 'action_required' ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowUploadModal(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-rose-600/30 hover:shadow-lg transition-all transform active:scale-95 cursor-pointer animate-pulse"
-                    >
-                      <Upload size={16} />
-                      <span>Upload Requested Docs</span>
-                    </button>
-                  ) : centerProfile.certificateStatus === 'pending' ? (
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-800 font-bold text-xs rounded-xl shadow-2xs">
-                      <Clock size={15} className="animate-spin text-amber-600" />
-                      <span>Claim Pending Review</span>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={claimLoading}
-                      onClick={handleClaimCertificate}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-indigo-600/25 hover:shadow-lg transition-all transform active:scale-95 cursor-pointer"
-                    >
-                      {claimLoading ? <RefreshCw size={16} className="animate-spin" /> : <Award size={18} />}
-                      <span>Claim Center Certificate</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/center/add-student')}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-indigo-600/20 hover:shadow-lg transition-all transform active:scale-95 cursor-pointer"
+                  >
+                    <UserPlus size={16} />
+                    <span>+ New Admission</span>
+                  </button>
                 </div>
               </div>
               
