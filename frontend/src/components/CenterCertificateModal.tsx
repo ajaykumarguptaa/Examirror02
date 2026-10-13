@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
-import axios from '../utils/axiosSetup';
+import axios from 'axios';
 import { CenterCertificateCard, type CenterCertificateData, CENTER_CERT_WIDTH, CENTER_CERT_HEIGHT } from './CenterCertificateCard';
 
 interface CenterCertificateModalProps {

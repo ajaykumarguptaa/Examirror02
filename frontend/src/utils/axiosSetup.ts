@@ -158,3 +158,5 @@ export const setupAxiosInterceptors = () => {
     };
   }
 };
+
+export default axios;
