@@ -193,17 +193,34 @@ export const downloadFranchiseDossierZip = async (
         ? JSON.parse(app.certificate_uploaded_docs)
         : app.certificate_uploaded_docs;
 
+      const getExt = (url?: string): string => {
+        if (!url) return 'png';
+        const lower = url.toLowerCase();
+        if (lower.startsWith('data:application/pdf') || lower.endsWith('.pdf')) return 'pdf';
+        if (lower.startsWith('data:application/vnd.openxmlformats-officedocument.spreadsheetml') || lower.startsWith('data:application/vnd.ms-excel') || lower.endsWith('.xlsx') || lower.endsWith('.xls')) return 'xlsx';
+        if (lower.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml') || lower.startsWith('data:application/msword') || lower.endsWith('.docx') || lower.endsWith('.doc')) return 'docx';
+        if (lower.includes('jpeg') || lower.includes('jpg')) return 'jpg';
+        if (lower.includes('webp')) return 'webp';
+        return 'png';
+      };
+
       let resubList: { filename: string; url: string }[] = [];
       if (Array.isArray(parsed)) {
-        resubList = parsed.map((item: any, idx: number) => ({
-          filename: `Resubmitted_${idx + 1}_${(item.label || item.key || 'doc').replace(/[^a-zA-Z0-9_-]/g, '_')}.png`,
-          url: item.url || item
-        }));
+        resubList = parsed.map((item: any, idx: number) => {
+          const u = item.url || item;
+          return {
+            filename: `Resubmitted_${idx + 1}_${(item.label || item.key || 'doc').replace(/[^a-zA-Z0-9_-]/g, '_')}.${getExt(u)}`,
+            url: u
+          };
+        });
       } else if (typeof parsed === 'object' && parsed !== null) {
-        resubList = Object.entries(parsed).map(([key, val]: [string, any], idx) => ({
-          filename: `Resubmitted_${idx + 1}_${key.replace(/[^a-zA-Z0-9_-]/g, '_')}.png`,
-          url: typeof val === 'string' ? val : val?.url || ''
-        }));
+        resubList = Object.entries(parsed).map(([key, val]: [string, any], idx) => {
+          const u = typeof val === 'string' ? val : val?.url || '';
+          return {
+            filename: `Resubmitted_${idx + 1}_${key.replace(/[^a-zA-Z0-9_-]/g, '_')}.${getExt(u)}`,
+            url: u
+          };
+        });
       }
 
       if (resubList.length > 0) {

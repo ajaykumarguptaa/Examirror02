@@ -1508,6 +1508,7 @@ const FranchiseRegister = () => {
                   </div>
                   <input
                     type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
                     ref={marksheetInputRef}
                     onChange={(e) => handleFileChange(e, setMarksheetName, setMarksheetData, 'marksheet')}
                     className="hidden"
@@ -1521,11 +1522,11 @@ const FranchiseRegister = () => {
                       Choose File
                     </button>
                     <span className="px-3 text-slate-600 text-[11px] truncate flex-1 font-medium">
-                      {marksheetName || 'Upload Graduation Marksheet / Degree'}
+                      {marksheetName || 'Upload Graduation Marksheet / Degree (PDF or Image)'}
                     </span>
                   </div>
                   <p className="text-[10px] text-slate-500 font-medium">
-                    Upload Bachelor Degree Certificate or Graduation Marksheet (10th/12th marksheets not accepted)
+                    Upload Bachelor Degree Certificate or Graduation Marksheet (Image or PDF format)
                   </p>
                 </div>
 
@@ -1546,6 +1547,7 @@ const FranchiseRegister = () => {
                   </div>
                   <input
                     type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
                     ref={aadharFrontInputRef}
                     onChange={(e) => handleFileChange(e, setAadharFrontName, setAadharFrontData, 'aadharFront')}
                     className="hidden"
@@ -1559,7 +1561,7 @@ const FranchiseRegister = () => {
                       Choose File
                     </button>
                     <span className="px-3 text-slate-600 text-[11px] truncate flex-1 font-medium">
-                      {aadharFrontName || 'no file selected'}
+                      {aadharFrontName || 'Upload Aadhar Front (PDF or Image)'}
                     </span>
                   </div>
                 </div>
@@ -1576,6 +1578,7 @@ const FranchiseRegister = () => {
                   </div>
                   <input
                     type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
                     ref={aadharBackInputRef}
                     onChange={(e) => handleFileChange(e, setAadharBackName, setAadharBackData, 'aadharBack')}
                     className="hidden"
@@ -1589,7 +1592,7 @@ const FranchiseRegister = () => {
                       Choose File
                     </button>
                     <span className="px-3 text-slate-600 text-[11px] truncate flex-1 font-medium">
-                      {aadharBackName || 'no file selected'}
+                      {aadharBackName || 'Upload Aadhar Back (PDF or Image)'}
                     </span>
                   </div>
                 </div>
@@ -1600,6 +1603,7 @@ const FranchiseRegister = () => {
                   <input
                     type="file"
                     multiple
+                    accept="image/*"
                     ref={centerPhotosInputRef}
                     onChange={handleCenterPhotosChange}
                     className="hidden"

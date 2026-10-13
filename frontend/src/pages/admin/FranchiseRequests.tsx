@@ -42,7 +42,8 @@ import {
   Send,
   UploadCloud,
   Plus,
-  Key
+  Key,
+  Table
 } from 'lucide-react';
 import { CenterCertificateModal } from '../../components/CenterCertificateModal';
 import { downloadFranchiseDossierZip } from '../../utils/generateFranchiseDossierZip';
@@ -105,6 +106,77 @@ const generateZebtishWord = (): string => {
   return `${prefix}-${randomNum}${suffix}`;
 };
 
+// Document MIME and Format Detector Utility
+export const getDocTypeInfo = (url?: string | null) => {
+  if (!url) return { type: 'unknown', ext: 'png', isImage: false, isPdf: false, isExcel: false, isWord: false, label: 'Document' };
+  const lower = url.toLowerCase();
+
+  if (lower.startsWith('data:application/pdf') || lower.endsWith('.pdf') || lower.includes('.pdf?')) {
+    return { type: 'pdf', ext: 'pdf', isImage: false, isPdf: true, isExcel: false, isWord: false, label: 'PDF Document' };
+  }
+  if (
+    lower.startsWith('data:application/vnd.openxmlformats-officedocument.spreadsheetml') ||
+    lower.startsWith('data:application/vnd.ms-excel') ||
+    lower.endsWith('.xlsx') ||
+    lower.endsWith('.xls') ||
+    lower.endsWith('.csv')
+  ) {
+    return { type: 'excel', ext: 'xlsx', isImage: false, isPdf: false, isExcel: true, isWord: false, label: 'Excel Spreadsheet' };
+  }
+  if (
+    lower.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml') ||
+    lower.startsWith('data:application/msword') ||
+    lower.endsWith('.docx') ||
+    lower.endsWith('.doc')
+  ) {
+    return { type: 'word', ext: 'docx', isImage: false, isPdf: false, isExcel: false, isWord: true, label: 'Word Document' };
+  }
+  if (
+    lower.startsWith('data:image/') ||
+    lower.endsWith('.png') ||
+    lower.endsWith('.jpg') ||
+    lower.endsWith('.jpeg') ||
+    lower.endsWith('.webp') ||
+    lower.endsWith('.gif') ||
+    lower.endsWith('.svg')
+  ) {
+    let ext = 'png';
+    if (lower.includes('jpeg') || lower.includes('jpg')) ext = 'jpg';
+    else if (lower.includes('webp')) ext = 'webp';
+    return { type: 'image', ext, isImage: true, isPdf: false, isExcel: false, isWord: false, label: 'Image File' };
+  }
+
+  return { type: 'file', ext: 'bin', isImage: false, isPdf: false, isExcel: false, isWord: false, label: 'Document File' };
+};
+
+// Resilient Image Thumbnail with Broken-Link Fallback
+const DocImageThumbnail: React.FC<{ url: string; alt: string }> = ({ url, alt }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return (
+      <div className="w-full h-full bg-slate-100 flex flex-col items-center justify-center p-3 text-center">
+        <FileText size={24} className="text-slate-400 mb-1" />
+        <span className="text-[11px] font-bold text-slate-700 block truncate max-w-full">
+          {alt}
+        </span>
+        <span className="text-[9.5px] font-medium text-slate-500 block">
+          Document File (Click to Inspect)
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={url}
+      alt={alt}
+      onError={() => setHasError(true)}
+      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+    />
+  );
+};
+
 const FranchiseRequests = () => {
   const [applications, setApplications] = useState<FranchiseApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +188,7 @@ const FranchiseRequests = () => {
   const [verifiedDocs, setVerifiedDocs] = useState<Record<string, boolean>>({});
 
   // Full screen document preview & inspector state
-  const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; docKey: string; appId: number } | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; docKey: string; appId: number; typeInfo?: any } | null>(null);
   const [zoomScale, setZoomScale] = useState(1);
   const [rotationDeg, setRotationDeg] = useState(0);
 
@@ -231,11 +303,18 @@ const FranchiseRequests = () => {
   const handleDownloadFile = (url: string, filename: string) => {
     if (!url) return;
     const fullUrl = getAssetUrl(url);
+    const typeInfo = getDocTypeInfo(url);
+    
+    // Ensure filename ends with proper extension
+    let finalFilename = filename;
+    if (!finalFilename.includes('.')) {
+      finalFilename = `${finalFilename}.${typeInfo.ext}`;
+    }
 
     if (fullUrl.startsWith('data:')) {
       const a = document.createElement('a');
       a.href = fullUrl;
-      a.download = filename;
+      a.download = finalFilename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -246,7 +325,7 @@ const FranchiseRequests = () => {
           const blobUrl = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = blobUrl;
-          a.download = filename;
+          a.download = finalFilename;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -259,12 +338,19 @@ const FranchiseRequests = () => {
   };
 
   const getAppDocuments = (app: FranchiseApplication) => {
+    const getDocFilename = (firstName: string, label: string, url?: string | null) => {
+      const safeName = (firstName || 'Applicant').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const safeLabel = label.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const typeInfo = getDocTypeInfo(url);
+      return `${safeName}_${safeLabel}.${typeInfo.ext}`;
+    };
+
     const list: Array<{ key: string; label: string; category: string; url?: string; filename: string }> = [
-      { key: 'photo', label: 'Center Head Photo', category: 'Biometric Headshot', url: app.photo_url, filename: `${app.center_head_first_name}_Photo.png` },
-      { key: 'signature', label: 'Center Head Signature', category: 'Legal Signature', url: app.signature_url, filename: `${app.center_head_first_name}_Signature.png` },
-      { key: 'marksheet', label: 'Graduation Marksheet / Degree', category: 'Degree (Min. Graduate)', url: app.marksheet_url, filename: `${app.center_head_first_name}_Graduation_Marksheet.png` },
-      { key: 'aadhar_front', label: 'Aadhar Card (Front)', category: 'Identity Proof', url: app.aadhar_front_url, filename: `${app.center_head_first_name}_Aadhar_Front.png` },
-      { key: 'aadhar_back', label: 'Aadhar Card (Back)', category: 'Address Proof', url: app.aadhar_back_url, filename: `${app.center_head_first_name}_Aadhar_Back.png` },
+      { key: 'photo', label: 'Center Head Photo', category: 'Biometric Headshot', url: app.photo_url, filename: getDocFilename(app.center_head_first_name, 'Photo', app.photo_url) },
+      { key: 'signature', label: 'Center Head Signature', category: 'Legal Signature', url: app.signature_url, filename: getDocFilename(app.center_head_first_name, 'Signature', app.signature_url) },
+      { key: 'marksheet', label: 'Graduation Marksheet / Degree', category: 'Degree (Min. Graduate)', url: app.marksheet_url, filename: getDocFilename(app.center_head_first_name, 'Graduation_Marksheet', app.marksheet_url) },
+      { key: 'aadhar_front', label: 'Aadhar Card (Front)', category: 'Identity Proof', url: app.aadhar_front_url, filename: getDocFilename(app.center_head_first_name, 'Aadhar_Front', app.aadhar_front_url) },
+      { key: 'aadhar_back', label: 'Aadhar Card (Back)', category: 'Address Proof', url: app.aadhar_back_url, filename: getDocFilename(app.center_head_first_name, 'Aadhar_Back', app.aadhar_back_url) },
     ];
 
     let centerPhotos: string[] = [];
@@ -286,7 +372,7 @@ const FranchiseRequests = () => {
           label: `Center Photo #${idx + 1}`,
           category: 'Premises Photos',
           url: photoUrl,
-          filename: `${app.center_head_first_name}_Center_Photo_${idx + 1}.png`
+          filename: getDocFilename(app.center_head_first_name, `Center_Photo_${idx + 1}`, photoUrl)
         });
       });
     } else {
@@ -295,7 +381,7 @@ const FranchiseRequests = () => {
         label: 'Center Infrastructure',
         category: 'Premises Photos',
         url: app.center_photos_url && !app.center_photos_url.includes('uploaded') ? app.center_photos_url : undefined,
-        filename: `${app.center_head_first_name}_Center_Photos.png`
+        filename: getDocFilename(app.center_head_first_name, 'Center_Photos', app.center_photos_url)
       });
     }
 
@@ -1395,39 +1481,90 @@ const FranchiseRequests = () => {
                         {/* Thumbnail Viewport */}
                         <div className="w-full h-32 rounded-xl overflow-hidden border border-slate-200 bg-white relative group flex items-center justify-center">
                           {hasDoc ? (
-                            <>
-                              <img
-                                src={fullDocUrl!}
-                                alt={doc.label}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                              />
-                              <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setPreviewDoc({ url: fullDocUrl!, title: doc.label, docKey: doc.key, appId: selectedApp.id });
-                                    setZoomScale(1);
-                                    setRotationDeg(0);
-                                  }}
-                                  className="p-2 rounded-xl bg-white text-slate-900 hover:bg-indigo-50 hover:text-indigo-600 shadow-md cursor-pointer transition-colors"
-                                  title="Zoom & Inspect"
-                                >
-                                  <Eye size={15} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDownloadFile(doc.url!, `${selectedApp.center_name.replace(/[^a-zA-Z0-9]/g, '_')}_${doc.filename}`)}
-                                  className="p-2 rounded-xl bg-white text-slate-900 hover:bg-emerald-50 hover:text-emerald-700 shadow-md cursor-pointer transition-colors"
-                                  title="Download File"
-                                >
-                                  <Download size={15} />
-                                </button>
-                              </div>
-                            </>
+                            (() => {
+                              const typeInfo = getDocTypeInfo(doc.url);
+                              if (typeInfo.isPdf) {
+                                return (
+                                  <div className="w-full h-full bg-gradient-to-br from-rose-50 to-red-100/70 flex flex-col items-center justify-center p-3 text-center transition-all group-hover:scale-102">
+                                    <div className="w-10 h-10 rounded-xl bg-white shadow-xs border border-rose-200 flex items-center justify-center text-rose-600 mb-1.5">
+                                      <FileText size={22} className="stroke-[2.2]" />
+                                    </div>
+                                    <span className="text-[11px] font-bold text-rose-900 block truncate max-w-full">
+                                      PDF Document
+                                    </span>
+                                    <span className="text-[9.5px] font-medium text-rose-600 block mt-0.5">
+                                      Click to View / Read
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              if (typeInfo.isExcel) {
+                                return (
+                                  <div className="w-full h-full bg-gradient-to-br from-emerald-50 to-teal-100/70 flex flex-col items-center justify-center p-3 text-center transition-all group-hover:scale-102">
+                                    <div className="w-10 h-10 rounded-xl bg-white shadow-xs border border-emerald-200 flex items-center justify-center text-emerald-600 mb-1.5">
+                                      <Table size={22} className="stroke-[2.2]" />
+                                    </div>
+                                    <span className="text-[11px] font-bold text-emerald-900 block truncate max-w-full">
+                                      Excel Spreadsheet
+                                    </span>
+                                    <span className="text-[9.5px] font-medium text-emerald-600 block mt-0.5">
+                                      .xlsx Document File
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              if (typeInfo.isWord) {
+                                return (
+                                  <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100/70 flex flex-col items-center justify-center p-3 text-center transition-all group-hover:scale-102">
+                                    <div className="w-10 h-10 rounded-xl bg-white shadow-xs border border-blue-200 flex items-center justify-center text-blue-600 mb-1.5">
+                                      <FileText size={22} className="stroke-[2.2]" />
+                                    </div>
+                                    <span className="text-[11px] font-bold text-blue-900 block truncate max-w-full">
+                                      Word Document
+                                    </span>
+                                    <span className="text-[9.5px] font-medium text-blue-600 block mt-0.5">
+                                      .docx Document File
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return (
+                                <DocImageThumbnail
+                                  url={fullDocUrl!}
+                                  alt={doc.label}
+                                />
+                              );
+                            })()
                           ) : (
                             <div className="text-center text-slate-400 p-4 space-y-1">
                               <FileText size={22} className="mx-auto text-slate-300" />
                               <span className="text-[10px] font-medium block">Document Not Uploaded</span>
+                            </div>
+                          )}
+
+                          {/* Hover Action Overlay */}
+                          {hasDoc && (
+                            <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity z-10 backdrop-blur-[1px]">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPreviewDoc({ url: fullDocUrl!, title: doc.label, docKey: doc.key, appId: selectedApp.id, typeInfo: getDocTypeInfo(doc.url) });
+                                  setZoomScale(1);
+                                  setRotationDeg(0);
+                                }}
+                                className="p-2 rounded-xl bg-white text-slate-900 hover:bg-indigo-50 hover:text-indigo-600 shadow-md cursor-pointer transition-colors"
+                                title="Zoom & Inspect Document"
+                              >
+                                <Eye size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadFile(doc.url!, doc.filename)}
+                                className="p-2 rounded-xl bg-white text-slate-900 hover:bg-emerald-50 hover:text-emerald-700 shadow-md cursor-pointer transition-colors"
+                                title="Download File"
+                              >
+                                <Download size={15} />
+                              </button>
                             </div>
                           )}
                         </div>
@@ -1452,7 +1589,7 @@ const FranchiseRequests = () => {
                               {/* Download Icon Button */}
                               <button
                                 type="button"
-                                onClick={() => handleDownloadFile(doc.url!, `${selectedApp.center_name.replace(/[^a-zA-Z0-9]/g, '_')}_${doc.filename}`)}
+                                onClick={() => handleDownloadFile(doc.url!, doc.filename)}
                                 className="p-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors cursor-pointer"
                                 title={`Download ${doc.label}`}
                               >
@@ -1778,7 +1915,10 @@ const FranchiseRequests = () => {
                 {/* Download in Inspector */}
                 <button
                   type="button"
-                  onClick={() => handleDownloadFile(previewDoc.url, `${previewDoc.title.replace(/\s+/g, '_')}.png`)}
+                  onClick={() => {
+                    const docType = previewDoc.typeInfo || getDocTypeInfo(previewDoc.url);
+                    handleDownloadFile(previewDoc.url, `${previewDoc.title.replace(/\s+/g, '_')}.${docType.ext}`);
+                  }}
                   className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                   title="Download Document"
                 >
@@ -1795,17 +1935,80 @@ const FranchiseRequests = () => {
               </div>
             </div>
 
-            {/* Document Image Zoom Area */}
-            <div className="p-6 overflow-auto flex items-center justify-center flex-1 max-h-[80vh] bg-slate-950/40">
-              <img
-                src={previewDoc.url}
-                alt={previewDoc.title}
-                style={{
-                  transform: `scale(${zoomScale}) rotate(${rotationDeg}deg)`,
-                  transition: 'transform 0.2s ease-out'
-                }}
-                className="max-h-[70vh] max-w-full rounded-xl object-contain shadow-2xl border border-slate-800"
-              />
+            {/* Document Image Zoom / PDF Iframe / Doc Card Area */}
+            <div className="p-6 overflow-auto flex items-center justify-center flex-1 min-h-[50vh] max-h-[85vh] bg-slate-950/60">
+              {(() => {
+                const typeInfo = previewDoc.typeInfo || getDocTypeInfo(previewDoc.url);
+                if (typeInfo.isPdf) {
+                  return (
+                    <div className="w-full h-[75vh] flex flex-col bg-slate-900 rounded-xl overflow-hidden border border-slate-700 shadow-2xl">
+                      <div className="bg-slate-800 px-4 py-2.5 border-b border-slate-700 flex items-center justify-between text-xs text-slate-300">
+                        <span className="font-semibold flex items-center gap-1.5 text-slate-200">
+                          <FileText size={15} className="text-rose-400" />
+                          <span>Interactive PDF Viewer</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadFile(previewDoc.url, `${previewDoc.title.replace(/\s+/g, '_')}.pdf`)}
+                          className="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 text-[11px] cursor-pointer"
+                        >
+                          <Download size={13} /> Open / Download Original PDF
+                        </button>
+                      </div>
+                      <iframe
+                        src={previewDoc.url}
+                        title={previewDoc.title}
+                        className="w-full flex-1 bg-white border-0"
+                      />
+                    </div>
+                  );
+                }
+                if (typeInfo.isExcel || typeInfo.isWord || !typeInfo.isImage) {
+                  return (
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-lg w-full text-center space-y-4 shadow-2xl">
+                      <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 mx-auto flex items-center justify-center shadow-inner">
+                        {typeInfo.isExcel ? (
+                          <Table size={32} className="text-emerald-400" />
+                        ) : typeInfo.isWord ? (
+                          <FileText size={32} className="text-blue-400" />
+                        ) : (
+                          <FileText size={32} className="text-amber-400" />
+                        )}
+                      </div>
+                      <div>
+                        <h5 className="font-bold text-white text-base">{previewDoc.title}</h5>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {typeInfo.label} • Uploaded Document Proof
+                        </p>
+                      </div>
+                      <p className="text-xs text-slate-300 bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 leading-relaxed text-left">
+                        This file is formatted as an <strong>{typeInfo.label} ({typeInfo.ext.toUpperCase()})</strong>. You can download and open it directly with Microsoft Office / Excel / document reader to inspect the complete content.
+                      </p>
+                      <div className="pt-2 flex justify-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadFile(previewDoc.url, `${previewDoc.title.replace(/\s+/g, '_')}.${typeInfo.ext}`)}
+                          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center gap-2 transition-all cursor-pointer"
+                        >
+                          <Download size={15} />
+                          <span>Download &amp; Open {typeInfo.ext.toUpperCase()} File</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <img
+                    src={previewDoc.url}
+                    alt={previewDoc.title}
+                    style={{
+                      transform: `scale(${zoomScale}) rotate(${rotationDeg}deg)`,
+                      transition: 'transform 0.2s ease-out'
+                    }}
+                    className="max-h-[70vh] max-w-full rounded-xl object-contain shadow-2xl border border-slate-800"
+                  />
+                );
+              })()}
             </div>
           </div>
         </div>
