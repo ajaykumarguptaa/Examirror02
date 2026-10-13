@@ -49,7 +49,8 @@ import {
   type StatItem,
   type FeatureItem,
   type VerificationPortalItem,
-  type CourseCategoryItem
+  type CourseCategoryItem,
+  getCourseFallbackImage
 } from '../admin/page-customization/HomePageCustomizer';
 import {
   FadeIn,
@@ -264,11 +265,15 @@ const Home = () => {
         tag: c.categoryId || (c.code ? c.code.split('_')[0] : 'Diploma'),
         name: c.name,
         duration: c.duration || '3–6 Months',
-        fee: c.fee
+        fee: c.fee,
+        image: c.image || c.thumbnail_url || getCourseFallbackImage(c.name, c.categoryId || c.code)
       }));
     }
     return Array.isArray(coursesSection?.categories)
-      ? coursesSection.categories.filter((c: CourseCategoryItem) => !c.hidden)
+      ? coursesSection.categories.filter((c: CourseCategoryItem) => !c.hidden).map((c: CourseCategoryItem) => ({
+          ...c,
+          image: c.image || getCourseFallbackImage(c.name, c.tag)
+        }))
       : DEFAULT_HOME_SETTINGS.coursesSection.categories;
   }, [publicCourses, coursesSection]);
 
@@ -1455,28 +1460,46 @@ const Home = () => {
                         key={cat.id || idx}
                         whileHover={{ y: -6, scale: 1.01 }}
                         whileTap={{ scale: 0.98 }}
-                        className="card-3d p-6 flex flex-col justify-between group relative overflow-hidden bg-white shadow-md h-full"
+                        className="card-3d rounded-2xl flex flex-col justify-between group relative overflow-hidden bg-white shadow-md hover:shadow-xl transition-all duration-300 h-full border border-slate-200"
                       >
-                        <div>
-                          <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full inline-block mb-3.5 uppercase tracking-wide">
-                            {cat.tag}
-                          </span>
-                          <h3 className="font-bold text-slate-900 text-base sm:text-lg group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
-                            {cat.name}
-                          </h3>
-                          <p className="text-slate-500 text-xs mt-2 font-medium flex items-center gap-1.5">
-                            <Clock3 size={13} className="text-slate-400" />
-                            <span>Duration: {cat.duration}</span>
-                          </p>
+                        {/* Course Card Thumbnail Image Header */}
+                        <div className="h-36 sm:h-40 w-full relative overflow-hidden bg-slate-900 shrink-0">
+                          <img
+                            src={cat.image || getCourseFallbackImage(cat.name, cat.tag)}
+                            alt={cat.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-95"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+                          
+                          {/* Tag Overlay over Image */}
+                          <div className="absolute bottom-2.5 left-3">
+                            <span className="text-[10px] font-bold text-white bg-blue-600/95 backdrop-blur-xs px-2.5 py-1 rounded-md inline-block uppercase tracking-wide shadow-xs border border-white/20">
+                              {cat.tag}
+                            </span>
+                          </div>
                         </div>
 
-                        <Link
-                          to="/courses"
-                          className="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-blue-700 group-hover:text-blue-900 cursor-pointer"
-                        >
-                          <span>Explore Curriculum</span>
-                          <ArrowRight size={15} className="group-hover:translate-x-1.5 transition-transform duration-300" />
-                        </Link>
+                        {/* Card Body */}
+                        <div className="p-5 flex-1 flex flex-col justify-between">
+                          <div>
+                            <h3 className="font-bold text-slate-900 text-base sm:text-lg group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
+                              {cat.name}
+                            </h3>
+                            <p className="text-slate-500 text-xs mt-2 font-medium flex items-center gap-1.5">
+                              <Clock3 size={13} className="text-slate-400" />
+                              <span>Duration: {cat.duration}</span>
+                            </p>
+                          </div>
+
+                          <Link
+                            to="/courses"
+                            className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-blue-700 group-hover:text-blue-900 cursor-pointer"
+                          >
+                            <span>Explore Curriculum</span>
+                            <ArrowRight size={15} className="group-hover:translate-x-1.5 transition-transform duration-300" />
+                          </Link>
+                        </div>
                       </motion.div>
                     ))}
                 </motion.div>

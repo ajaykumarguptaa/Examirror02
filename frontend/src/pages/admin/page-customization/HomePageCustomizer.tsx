@@ -88,8 +88,29 @@ export interface CourseCategoryItem {
   tag: string;
   duration: string;
   color: string;
+  image?: string;
   hidden?: boolean;
 }
+
+export const getCourseFallbackImage = (name: string = '', tag: string = ''): string => {
+  const combined = `${name} ${tag}`.toLowerCase();
+  if (combined.includes('typing') || combined.includes('type')) {
+    return 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&q=80&w=600';
+  }
+  if (combined.includes('tally') || combined.includes('account') || combined.includes('gst') || combined.includes('finance')) {
+    return 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=600';
+  }
+  if (combined.includes('hardware') || combined.includes('network') || combined.includes('dit') || combined.includes('support')) {
+    return 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&q=80&w=600';
+  }
+  if (combined.includes('design') || combined.includes('dtp') || combined.includes('photoshop') || combined.includes('graphic')) {
+    return 'https://images.unsplash.com/photo-1626785774573-4b799315345d?auto=format&fit=crop&q=80&w=600';
+  }
+  if (combined.includes('program') || combined.includes('web') || combined.includes('code') || combined.includes('java') || combined.includes('python')) {
+    return 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=600';
+  }
+  return 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=600';
+};
 
 export const DEFAULT_HOME_SETTINGS = {
   // Color Theme & Typography Customization (Light Mode Default)
@@ -285,10 +306,10 @@ export const DEFAULT_HOME_SETTINGS = {
     sectionTitle: 'EXPLORE POPULAR COURSE CATEGORIES',
     sectionSubtitle: 'Industry-oriented diploma and certificate programs with hands-on computer training.',
     categories: [
-      { id: 'c1', name: 'COMPUTER APPLICATIONS', tag: 'ADCA / DCA / PGDCA', duration: '6 - 12 Months', color: 'blue', hidden: false },
-      { id: 'c2', name: 'HARDWARE & NETWORKING', tag: 'DIT / IT Support', duration: '6 Months', color: 'teal', hidden: false },
-      { id: 'c3', name: 'ACCOUNTING & TALLY PRIME', tag: 'GST & Financial Accounting', duration: '3 - 6 Months', color: 'indigo', hidden: false },
-      { id: 'c4', name: 'VOCATIONAL & SKILL DEV', tag: 'Stitching / Mobile Tech', duration: '3 - 6 Months', color: 'purple', hidden: false }
+      { id: 'c1', name: 'COMPUTER APPLICATIONS', tag: 'ADCA / DCA / PGDCA', duration: '6 - 12 Months', color: 'blue', image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=600', hidden: false },
+      { id: 'c2', name: 'HARDWARE & NETWORKING', tag: 'DIT / IT Support', duration: '6 Months', color: 'teal', image: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&q=80&w=600', hidden: false },
+      { id: 'c3', name: 'ACCOUNTING & TALLY PRIME', tag: 'GST & Financial Accounting', duration: '3 - 6 Months', color: 'indigo', image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=600', hidden: false },
+      { id: 'c4', name: 'VOCATIONAL & SKILL DEV', tag: 'Stitching / Mobile Tech', duration: '3 - 6 Months', color: 'purple', image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&q=80&w=600', hidden: false }
     ] as CourseCategoryItem[]
   },
   // 8. Study Centers Showcase
@@ -780,6 +801,7 @@ const HomePageCustomizer = () => {
       tag: 'Certified Diploma',
       duration: '3 - 6 Months',
       color: 'indigo',
+      image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=600',
       hidden: false
     };
     setData({
@@ -2959,6 +2981,87 @@ const HomePageCustomizer = () => {
                               className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs"
                             />
                           </div>
+
+                          {/* Course Card Thumbnail Image & S3 Upload */}
+                          <div className="pt-2 border-t border-slate-200/80 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                                <ImageIcon size={12} className="text-indigo-600" />
+                                <span>Card Thumbnail Image Banner</span>
+                              </label>
+                              <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200 flex items-center gap-1">
+                                <Cloud size={10} /> AWS S3 Synced
+                              </span>
+                            </div>
+
+                            <div className="flex gap-3 items-center">
+                              {/* Thumbnail Preview */}
+                              <div className="w-16 h-12 rounded-lg overflow-hidden bg-slate-900 border border-slate-300 shrink-0">
+                                <img
+                                  src={cat.image || getCourseFallbackImage(cat.name, cat.tag)}
+                                  alt={cat.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+
+                              {/* Controls */}
+                              <div className="flex-1 space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                  <label className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors shadow-xs">
+                                    <Upload size={11} />
+                                    <span>Upload Image</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        const form = new FormData();
+                                        form.append('file', file);
+                                        try {
+                                          const res = await axios.post('/api/public/upload', form, {
+                                            headers: { 'Content-Type': 'multipart/form-data' }
+                                          });
+                                          if (res.data?.success && res.data.url) {
+                                            const newCats = [...data.coursesSection.categories];
+                                            newCats[idx] = { ...newCats[idx], image: res.data.url };
+                                            setData({ ...data, coursesSection: { ...data.coursesSection, categories: newCats } });
+                                          }
+                                        } catch (err: any) {
+                                          alert('Upload failed: ' + (err.response?.data?.message || err.message));
+                                        }
+                                      }}
+                                    />
+                                  </label>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newCats = [...data.coursesSection.categories];
+                                      newCats[idx] = { ...newCats[idx], image: getCourseFallbackImage(cat.name, cat.tag) };
+                                      setData({ ...data, coursesSection: { ...data.coursesSection, categories: newCats } });
+                                    }}
+                                    className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-600 rounded-lg text-[11px] font-bold border border-slate-300 transition-colors cursor-pointer"
+                                  >
+                                    Reset
+                                  </button>
+                                </div>
+
+                                <input
+                                  type="text"
+                                  placeholder="Or paste direct image URL..."
+                                  value={cat.image || ''}
+                                  onChange={(e) => {
+                                    const newCats = [...data.coursesSection.categories];
+                                    newCats[idx] = { ...newCats[idx], image: e.target.value };
+                                    setData({ ...data, coursesSection: { ...data.coursesSection, categories: newCats } });
+                                  }}
+                                  className="w-full px-2 py-1 text-[11px] font-mono bg-white border border-slate-300 rounded-lg outline-none focus:border-indigo-600"
+                                />
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     );
@@ -3548,12 +3651,21 @@ const HomePageCustomizer = () => {
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
                       {data.coursesSection.categories.filter(c => !c.hidden).map((cat) => (
-                        <div key={cat.id} className="p-3.5 bg-slate-50 hover:bg-white border border-slate-200 rounded-2xl space-y-2 transition-all shadow-xs">
-                          <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full inline-block">
-                            {cat.tag}
-                          </span>
-                          <h4 className="font-black text-xs text-slate-900 line-clamp-1">{cat.name}</h4>
-                          <span className="text-[10px] text-slate-500 block font-medium">Duration: {cat.duration}</span>
+                        <div key={cat.id} className="bg-slate-50 hover:bg-white border border-slate-200 rounded-2xl overflow-hidden transition-all shadow-xs">
+                          <div className="h-16 w-full overflow-hidden bg-slate-900">
+                            <img
+                              src={cat.image || getCourseFallbackImage(cat.name, cat.tag)}
+                              alt={cat.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="p-2.5 space-y-1">
+                            <span className="text-[8px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded-full inline-block">
+                              {cat.tag}
+                            </span>
+                            <h4 className="font-black text-[11px] text-slate-900 line-clamp-1">{cat.name}</h4>
+                            <span className="text-[9px] text-slate-500 block font-medium">Duration: {cat.duration}</span>
+                          </div>
                         </div>
                       ))}
                     </div>
