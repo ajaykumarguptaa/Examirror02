@@ -8,7 +8,7 @@ import fs from 'fs';
 import db from './db';
 import studentRoutes from "./routes/student.routes";
 import { initTestSeriesDatabase } from './utils/initTestSeriesDb';
-import { isS3Configured, isS3UploadEnabled, getS3ObjectStream, syncAllLocalUploadsToS3 } from './utils/s3Storage';
+import { isS3Configured, getS3ObjectStream, syncAllLocalUploadsToS3 } from './utils/s3Storage';
 
 dotenv.config();
 
@@ -750,7 +750,7 @@ app.listen(port, () => {
   // Run an immediate check on startup
   testSeriesService.autoPublishScheduled().catch(() => {});
   studyMaterialService.autoPublishScheduled().catch(() => {});
-  if (isS3UploadEnabled) {
+  if (isS3Configured) {
     syncAllLocalUploadsToS3().catch((err) => {
       console.warn('[S3] Startup background sync notice:', err?.message || err);
     });
@@ -780,8 +780,6 @@ app.listen(port, () => {
     };
 
     scheduleNightlyS3Sync();
-  } else {
-    console.log('[S3 Storage] 🛡️ Development Mode: S3 upload and automatic sync are DISABLED (NODE_ENV !== production). Live AWS S3 is fully isolated.');
   }
 });
 
