@@ -17,6 +17,12 @@ import {
   Clock,
   Lock,
   Eye,
+  EyeOff,
+  Copy,
+  Check,
+  Key,
+  RefreshCw,
+  AlertTriangle,
   FileCheck2
 } from 'lucide-react';
 import { compressImageFile, compressCanvas } from '../../utils/imageCompressor';
@@ -87,6 +93,59 @@ const FranchiseRegister = () => {
   const [district, setDistrict] = useState('');
   const [state, setState] = useState('');
   const [pincode, setPincode] = useState('');
+
+  // Center Portal Credentials (Requested by Applicant, activated on Super Admin approval)
+  const [loginId, setLoginId] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [credsCopied, setCredsCopied] = useState(false);
+
+  const generateStrongPassword = () => {
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower = 'abcdefghijkmnpqrstuvwxyz';
+    const digits = '23456789';
+    const special = '!@#$%^&*';
+    let pwd = '';
+    pwd += upper[Math.floor(Math.random() * upper.length)];
+    pwd += lower[Math.floor(Math.random() * lower.length)];
+    pwd += digits[Math.floor(Math.random() * digits.length)];
+    pwd += special[Math.floor(Math.random() * special.length)];
+    const all = upper + lower + digits + special;
+    for (let i = 0; i < 6; i++) {
+      pwd += all[Math.floor(Math.random() * all.length)];
+    }
+    const shuffled = pwd.split('').sort(() => 0.5 - Math.random()).join('');
+    setPassword(shuffled);
+    setShowPassword(true);
+  };
+
+  const generateSuggestedLoginId = () => {
+    let base = '';
+    if (centerName.trim()) {
+      base = centerName.trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 8);
+    } else if (headFirstName.trim()) {
+      base = headFirstName.trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 8);
+    } else {
+      base = 'CENTER';
+    }
+    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    const suggested = `EXAM_${base}_${randomSuffix}`;
+    setLoginId(suggested);
+  };
+
+  const getPasswordStrength = (pwd: string) => {
+    if (!pwd) return { label: 'None', score: 0, color: 'bg-slate-200', text: 'text-slate-400' };
+    let score = 0;
+    if (pwd.length >= 8) score += 1;
+    if (/[A-Z]/.test(pwd)) score += 1;
+    if (/[a-z]/.test(pwd)) score += 1;
+    if (/[0-9]/.test(pwd)) score += 1;
+    if (/[^A-Za-z0-9]/.test(pwd)) score += 1;
+
+    if (score <= 2) return { label: 'Weak', score, color: 'bg-rose-500', text: 'text-rose-600' };
+    if (score <= 4) return { label: 'Moderate', score, color: 'bg-amber-500', text: 'text-amber-600' };
+    return { label: 'Strong', score, color: 'bg-emerald-500', text: 'text-emerald-600' };
+  };
 
   // Documents
   const [headPhoto, setHeadPhoto] = useState<string | null>(null);
@@ -629,6 +688,26 @@ const FranchiseRegister = () => {
       return;
     }
 
+    if (!loginId.trim()) {
+      setToast({ type: 'error', text: 'Please enter or auto-suggest a Desired Login ID for your Center Portal.' });
+      return;
+    }
+
+    if (loginId.trim().length < 4) {
+      setToast({ type: 'error', text: 'Login ID must be at least 4 characters long.' });
+      return;
+    }
+
+    if (!password.trim()) {
+      setToast({ type: 'error', text: 'Please enter or generate a Password for your Center Portal.' });
+      return;
+    }
+
+    if (password.trim().length < 6) {
+      setToast({ type: 'error', text: 'Password must be at least 6 characters long.' });
+      return;
+    }
+
     setSubmitting(true);
     setToast(null);
 
@@ -654,6 +733,8 @@ const FranchiseRegister = () => {
       district,
       state,
       pincode,
+      login_id: loginId.trim(),
+      proposed_password: password.trim(),
       photo_url: headPhoto || '',
       signature_url: headSignature || '',
       marksheet_url: marksheetData || '',
@@ -742,6 +823,47 @@ const FranchiseRegister = () => {
                 Thank you for applying for an Examirror Study Center franchise. Our verification officer will review your documents and reach out to you within 24 hours.
               </p>
             </div>
+
+            {/* Saved Credentials Card */}
+            {(loginId || password) && (
+              <div className="max-w-md mx-auto bg-slate-50 border border-slate-200 rounded-2xl p-5 text-left space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                    <Lock size={14} className="text-amber-600" />
+                    Center Portal Credentials (Pending Approval)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = `Examirror Center Portal Login Credentials:\nLogin ID: ${loginId}\nPassword: ${password}\nStatus: Active after Super Admin Approval`;
+                      navigator.clipboard.writeText(text);
+                      setCredsCopied(true);
+                      setTimeout(() => setCredsCopied(false), 2500);
+                    }}
+                    className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
+                  >
+                    {credsCopied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                    <span>{credsCopied ? 'Copied!' : 'Copy'}</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 bg-white p-3 rounded-xl border border-slate-200">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Login ID</span>
+                    <span className="font-mono font-bold text-xs text-slate-900 block truncate">{loginId}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Password</span>
+                    <span className="font-mono font-bold text-xs text-slate-900 block truncate">{password}</span>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-[11px] text-amber-900 font-medium">
+                  ⚠️ <strong>Note:</strong> Yeh credentials apne paas save rakhein. Super Admin approval ke turant baad yahi ID & Password se aapka Center Login active ho jayega.
+                </div>
+              </div>
+            )}
+
             <div className="pt-4 flex justify-center gap-3">
               <Link
                 to="/franchise/requirements"
@@ -1071,6 +1193,148 @@ const FranchiseRegister = () => {
                     onChange={(e) => setPincode(onlyDigits(e.target.value, 6))}
                     className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800 font-medium"
                   />
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full h-px bg-slate-200" />
+
+            {/* Center Portal Login Credentials */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                <h2 className="text-sm sm:text-base font-bold text-[#f97316] flex items-center gap-1.5">
+                  <Lock size={16} className="text-[#f97316]" />
+                  <span>Center Portal Login Credentials*</span>
+                </h2>
+                <span className="text-[11px] text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                  Active upon Super Admin Approval
+                </span>
+              </div>
+
+              {/* Login ID and Password Inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                
+                {/* 1. Login ID */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-slate-700 font-medium">
+                      Desired Center Login ID*
+                    </label>
+                    <button
+                      type="button"
+                      onClick={generateSuggestedLoginId}
+                      className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 transition-colors"
+                      title="Auto suggest an ID based on center name"
+                    >
+                      <Sparkles size={12} /> Auto-Suggest ID
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. EXAM_PATNA_101 or center_head"
+                      value={loginId}
+                      onChange={(e) => setLoginId(e.target.value.replace(/\s+/g, ''))}
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800 font-mono font-bold tracking-wide"
+                    />
+                  </div>
+                  <span className="text-[10.5px] text-slate-500 block">
+                    Yeh aapka permanent portal username banega. Unique format chunein.
+                  </span>
+                </div>
+
+                {/* 2. Password */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-slate-700 font-medium">
+                      Center Portal Password*
+                    </label>
+                    <button
+                      type="button"
+                      onClick={generateStrongPassword}
+                      className="text-[11px] text-amber-800 hover:text-amber-900 font-bold flex items-center gap-1 cursor-pointer bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-300 transition-colors"
+                      title="Click to generate a secure 10-char strong password"
+                    >
+                      <Key size={12} className="text-amber-600" /> Generate Strong Password
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Enter or generate strong password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-3.5 py-2.5 pr-10 border border-slate-300 rounded-lg outline-none focus:border-slate-500 text-slate-800 font-mono font-bold tracking-wider"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+
+                  {password ? (
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <div className="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${getPasswordStrength(password).color}`}
+                          style={{ width: `${Math.min(100, (getPasswordStrength(password).score / 5) * 100)}%` }}
+                        />
+                      </div>
+                      <span className={`text-[10px] font-bold ${getPasswordStrength(password).text}`}>
+                        {getPasswordStrength(password).label} Password
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-[10.5px] text-slate-500 block">
+                      Minimum 6 characters, letters, numbers aur special characters ka use karein.
+                    </span>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Copy Credentials Button */}
+              {(loginId || password) && (
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = `Examirror Center Portal Login Credentials:\nLogin ID: ${loginId}\nPassword: ${password}\nStatus: Active after Super Admin Approval`;
+                      navigator.clipboard.writeText(text);
+                      setCredsCopied(true);
+                      setTimeout(() => setCredsCopied(false), 2500);
+                    }}
+                    className="text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                  >
+                    {credsCopied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                    <span>{credsCopied ? 'Credentials Copied to Clipboard!' : 'Copy Login ID & Password'}</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Prominent Warning Note */}
+              <div className="bg-amber-50/95 border-2 border-amber-300/80 rounded-xl p-4 text-xs text-amber-950 space-y-2 shadow-xs">
+                <div className="font-bold flex items-center gap-2 text-amber-900 text-sm">
+                  <AlertTriangle size={18} className="text-amber-600 shrink-0 stroke-[2.5]" />
+                  <span>⚠️ IMPORTANT WARNING: Save Your Login ID & Password Now!</span>
+                </div>
+                <p className="text-amber-900/90 leading-relaxed font-medium">
+                  Kripya apna <strong>Login ID ({loginId || '...'})</strong> aur <strong>Password</strong> abhi kisi surakshit jagah note/save kar lein. 
+                  Aapke franchise aavedan (application) ko <strong>Super Admin dwara review aur approve hone ke baad</strong> yahi Login ID aur Password aapke Study Center Portal login ke liye activate ho jayega.
+                </p>
+                <div className="text-[11px] text-amber-800 font-semibold bg-amber-100/70 p-2.5 rounded-lg border border-amber-200/80 flex items-center justify-between flex-wrap gap-2">
+                  <span>
+                    🛡️ Yeh jaankari surakshit roop se Super Admin verification desk par bhej di jaayegi.
+                  </span>
+                  <span className="font-mono text-[10px] bg-amber-200/60 px-2 py-0.5 rounded text-amber-900 font-bold">
+                    Super Admin Verified Access
+                  </span>
                 </div>
               </div>
             </div>

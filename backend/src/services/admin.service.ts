@@ -596,6 +596,8 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
       try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_demand_notes TEXT NULL`); } catch (_) {}
       try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_demanded_docs TEXT NULL`); } catch (_) {}
       try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_uploaded_docs LONGTEXT NULL`); } catch (_) {}
+      try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN login_id VARCHAR(100) NULL`); } catch (_) {}
+      try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN proposed_password VARCHAR(255) NULL`); } catch (_) {}
 
       const [centers]: any = await db.query('SELECT * FROM centers');
       const [applications]: any = await db.query('SELECT * FROM franchise_applications');
@@ -763,12 +765,14 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
 
     const finalCode = centerCode && centerCode.trim() 
       ? centerCode.trim() 
-      : `EXAMc2026-${String(100 + Number(id)).padStart(3, '0')}`;
+      : (app.login_id && app.login_id.trim() ? app.login_id.trim() : `EXAMc2026-${String(100 + Number(id)).padStart(3, '0')}`);
 
     const headFullName = `${app.center_head_first_name} ${app.center_head_middle_name ? app.center_head_middle_name + ' ' : ''}${app.center_head_last_name}`.trim();
 
-    // Determine plain password & bcrypt hash
-    const plainPassword = password && password.trim() ? password.trim() : `Exam@${Math.floor(1000 + Math.random() * 9000)}`;
+    // Determine plain password & bcrypt hash (prioritize applicant's chosen password, otherwise default)
+    const plainPassword = password && password.trim() 
+      ? password.trim() 
+      : (app.proposed_password && app.proposed_password.trim() ? app.proposed_password.trim() : `Exam@${Math.floor(1000 + Math.random() * 9000)}`);
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(plainPassword, salt);
 

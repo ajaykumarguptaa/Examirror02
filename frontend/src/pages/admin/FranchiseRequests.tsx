@@ -41,7 +41,8 @@ import {
   Copy,
   Send,
   UploadCloud,
-  Plus
+  Plus,
+  Key
 } from 'lucide-react';
 import { CenterCertificateModal } from '../../components/CenterCertificateModal';
 import { downloadFranchiseDossierZip } from '../../utils/generateFranchiseDossierZip';
@@ -76,6 +77,8 @@ interface FranchiseApplication {
   aadhar_front_url?: string;
   aadhar_back_url?: string;
   center_photos_url?: string;
+  login_id?: string;
+  proposed_password?: string;
   status: 'Pending' | 'Approved' | 'Rejected' | 'Trash';
   created_at: string;
   certificate_status?: 'unclaimed' | 'pending' | 'action_required' | 'approved';
@@ -750,6 +753,13 @@ const FranchiseRequests = () => {
                             </span>
                           )}
                         </div>
+                        {app.login_id && !app.center_code && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-mono font-bold flex items-center gap-1">
+                              <Key size={10} className="text-amber-600" /> Desired ID: {app.login_id}
+                            </span>
+                          </div>
+                        )}
                         <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                           <MapPin size={11} className="text-slate-400 shrink-0" />
                           <span>{app.city}, {app.district}, {app.state} - {app.pincode}</span>
@@ -850,7 +860,12 @@ const FranchiseRequests = () => {
                                 <button
                                   onClick={() => {
                                     setApprovingApp(app);
-                                    setCustomCenterCode(`EXAMc2026-${String(100 + app.id).padStart(3, '0')}`);
+                                    setCustomCenterCode(app.login_id?.trim() || `EXAMc2026-${String(100 + app.id).padStart(3, '0')}`);
+                                    if (app.proposed_password?.trim()) {
+                                      setCustomPassword(app.proposed_password.trim());
+                                    } else {
+                                      setCustomPassword('108@Ajaydev');
+                                    }
                                     setInitialWallet(500);
                                     setApprovalResult(null);
                                   }}
@@ -1261,6 +1276,37 @@ const FranchiseRequests = () => {
                 </div>
               </div>
 
+              {/* Requested Portal Login Credentials */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Key size={15} className="text-amber-600" />
+                  <span>Applicant's Requested Portal Credentials</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-amber-50/70 p-4 rounded-2xl border border-amber-200 text-xs">
+                  <div>
+                    <span className="text-[10px] text-amber-800 font-semibold block">Requested Center Login ID</span>
+                    <div className="font-mono font-bold text-slate-900 mt-0.5 text-sm flex items-center gap-2">
+                      <span>{selectedApp.login_id || 'Not specified (auto-assigned)'}</span>
+                      {selectedApp.login_id && (
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                          Ready for Approval
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-amber-800 font-semibold block">Requested Login Password</span>
+                    <div className="font-mono font-bold text-slate-900 mt-0.5 text-sm">
+                      {selectedApp.proposed_password || 'Not specified (auto-assigned)'}
+                    </div>
+                  </div>
+                  <div className="sm:col-span-2 text-[11px] text-amber-900/90 bg-amber-100/60 p-2.5 rounded-xl border border-amber-200/60">
+                    ℹ️ <strong>Super Admin Note:</strong> These credentials were submitted by the applicant. When you approve this application, the center account will be provisioned with this ID and password, allowing the center director to log in immediately.
+                  </div>
+                </div>
+              </div>
+
               {/* 3. Uploaded Documents Vault */}
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
@@ -1585,7 +1631,12 @@ const FranchiseRequests = () => {
                     <button
                       onClick={() => {
                         setApprovingApp(selectedApp);
-                        setCustomCenterCode(`EXAMc2026-${String(100 + selectedApp.id).padStart(3, '0')}`);
+                        setCustomCenterCode(selectedApp.login_id?.trim() || `EXAMc2026-${String(100 + selectedApp.id).padStart(3, '0')}`);
+                        if (selectedApp.proposed_password?.trim()) {
+                          setCustomPassword(selectedApp.proposed_password.trim());
+                        } else {
+                          setCustomPassword('108@Ajaydev');
+                        }
                         setInitialWallet(500);
                         setApprovalResult(null);
                       }}
@@ -1878,6 +1929,33 @@ const FranchiseRequests = () => {
               </div>
             ) : (
               <div className="space-y-4 text-xs">
+                {approvingApp && (approvingApp.login_id || approvingApp.proposed_password) && (
+                  <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[11px] text-amber-900 flex items-center gap-1.5">
+                        <Key size={13} className="text-amber-600" />
+                        Applicant's Requested Credentials
+                      </span>
+                      <span className="text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-bold">
+                        Pre-filled
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] bg-white/80 p-2 rounded-lg border border-amber-100">
+                      <div>
+                        <span className="text-slate-400 block text-[9.5px] uppercase font-bold">Desired ID</span>
+                        <span className="font-mono font-bold text-slate-800">{approvingApp.login_id || 'Auto-code'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[9.5px] uppercase font-bold">Desired Password</span>
+                        <span className="font-mono font-bold text-slate-800">{approvingApp.proposed_password || 'System-default'}</span>
+                      </div>
+                    </div>
+                    <p className="text-[10.5px] text-amber-800 leading-snug">
+                      Approving will provision and activate this study center with these credentials.
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Assigned Center Code</label>
                   <input

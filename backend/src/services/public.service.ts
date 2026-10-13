@@ -255,6 +255,12 @@ export const publicService = {
     try {
       await db.query(`ALTER TABLE franchise_applications ADD COLUMN qualification VARCHAR(100) DEFAULT 'Graduate'`);
     } catch (_) {}
+    try {
+      await db.query(`ALTER TABLE franchise_applications ADD COLUMN login_id VARCHAR(100) NULL`);
+    } catch (_) {}
+    try {
+      await db.query(`ALTER TABLE franchise_applications ADD COLUMN proposed_password VARCHAR(255) NULL`);
+    } catch (_) {}
 
     if (data.dob) {
       const birthDate = new Date(data.dob);
@@ -350,8 +356,9 @@ export const publicService = {
         phone, email, aadhar_number, pan_number,
         dob, gender, marital_status, qualification,
         center_name, address_line1, address_line2, city, district, state, pincode,
-        photo_url, signature_url, marksheet_url, aadhar_front_url, aadhar_back_url, center_photos_url
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        photo_url, signature_url, marksheet_url, aadhar_front_url, aadhar_back_url, center_photos_url,
+        login_id, proposed_password
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.center_head_first_name || '',
         data.center_head_middle_name || '',
@@ -379,7 +386,9 @@ export const publicService = {
         marksheetUrl,
         aadharFrontUrl,
         aadharBackUrl,
-        finalCenterPhotosUrl
+        finalCenterPhotosUrl,
+        String(data.login_id || data.proposed_login_id || '').trim(),
+        String(data.password || data.proposed_password || '').trim()
       ]
     );
 
@@ -387,11 +396,12 @@ export const publicService = {
     const applicantName = `${data.center_head_first_name || ''} ${data.center_head_last_name || ''}`.trim();
     const centerTitle = data.center_name || 'Authorized Study Centre';
     const locationStr = [data.city, data.state].filter(Boolean).join(', ');
+    const chosenLoginId = String(data.login_id || data.proposed_login_id || '').trim();
 
     // Push real-time notification to Super Admin instantly without refresh
     realtimeService.notifyAdmin(
       'New Franchise Application Received',
-      `New application submitted by <strong>${applicantName}</strong> for <strong>${centerTitle}</strong>${locationStr ? ` (${locationStr})` : ''}.`,
+      `New application submitted by <strong>${applicantName}</strong> for <strong>${centerTitle}</strong>${locationStr ? ` (${locationStr})` : ''}.${chosenLoginId ? ` Requested Login ID: <strong>${chosenLoginId}</strong>.` : ''}`,
       'franchise_new',
       {
         id: newAppId,
