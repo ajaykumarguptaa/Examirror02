@@ -1,5 +1,6 @@
 import db from '../db';
 import { saveBase64File } from '../utils/fileStorage';
+import { realtimeService } from './realtime.service';
 
 export const publicService = {
   getCourses: async () => {
@@ -382,7 +383,29 @@ export const publicService = {
       ]
     );
 
-    return { id: res.insertId, ...data };
+    const newAppId = res.insertId;
+    const applicantName = `${data.center_head_first_name || ''} ${data.center_head_last_name || ''}`.trim();
+    const centerTitle = data.center_name || 'Authorized Study Centre';
+    const locationStr = [data.city, data.state].filter(Boolean).join(', ');
+
+    // Push real-time notification to Super Admin instantly without refresh
+    realtimeService.notifyAdmin(
+      'New Franchise Application Received',
+      `New application submitted by <strong>${applicantName}</strong> for <strong>${centerTitle}</strong>${locationStr ? ` (${locationStr})` : ''}.`,
+      'franchise_new',
+      {
+        id: newAppId,
+        centerName: centerTitle,
+        applicantName,
+        phone: data.phone,
+        email: data.email,
+        city: data.city,
+        state: data.state,
+        createdAt: new Date().toISOString()
+      }
+    ).catch(err => console.error('[Realtime] Failed to notify admin of new franchise:', err));
+
+    return { id: newAppId, ...data };
   },
 
   submitContactQuery: async (data: any) => {
@@ -418,6 +441,20 @@ export const publicService = {
         data.message || ''
       ]
     );
+
+    const senderName = data.fullName || data.full_name || 'Visitor';
+    realtimeService.notifyAdmin(
+      'New Public Inquiry Received',
+      `Inquiry from <strong>${senderName}</strong> (${data.phone || 'No phone'}) regarding <em>${data.inquiryType || data.inquiry_type || 'General'}</em>.`,
+      'contact_query',
+      {
+        id: res.insertId,
+        fullName: senderName,
+        phone: data.phone,
+        email: data.email,
+        inquiryType: data.inquiryType || data.inquiry_type
+      }
+    ).catch(err => console.error('[Realtime] Failed to notify admin of contact query:', err));
 
     return { id: res.insertId, ...data, status: 'Pending' };
   },

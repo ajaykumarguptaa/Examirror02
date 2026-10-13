@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import NotificationBell from '../components/common/NotificationBell';
+import { RealtimeNotificationProvider } from '../context/RealtimeNotificationContext';
 import { NumberCounter } from '../motion';
 import {
   Home,
@@ -98,13 +99,20 @@ const CenterLayout = () => {
     fetchStats();
   }, [fetchStats, location.pathname]);
 
-  // Listen to custom update events triggered across pages
+  // Listen to custom update events triggered across pages & realtime push events
   useEffect(() => {
     const handleStatsUpdate = () => fetchStats();
     window.addEventListener('center-stats-updated', handleStatsUpdate);
+    window.addEventListener('wallet-updated', handleStatsUpdate);
+    window.addEventListener('certificate-updated', handleStatsUpdate);
+    window.addEventListener('realtime-notification', handleStatsUpdate);
     window.addEventListener('focus', handleStatsUpdate);
+
     return () => {
       window.removeEventListener('center-stats-updated', handleStatsUpdate);
+      window.removeEventListener('wallet-updated', handleStatsUpdate);
+      window.removeEventListener('certificate-updated', handleStatsUpdate);
+      window.removeEventListener('realtime-notification', handleStatsUpdate);
       window.removeEventListener('focus', handleStatsUpdate);
     };
   }, [fetchStats]);
@@ -164,8 +172,9 @@ const CenterLayout = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-[#f1f5f9] font-sans">
-      <SEO title="Center Dashboard | Examirror" noindex={true} />
+    <RealtimeNotificationProvider userType="center" userId={authInfo.centerId}>
+      <div className="flex h-screen bg-[#f1f5f9] font-sans">
+        <SEO title="Center Dashboard | Examirror" noindex={true} />
 
       {/* Sidebar */}
       
@@ -365,7 +374,8 @@ const CenterLayout = () => {
         centerName={authInfo.centerName}
         onClose={() => setIsSigModalOpen(false)}
       />
-    </div>
+      </div>
+    </RealtimeNotificationProvider>
   );
 };
 

@@ -1,5 +1,6 @@
 import db from '../db';
 import { notificationService } from './notification.service';
+import { realtimeService } from './realtime.service';
 import { saveBase64File } from '../utils/fileStorage';
 
 export const centerService = {
@@ -914,6 +915,14 @@ export const centerService = {
       `, [center.name, center.email, center.phone]);
     } catch (_) {}
 
+    // Send real-time notification to Super Admin instantly
+    await realtimeService.notifyAdmin(
+      '📜 Center Certificate Claim Request',
+      `<strong>${center.name}</strong> has submitted a claim for their official Affiliation Certificate.`,
+      'certificate_claimed',
+      { centerId: center.id, centerName: center.name }
+    ).catch(err => console.error('[Realtime] Failed to notify admin of certificate claim:', err));
+
     return {
       success: true,
       status: 'pending',
@@ -974,6 +983,14 @@ export const centerService = {
         WHERE center_name = ? OR email = ? OR phone = ?
       `, [docsJson, notes || 'Uploaded requested documents', center.name, center.email, center.phone]);
     } catch (_) {}
+
+    // Send real-time notification to Super Admin instantly
+    await realtimeService.notifyAdmin(
+      '📋 Demanded Documents Resubmitted',
+      `<strong>${center.name}</strong> has uploaded ${newSavedDocs.length} requested verification document(s) for certificate approval.`,
+      'certificate_resubmitted',
+      { centerId: center.id, centerName: center.name, count: newSavedDocs.length }
+    ).catch(err => console.error('[Realtime] Failed to notify admin of document resubmission:', err));
 
     return {
       success: true,
@@ -1091,7 +1108,12 @@ export const centerService = {
           [numAmount, resubmittedNarration, existing[0].id]
         );
 
-        await notificationService.createNotification('admin', null, 'Wallet Request Resubmitted', `A center resubmitted a wallet recharge request for ₹${numAmount} (UTR: ${cleanUtr})`, 'wallet_request');
+        await realtimeService.notifyAdmin(
+          'Wallet Request Resubmitted',
+          `A center resubmitted a wallet recharge request for ₹${numAmount} (UTR: ${cleanUtr})`,
+          'wallet_request',
+          { centerId, amount: numAmount, utr: cleanUtr, requestId: existing[0].id }
+        ).catch(err => console.error('[Realtime] Failed to notify admin of wallet resubmission:', err));
 
         return { requestId: existing[0].id, message: 'Recharge request updated and re-submitted successfully' };
       }
@@ -1102,7 +1124,12 @@ export const centerService = {
       [centerId, numAmount, cleanUtr, narration]
     );
 
-    await notificationService.createNotification('admin', null, 'New Wallet Request', `A center requested a wallet recharge of ₹${numAmount} (UTR: ${cleanUtr})`, 'wallet_request');
+    await realtimeService.notifyAdmin(
+      'New Wallet Request',
+      `A center requested a wallet recharge of ₹${numAmount} (UTR: ${cleanUtr})`,
+      'wallet_request',
+      { centerId, amount: numAmount, utr: cleanUtr, requestId: result.insertId }
+    ).catch(err => console.error('[Realtime] Failed to notify admin of wallet request:', err));
 
     return { requestId: result.insertId };
   },

@@ -1,5 +1,6 @@
 import db from '../db';
 import { notificationService } from './notification.service';
+import { realtimeService } from './realtime.service';
 import bcrypt from 'bcrypt';
 import fs from 'fs';
 import path from 'path';
@@ -213,7 +214,14 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
       [request.centerId, totalToCredit, 'credit', desc]
     );
 
-    await notificationService.createNotification('center', request.centerId, 'Wallet Recharge Approved', `Your wallet has been credited with ₹${totalToCredit} ${bonus > 0 ? `(including ₹${bonus} bonus)` : ''}`, 'wallet_approved');
+    await realtimeService.notifyCenter(
+      request.centerId,
+      'Wallet Recharge Approved',
+      `Your wallet has been credited with ₹${totalToCredit} ${bonus > 0 ? `(including ₹${bonus} bonus tokens)` : ''}.`,
+      'wallet_approved',
+      { amount: totalToCredit, bonus, requestId: request.id }
+    );
+    realtimeService.emitToAdmin('wallet_updated', { requestId: request.id, status: 'approved' });
 
     return { success: true, totalCredited: totalToCredit, bonusTokens: bonus, baseAmount };
   },
@@ -233,7 +241,14 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
       [reason, requestId]
     );
 
-    await notificationService.createNotification('center', request.centerId, 'Wallet Recharge Rejected', `Your recent wallet request was rejected. Reason: ${reason}`, 'wallet_rejected');
+    await realtimeService.notifyCenter(
+      request.centerId,
+      'Wallet Recharge Rejected',
+      `Your recent wallet request was rejected. Reason: ${reason}`,
+      'wallet_rejected',
+      { requestId, reason }
+    );
+    realtimeService.emitToAdmin('wallet_updated', { requestId, status: 'rejected' });
 
     return { success: true };
   },
@@ -805,6 +820,22 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
     // 2. Mark application Approved
     await db.query('UPDATE franchise_applications SET status = "Approved" WHERE id = ?', [id]);
 
+    // 3. Notify Center and Admin in real time
+    await realtimeService.notifyCenter(
+      newCenterId,
+      '🎉 Franchise Application Approved!',
+      `Congratulations! Your franchise application for <strong>${app.center_name}</strong> has been officially approved. Center Code: <strong>${finalCode}</strong>.`,
+      'franchise_approved',
+      {
+        centerId: newCenterId,
+        centerCode: finalCode,
+        centerName: app.center_name,
+        certificateNumber: certNumber
+      }
+    ).catch(err => console.error('[Realtime] Failed to notify center of franchise approval:', err));
+
+    realtimeService.emitToAdmin('franchise_updated', { id, status: 'Approved', centerId: newCenterId, centerCode: finalCode });
+
     return {
       success: true,
       centerId: newCenterId,
@@ -829,22 +860,26 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
 
   rejectFranchiseRequest: async (id: number | string, reason?: string) => {
     await db.query('UPDATE franchise_applications SET status = "Rejected" WHERE id = ?', [id]);
+    realtimeService.emitToAdmin('franchise_updated', { id, status: 'Rejected', reason });
     return { success: true, message: 'Franchise application marked as Rejected' };
   },
 
   softDeleteFranchiseRequest: async (id: number | string) => {
     await db.query('UPDATE franchise_applications SET status = "Trash" WHERE id = ?', [id]);
+    realtimeService.emitToAdmin('franchise_updated', { id, status: 'Trash' });
     return { success: true, message: 'Franchise application moved to Trash' };
   },
 
   restoreFranchiseRequest: async (id: number | string) => {
     await db.query('UPDATE franchise_applications SET status = "Pending" WHERE id = ?', [id]);
+    realtimeService.emitToAdmin('franchise_updated', { id, status: 'Pending' });
     return { success: true, message: 'Franchise application restored to Pending' };
   },
 
   deleteFranchiseRequest: async (id: number | string) => {
     await db.query('DELETE FROM franchise_applications WHERE id = ?', [id]);
-    return { success: true, message: 'Franchise application permanently deleted' };
+    realtimeService.emitToAdmin('franchise_updated', { id, status: 'Deleted' });
+    return { success: true, message: 'Franchise application deleted permanently' };
   },
 
   // --- CENTER CERTIFICATE GOVERNANCE & DEMAND WORKFLOW ---
@@ -907,6 +942,17 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
         WHERE center_id = ? OR center_code = ? OR center_name = ? OR email = ? OR phone = ?
       `, [certNum, center.id, center.center_code, center.name, center.email, center.phone]);
     } catch (_) {}
+
+    // Send high priority real-time notification to center
+    await realtimeService.notifyCenter(
+      center.id,
+      '📜 Official Affiliation Certificate Issued!',
+      `Your official Certificate of Affiliation & Accreditation (No: <strong>${certNum}</strong>) has been approved and issued by Super Admin. You can now view and print it anytime!`,
+      'certificate_approved',
+      { centerId: center.id, certificateNumber: certNum }
+    ).catch(err => console.error('[Realtime] Failed to notify center of certificate approval:', err));
+
+    realtimeService.emitToAdmin('certificate_updated', { centerId: center.id, certificateNumber: certNum, status: 'approved' });
 
     return {
       success: true,
@@ -972,16 +1018,16 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
       `, [notes, docsJson, center.id, center.center_code, center.name, center.email, center.phone]);
     } catch (_) {}
 
-    // Send high priority notification to center
-    try {
-      await notificationService.createNotification(
-        'center',
-        center.id,
-        'Action Required: Documents Demanded for Affiliation Certificate',
-        notes || 'Super Admin has requested additional verification documents before certificate approval.',
-        'warning'
-      );
-    } catch (_) {}
+    // Send high priority real-time notification to center
+    await realtimeService.notifyCenter(
+      center.id,
+      '⚠️ Action Required: Documents Demanded for Certificate',
+      notes || 'Super Admin has requested additional verification documents before certificate approval.',
+      'certificate_demanded',
+      { centerId: center.id, demandedDocs, notes }
+    ).catch(err => console.error('[Realtime] Failed to notify center of certificate demand:', err));
+
+    realtimeService.emitToAdmin('certificate_updated', { centerId: center.id, status: 'action_required', demandedDocs });
 
     return {
       success: true,

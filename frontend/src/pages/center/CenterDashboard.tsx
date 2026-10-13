@@ -75,6 +75,20 @@ const CenterDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Auto-sync dashboard immediately when Super Admin approves certificate, demands docs, or wallet changes
+    const handleRealtimeSync = () => {
+      fetchDashboardData();
+    };
+    window.addEventListener('certificate-updated', handleRealtimeSync);
+    window.addEventListener('wallet-updated', handleRealtimeSync);
+    window.addEventListener('center-stats-updated', handleRealtimeSync);
+
+    return () => {
+      window.removeEventListener('certificate-updated', handleRealtimeSync);
+      window.removeEventListener('wallet-updated', handleRealtimeSync);
+      window.removeEventListener('center-stats-updated', handleRealtimeSync);
+    };
   }, [centerId]);
 
   const handleClaimCertificate = async () => {

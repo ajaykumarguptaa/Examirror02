@@ -6,6 +6,7 @@ import { adminService } from '../services/admin.service';
 import { centerService } from '../services/center.service';
 import { exportService } from '../services/export.service';
 import { notificationService } from '../services/notification.service';
+import { realtimeService } from '../services/realtime.service';
 
 import { verifyAdmin } from '../middleware/auth.middleware';
 import { authRateLimiter } from '../middleware/rateLimiter';
@@ -81,6 +82,12 @@ router.post('/announcements', validateBody(announcementSchema), async (req, res)
 
     if (targetAudience === 'center' || targetAudience === 'both') {
       await notificationService.createNotification('center', null, title, message, notificationType, expiryDate || null);
+      realtimeService.emitToCenter(null, 'notification', {
+        title,
+        message,
+        type: notificationType,
+        created_at: new Date().toISOString()
+      });
     }
     if (targetAudience === 'student' || targetAudience === 'both') {
       await notificationService.createNotification('student', null, title, message, notificationType, expiryDate || null);

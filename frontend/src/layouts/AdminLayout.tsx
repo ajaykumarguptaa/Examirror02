@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import NotificationBell from '../components/common/NotificationBell';
+import { RealtimeNotificationProvider } from '../context/RealtimeNotificationContext';
 import { AuthoritySignatureModal } from '../components/admin/AuthoritySignatureModal';
 import SEO from '../components/SEO';
 
@@ -114,11 +115,25 @@ const AdminLayout = () => {
     checkPendingRequests();
     const interval = setInterval(checkPendingRequests, 4000);
 
+    const handleRealtimeSync = () => {
+      checkPendingRequests();
+    };
+    window.addEventListener('franchise-updated', handleRealtimeSync);
+    window.addEventListener('wallet-updated', handleRealtimeSync);
+    window.addEventListener('contact-updated', handleRealtimeSync);
+    window.addEventListener('certificate-updated', handleRealtimeSync);
+    window.addEventListener('realtime-notification', handleRealtimeSync);
+
     return () => {
       isMounted = false;
       clearInterval(interval);
+      window.removeEventListener('franchise-updated', handleRealtimeSync);
+      window.removeEventListener('wallet-updated', handleRealtimeSync);
+      window.removeEventListener('contact-updated', handleRealtimeSync);
+      window.removeEventListener('certificate-updated', handleRealtimeSync);
+      window.removeEventListener('realtime-notification', handleRealtimeSync);
     };
-  }, [lastKnownRequestId]);
+  }, []);
 
   const navItems = [
     {
@@ -194,8 +209,9 @@ const AdminLayout = () => {
 
 
   return (
-    <div className="flex h-screen bg-slate-100 font-sans text-slate-800 relative">
-      <SEO title="Super Admin Dashboard | Examirror" noindex={true} />
+    <RealtimeNotificationProvider userType="admin">
+      <div className="flex h-screen bg-slate-100 font-sans text-slate-800 relative">
+        <SEO title="Super Admin Dashboard | Examirror" noindex={true} />
 
       {/* Real-time Floating Notification Toast */}
       {showNotificationToast && latestPendingRequest && (
@@ -315,7 +331,30 @@ const AdminLayout = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Live Franchise Applications Pill */}
+            <Link
+              to="/admin/franchise-requests"
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                pendingFranchiseCount > 0
+                  ? 'bg-amber-500/15 text-amber-900 border border-amber-400 hover:bg-amber-500/25 shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+              title="Franchise Applications Queue"
+            >
+              <div className="relative flex items-center justify-center">
+                <Building2 size={15} className={pendingFranchiseCount > 0 ? 'text-amber-700' : 'text-slate-500'} />
+                {pendingFranchiseCount > 0 && (
+                  <span className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-amber-600 text-[10px] font-bold text-white shadow-xs border-2 border-white animate-bounce">
+                    {pendingFranchiseCount}
+                  </span>
+                )}
+              </div>
+              <span>
+                {pendingFranchiseCount > 0 ? `Franchise (${pendingFranchiseCount})` : 'Franchise'}
+              </span>
+            </Link>
+
             {/* Live Token Notification Icon */}
             <Link
               to="/admin/wallet-requests"
@@ -384,7 +423,8 @@ const AdminLayout = () => {
         onClose={() => setIsAuthorityModalOpen(false)}
       />
 
-    </div>
+      </div>
+    </RealtimeNotificationProvider>
   );
 };
 

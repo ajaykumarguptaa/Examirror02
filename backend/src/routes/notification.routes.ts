@@ -1,7 +1,33 @@
 import { Router } from 'express';
 import { notificationService } from '../services/notification.service';
+import { realtimeService } from '../services/realtime.service';
 
 const router = Router();
+
+// GET /stream - Real-time SSE EventStream connection
+router.get('/stream', (req, res) => {
+  try {
+    const userType = req.query.userType as 'admin' | 'center' | 'student';
+    const userId = req.query.userId ? Number(req.query.userId) : null;
+
+    if (!userType) {
+      return res.status(400).json({ success: false, message: 'userType query param is required (admin | center | student)' });
+    }
+
+    realtimeService.addClient(userType, userId, res);
+  } catch (err: any) {
+    console.error('[SSE] Failed to establish stream:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /status - Active connected clients overview
+router.get('/status', (req, res) => {
+  res.json({
+    success: true,
+    data: realtimeService.getActiveClientCount()
+  });
+});
 
 // GET notifications
 router.get('/', async (req, res) => {
@@ -38,3 +64,4 @@ router.post('/mark-read', async (req, res) => {
 });
 
 export default router;
+

@@ -47,13 +47,20 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userType, userId })
   useEffect(() => {
     fetchNotifications();
     
-    // Real-time near-instant polling (every 3 seconds) for announcements without refresh
+    // Real-time near-instant polling (every 4 seconds) as backup
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchNotifications();
       }
-    }, 3000); 
+    }, 4000); 
     
+    // Immediate reactive sync on realtime SSE push events without waiting for poll
+    const handleRealtimeUpdate = () => {
+      fetchNotifications();
+    };
+    window.addEventListener('notifications-updated', handleRealtimeUpdate);
+    window.addEventListener('realtime-notification', handleRealtimeUpdate);
+
     // Add visibility change listener to fetch immediately when user returns to tab
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -64,6 +71,8 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userType, userId })
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener('notifications-updated', handleRealtimeUpdate);
+      window.removeEventListener('realtime-notification', handleRealtimeUpdate);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [userType, userId]);

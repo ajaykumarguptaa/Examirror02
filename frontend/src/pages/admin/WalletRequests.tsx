@@ -96,11 +96,18 @@ const WalletRequests = () => {
 
   useEffect(() => {
     fetchRequests();
-    // Live 3-second auto sync
+    // Live auto sync
     const interval = setInterval(() => {
       fetchRequests(true);
-    }, 3000);
-    return () => clearInterval(interval);
+    }, 4000);
+
+    const handleWalletSync = () => fetchRequests(true);
+    window.addEventListener('wallet-updated', handleWalletSync);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('wallet-updated', handleWalletSync);
+    };
   }, [filterStatus]);
 
   // When opening approval modal, preset verifiedAmount

@@ -389,6 +389,18 @@ const FranchiseRequests = () => {
 
   useEffect(() => {
     fetchApplications();
+
+    // Auto-sync instantly when a new franchise application arrives or certificate status changes
+    const handleFranchiseSync = () => {
+      fetchApplications();
+    };
+    window.addEventListener('franchise-updated', handleFranchiseSync);
+    window.addEventListener('certificate-updated', handleFranchiseSync);
+
+    return () => {
+      window.removeEventListener('franchise-updated', handleFranchiseSync);
+      window.removeEventListener('certificate-updated', handleFranchiseSync);
+    };
   }, []);
 
   const handleApprove = async () => {
