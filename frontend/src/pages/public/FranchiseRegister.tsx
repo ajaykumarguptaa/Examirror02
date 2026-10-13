@@ -859,7 +859,7 @@ const FranchiseRegister = () => {
                 </div>
 
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-[11px] text-amber-900 font-medium">
-                  ⚠️ <strong>Note:</strong> Yeh credentials apne paas save rakhein. Super Admin approval ke turant baad yahi ID & Password se aapka Center Login active ho jayega.
+                  ⚠️ <strong>Note:</strong> Please save these credentials safely. Your Center Login will be activated with this ID &amp; Password immediately after Super Admin approval.
                 </div>
               </div>
             )}
@@ -1292,7 +1292,7 @@ const FranchiseRegister = () => {
                     </div>
                   ) : (
                     <span className="text-[10.5px] text-slate-500 block">
-                      Minimum 6 characters, letters, numbers aur special characters ka use karein.
+                      Minimum 6 characters: include letters, numbers, and symbols.
                     </span>
                   )}
                 </div>
@@ -1322,15 +1322,15 @@ const FranchiseRegister = () => {
               <div className="bg-amber-50/95 border-2 border-amber-300/80 rounded-xl p-4 text-xs text-amber-950 space-y-2 shadow-xs">
                 <div className="font-bold flex items-center gap-2 text-amber-900 text-sm">
                   <AlertTriangle size={18} className="text-amber-600 shrink-0 stroke-[2.5]" />
-                  <span>⚠️ IMPORTANT WARNING: Save Your Login ID & Password Now!</span>
+                  <span>⚠️ IMPORTANT: Please Save Your Login ID &amp; Password Now!</span>
                 </div>
                 <p className="text-amber-900/90 leading-relaxed font-medium">
-                  Kripya apna <strong>Login ID ({loginId || '...'})</strong> aur <strong>Password</strong> abhi kisi surakshit jagah note/save kar lein. 
-                  Aapke franchise aavedan (application) ko <strong>Super Admin dwara review aur approve hone ke baad</strong> yahi Login ID aur Password aapke Study Center Portal login ke liye activate ho jayega.
+                  Please securely save your <strong>Login ID ({loginId || '...'})</strong> and <strong>Password</strong> in a safe place. 
+                  Once your franchise application is <strong>reviewed and approved by the Super Admin</strong>, this Login ID &amp; Password will be activated for your Center Portal login.
                 </p>
                 <div className="text-[11px] text-amber-800 font-semibold bg-amber-100/70 p-2.5 rounded-lg border border-amber-200/80 flex items-center justify-between flex-wrap gap-2">
                   <span>
-                    🛡️ Yeh jaankari surakshit roop se Super Admin verification desk par bhej di jaayegi.
+                    🛡️ These credentials will be securely submitted to the Super Admin verification desk.
                   </span>
                   <span className="font-mono text-[10px] bg-amber-200/60 px-2 py-0.5 rounded text-amber-900 font-bold">
                     Super Admin Verified Access
