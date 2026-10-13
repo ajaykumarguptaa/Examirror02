@@ -10,6 +10,14 @@ const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || '';
 
 export const isS3Configured = Boolean(bucket && accessKeyId && secretAccessKey);
 
+// S3 Upload/Sync Guard for Local Development:
+// In local development (NODE_ENV !== 'production'), S3 upload & sync are strictly DISABLED by default
+// so that local testing/dummy files never pollute or overwrite live S3 storage.
+// To force S3 uploads during local dev (only if specifically needed for testing AWS), set ENABLE_S3_IN_DEV=true in .env
+const isProduction = process.env.NODE_ENV === 'production';
+const enableS3InDev = process.env.ENABLE_S3_IN_DEV === 'true';
+export const isS3UploadEnabled = Boolean(isS3Configured && (isProduction || enableS3InDev));
+
 export const s3Client = isS3Configured
   ? new S3Client({
       region,
@@ -60,6 +68,11 @@ export const uploadBufferToS3 = async (
     return null;
   }
 
+  if (!isS3UploadEnabled) {
+    console.log(`[S3 Storage] 🛡️ S3 upload skipped for "${key}" (local dev mode: NODE_ENV=${process.env.NODE_ENV || 'development'}). Stored locally only.`);
+    return null;
+  }
+
   // Normalize key (remove leading slashes)
   const cleanKey = key.replace(/^\/+/, '');
   const mime = contentType || getMimeType(cleanKey);
@@ -88,6 +101,11 @@ export const uploadLocalFileToS3 = async (
   s3Key: string
 ): Promise<string | null> => {
   if (!s3Client || !isS3Configured) {
+    return null;
+  }
+
+  if (!isS3UploadEnabled) {
+    console.log(`[S3 Storage] 🛡️ S3 upload skipped for local file "${path.basename(localFilePath)}" (local dev mode). Stored locally only.`);
     return null;
   }
 
@@ -156,6 +174,11 @@ export const getS3ObjectStream = async (
 export const syncAllLocalUploadsToS3 = async (uploadsBaseDir?: string): Promise<{ total: number; uploaded: number; errors: number }> => {
   if (!s3Client || !isS3Configured) {
     console.log('[S3] Sync skipped: S3 is not configured in .env');
+    return { total: 0, uploaded: 0, errors: 0 };
+  }
+
+  if (!isS3UploadEnabled) {
+    console.log('[S3] 🛡️ Sync skipped: Running in local development mode (NODE_ENV != production). Local files will NOT be synced to live AWS S3.');
     return { total: 0, uploaded: 0, errors: 0 };
   }
 

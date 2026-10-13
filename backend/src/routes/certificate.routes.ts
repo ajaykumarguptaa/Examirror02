@@ -2,7 +2,7 @@ import { Router } from 'express';
 import fs from 'fs';
 import path from 'path';
 import db from '../db';
-import { uploadBufferToS3, isS3Configured, syncAllLocalUploadsToS3 } from '../utils/s3Storage';
+import { uploadBufferToS3, isS3Configured, isS3UploadEnabled, syncAllLocalUploadsToS3 } from '../utils/s3Storage';
 
 const router = Router();
 
@@ -50,11 +50,11 @@ router.post('/save-to-s3', async (req, res) => {
     fs.writeFileSync(localFilePath, buffer);
     const localUrl = `/uploads/certificates/${safeType}/${filename}`;
 
-    // Upload to AWS S3 Bucket
+    // Upload to AWS S3 Bucket only when upload is enabled
     const s3Key = `uploads/certificates/${safeType}/${filename}`;
     let s3Url: string | null = null;
 
-    if (isS3Configured) {
+    if (isS3UploadEnabled) {
       try {
         s3Url = await uploadBufferToS3(s3Key, buffer, mimeType);
       } catch (s3Err: any) {
@@ -96,7 +96,8 @@ router.post('/save-to-s3', async (req, res) => {
       localUrl,
       finalUrl: finalFileUrl,
       s3Key,
-      isS3Configured
+      isS3Configured,
+      isS3UploadEnabled
     });
   } catch (err: any) {
     console.error('Error in /api/certificates/save-to-s3:', err);
@@ -124,7 +125,8 @@ router.get('/status/:identifier', async (req, res) => {
       success: true,
       center: centerRows?.[0] || null,
       student: studentRows?.[0] || null,
-      isS3Configured
+      isS3Configured,
+      isS3UploadEnabled
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
@@ -139,6 +141,12 @@ router.post('/sync-s3-now', async (req, res) => {
   try {
     if (!isS3Configured) {
       return res.status(400).json({ success: false, message: 'AWS S3 is not configured in .env' });
+    }
+    if (!isS3UploadEnabled) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'S3 Sync is disabled in local development mode (NODE_ENV != production) to protect live data. Set ENABLE_S3_IN_DEV=true if needed.' 
+      });
     }
     const stats = await syncAllLocalUploadsToS3();
     return res.status(200).json({

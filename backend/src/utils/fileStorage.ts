@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { uploadBufferToS3 } from './s3Storage';
+import { uploadBufferToS3, isS3UploadEnabled } from './s3Storage';
 
 const BASE_UPLOAD_DIR = path.join(process.cwd(), 'uploads');
 const STUDENTS_DIR = path.join(BASE_UPLOAD_DIR, 'students');
@@ -75,10 +75,12 @@ export const saveBase64File = (
     const buffer = Buffer.from(base64Data, 'base64');
     fs.writeFileSync(filePath, buffer);
 
-    // Concurrently upload to S3 bucket
-    uploadBufferToS3(s3Key, buffer, mimeType).catch((s3Err) => {
-      console.warn(`[S3] Background upload notice for ${s3Key}:`, s3Err?.message || s3Err);
-    });
+    // Concurrently upload to S3 bucket only when enabled (production / explicit dev flag)
+    if (isS3UploadEnabled) {
+      uploadBufferToS3(s3Key, buffer, mimeType).catch((s3Err) => {
+        console.warn(`[S3] Background upload notice for ${s3Key}:`, s3Err?.message || s3Err);
+      });
+    }
 
     return `/uploads/${safeFolder}/${filename}`;
   } catch (err) {
