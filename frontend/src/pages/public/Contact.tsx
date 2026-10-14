@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Phone,
   Mail,
@@ -17,23 +17,68 @@ import {
   Check,
   Headphones,
   ArrowRight,
-  MessageCircle
+  MessageCircle,
+  ToggleLeft,
+  ToggleRight,
+  Upload,
+  RefreshCw,
+  Sliders,
+  X,
+  FileText,
+  Search,
+  Eye,
+  Printer,
+  GraduationCap,
+  Database,
+  CheckCircle,
+  Loader2,
+  Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import SEO from '../../components/SEO';
 import { onlyDigits, onlyNameLetters, isValidIndianPhone, isValidEmail } from '../../utils/validators';
 
+export const DEFAULT_DEMO_SHOWCASE = {
+  enabled: true,
+  title: 'Official Specimen & Verification Showcase',
+  subtitle: 'Explore authentic demo certificates, authorized study center licenses, and online verifiable student marksheets.',
+  demoCertificate: {
+    title: 'Diploma in Computer Application (DCA)',
+    studentName: 'Ajay Kumar Gupta',
+    rollNo: 'ROL-10004',
+    enrollmentNo: 'EXAM-2026-1004',
+    certificateNo: 'EXAM-2026-836087',
+    courseName: 'DCA (Diploma in Computer Application)',
+    grade: 'Grade A+ (94%)',
+    issueDate: '15-08-2026',
+    sampleImageUrl: ''
+  },
+  demoCenter: {
+    centerName: 'Delhi Main Computer Skill Center',
+    centerCode: 'CENT001',
+    directorName: 'Chhoton Ghosh',
+    city: 'New Delhi-110001',
+    state: 'Delhi',
+    phone: '+91 98765 43210',
+    sampleImageUrl: ''
+  },
+  demoStudent: {
+    studentName: 'Ajay Gupta',
+    rollNo: 'ROL-10001',
+    enrollmentNo: 'EXM-2026-1001',
+    courseName: 'ADCA (Advance Diploma in Computer Application)',
+    centerCode: 'CENT001',
+    sampleImageUrl: ''
+  }
+};
+
 const INQUIRY_TYPES = [
   { id: 'admission', label: 'Course Admission', icon: BookOpen },
   { id: 'franchise', label: 'Center Affiliation', icon: Building2 },
   { id: 'certificate', label: 'Certificate Verification', icon: Award },
-  { id: 'general', label: 'General Inquiry', icon: HelpIcon },
+  { id: 'general', label: 'General Inquiry', icon: MessageSquare },
 ];
-
-function HelpIcon(props: any) {
-  return <MessageSquare {...props} />;
-}
 
 const Contact = () => {
   const [selectedInquiry, setSelectedInquiry] = useState('admission');
@@ -47,6 +92,68 @@ const Contact = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Super Admin Check
+  const isAdmin = typeof window !== 'undefined' && (!!localStorage.getItem('adminToken') || !!localStorage.getItem('admin_token'));
+  const adminToken = typeof window !== 'undefined' ? (localStorage.getItem('adminToken') || localStorage.getItem('admin_token') || localStorage.getItem('token')) : '';
+
+  // Demo Showcase State
+  const [demoShowcase, setDemoShowcase] = useState(DEFAULT_DEMO_SHOWCASE);
+  const [isAutoGenerating, setIsAutoGenerating] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [adminNotice, setAdminNotice] = useState<string | null>(null);
+
+  // Modals State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState(DEFAULT_DEMO_SHOWCASE);
+  const [activeEditTab, setActiveEditTab] = useState<'cert' | 'center' | 'student'>('cert');
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+
+  // Specimen Preview Modal
+  const [activeSpecimen, setActiveSpecimen] = useState<{
+    type: 'certificate' | 'center' | 'student';
+    title: string;
+    data: any;
+  } | null>(null);
+
+  // Live Verification Test Modal
+  const [verifyModal, setVerifyModal] = useState<{
+    isOpen: boolean;
+    loading: boolean;
+    type: 'center' | 'student';
+    query: string;
+    result: any;
+    error?: string;
+  }>({
+    isOpen: false,
+    loading: false,
+    type: 'student',
+    query: '',
+    result: null
+  });
+
+  // Fetch Demo Showcase Settings
+  useEffect(() => {
+    const fetchDemoSettings = async () => {
+      try {
+        const res = await axios.get('http://localhost:3000/api/v1/settings/demo_showcase');
+        if (res.data?.success && res.data.data) {
+          const merged = {
+            ...DEFAULT_DEMO_SHOWCASE,
+            ...res.data.data,
+            demoCertificate: { ...DEFAULT_DEMO_SHOWCASE.demoCertificate, ...(res.data.data.demoCertificate || {}) },
+            demoCenter: { ...DEFAULT_DEMO_SHOWCASE.demoCenter, ...(res.data.data.demoCenter || {}) },
+            demoStudent: { ...DEFAULT_DEMO_SHOWCASE.demoStudent, ...(res.data.data.demoStudent || {}) },
+          };
+          setDemoShowcase(merged);
+          setEditFormData(merged);
+        }
+      } catch (err) {
+        // Fallback to default demo values
+      }
+    };
+    fetchDemoSettings();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,9 +212,164 @@ const Contact = () => {
     });
   };
 
+  // Super Admin: Toggle Demo Showcase Visibility
+  const handleToggleVisibility = async () => {
+    if (!isAdmin) return;
+    const newEnabled = !demoShowcase.enabled;
+    const updated = { ...demoShowcase, enabled: newEnabled };
+    setDemoShowcase(updated);
+    setEditFormData(updated);
+
+    try {
+      setIsSavingSettings(true);
+      await axios.put('http://localhost:3000/api/v1/settings/demo_showcase', { data: updated }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      setAdminNotice(`Demo Showcase visibility turned ${newEnabled ? 'ON (Visible to Public)' : 'OFF (Hidden from Public)'}`);
+      setTimeout(() => setAdminNotice(null), 4000);
+    } catch (err) {
+      console.error('Error saving visibility:', err);
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  // Super Admin: Auto Generate System Demo from Database Records
+  const handleAutoGenerateDemo = async () => {
+    if (!isAdmin) return;
+    try {
+      setIsAutoGenerating(true);
+      setAdminNotice(null);
+      const res = await axios.post('http://localhost:3000/api/v1/settings/demo_showcase/auto-generate', {}, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+
+      if (res.data?.success && res.data.data) {
+        setDemoShowcase(res.data.data);
+        setEditFormData(res.data.data);
+        setAdminNotice('Success: System Demo Auto-Generated and Synced with Active Database Records!');
+      } else {
+        setAdminNotice('Notice: Auto-generated demo records synced.');
+      }
+      setTimeout(() => setAdminNotice(null), 5000);
+    } catch (err: any) {
+      console.error('Error auto-generating demo:', err);
+      setAdminNotice(err.response?.data?.message || 'Auto-generate failed. Please check admin login.');
+      setTimeout(() => setAdminNotice(null), 5000);
+    } finally {
+      setIsAutoGenerating(false);
+    }
+  };
+
+  // Super Admin: Handle Custom Image Upload
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>, target: 'cert' | 'center' | 'student') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingFile(true);
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await axios.post('http://localhost:3000/api/public/upload', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data?.success && res.data.url) {
+        if (target === 'cert') {
+          setEditFormData((prev: any) => ({
+            ...prev,
+            demoCertificate: { ...prev.demoCertificate, sampleImageUrl: res.data.url }
+          }));
+        } else if (target === 'center') {
+          setEditFormData((prev: any) => ({
+            ...prev,
+            demoCenter: { ...prev.demoCenter, sampleImageUrl: res.data.url }
+          }));
+        } else {
+          setEditFormData((prev: any) => ({
+            ...prev,
+            demoStudent: { ...prev.demoStudent, sampleImageUrl: res.data.url }
+          }));
+        }
+      }
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Upload failed. Please ensure file is under 5MB (PNG/JPG/PDF).');
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
+  // Super Admin: Save Edited Demo Settings
+  const handleSaveDemoSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsSavingSettings(true);
+      await axios.put('http://localhost:3000/api/v1/settings/demo_showcase', { data: editFormData }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      setDemoShowcase(editFormData);
+      setIsEditModalOpen(false);
+      setAdminNotice('Demo Showcase changes saved and updated successfully!');
+      setTimeout(() => setAdminNotice(null), 4000);
+    } catch (err: any) {
+      console.error('Error saving demo settings:', err);
+      alert(err.response?.data?.message || 'Error saving demo settings. Please check admin privileges.');
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  // Live Verification Test Handler
+  const handleTestVerify = async (type: 'center' | 'student', query: string) => {
+    setVerifyModal({
+      isOpen: true,
+      loading: true,
+      type,
+      query,
+      result: null
+    });
+
+    try {
+      const endpoint = type === 'center'
+        ? `/api/public/verify/center/${encodeURIComponent(query)}`
+        : `/api/public/verify/student/${encodeURIComponent(query)}`;
+
+      const res = await fetch(`http://localhost:3000${endpoint}`);
+      const data = await res.json();
+
+      if (data.success && data.data) {
+        setVerifyModal({
+          isOpen: true,
+          loading: false,
+          type,
+          query,
+          result: data.data
+        });
+      } else {
+        setVerifyModal({
+          isOpen: true,
+          loading: false,
+          type,
+          query,
+          result: null,
+          error: data.message || `No active record found for identifier "${query}".`
+        });
+      }
+    } catch (err) {
+      setVerifyModal({
+        isOpen: true,
+        loading: false,
+        type,
+        query,
+        result: null,
+        error: 'Verification connection failed. Please ensure backend server is reachable.'
+      });
+    }
+  };
 
   return (
-    <div className="flex flex-col w-full bg-[#f8fafc] min-h-screen text-slate-800 font-sans selection:bg-indigo-500 selection:text-white pb-20">
+    <div className="flex flex-col w-full bg-[#f8fafc] min-h-screen text-slate-800 font-sans selection:bg-blue-600 selection:text-white pb-20">
       <SEO
         title="Contact Us | Examirror Admissions & Support Helpdesk"
         description="Contact Examirror for course admissions, computer center franchise inquiries, certificate verification, and student support across India."
@@ -161,18 +423,18 @@ const Contact = () => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white max-w-3xl mx-auto leading-tight"
+            className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white mb-4"
           >
-            Let’s Connect & Elevate Your <span className="text-amber-400">Tech Career</span>
+            Get in Touch With Our Team
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-4 text-sm sm:text-base text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed"
+            className="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto font-normal leading-relaxed"
           >
-            Have inquiries regarding computer diploma admissions, franchise affiliations, or student marksheets? Our counselors are ready to assist you.
+            Have inquiries regarding computer course admissions, new study center affiliation, or student certificate authentication? We are here to assist you.
           </motion.p>
         </div>
       </section>
@@ -182,17 +444,20 @@ const Contact = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-          {/* Left Column - Contact Form (7 Cols) */}
+          {/* Left Column - Redesigned Contact Form Card (7 Cols) */}
           <motion.div
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="lg:col-span-7 bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200/80 p-6 sm:p-9 relative overflow-hidden"
+            className="lg:col-span-7 bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200/90 p-6 sm:p-9 relative overflow-hidden"
           >
+            {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
               <div>
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-                  <Headphones className="text-indigo-600" size={24} />
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                    <Headphones size={20} />
+                  </div>
                   <span>Send Us a Message</span>
                 </h2>
                 <p className="text-xs text-slate-500 font-medium mt-1">
@@ -219,7 +484,7 @@ const Contact = () => {
                   </div>
                   <h3 className="text-xl font-black text-slate-900">Thank You, {formData.fullName}!</h3>
                   <p className="text-slate-600 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
-                    Your inquiry has been received by Examirror Admissions & Support Desk. One of our senior academic advisors will contact you shortly at <strong>{formData.phone}</strong>.
+                    Your inquiry has been received by Examirror Admissions & Support Desk. One of our academic advisors will contact you shortly at <strong>{formData.phone}</strong>.
                   </p>
                   <div className="pt-4 flex justify-center gap-3">
                     <button
@@ -248,12 +513,12 @@ const Contact = () => {
                   className="space-y-5"
                   onSubmit={handleSubmit}
                 >
-                  {/* Inquiry Type Chips */}
+                  {/* Inquiry Type Chips - Uniform Height & No Truncation */}
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2.5">
                       I'm Interested In:
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                       {INQUIRY_TYPES.map((type) => {
                         const Icon = type.icon;
                         const isSelected = selectedInquiry === type.id;
@@ -262,13 +527,14 @@ const Contact = () => {
                             key={type.id}
                             type="button"
                             onClick={() => setSelectedInquiry(type.id)}
-                            className={`px-3 py-2.5 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${isSelected
-                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-200'
-                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
-                              }`}
+                            className={`px-3 py-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer text-center min-h-[76px] ${
+                              isSelected
+                                ? 'bg-blue-600 border-blue-600 text-white shadow-sm ring-2 ring-blue-600/20'
+                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
+                            }`}
                           >
-                            <Icon size={14} className={isSelected ? 'text-yellow-300' : 'text-slate-500'} />
-                            <span className="truncate w-full text-center">{type.label}</span>
+                            <Icon size={18} className={isSelected ? 'text-amber-300' : 'text-slate-500'} />
+                            <span className="w-full text-center leading-snug">{type.label}</span>
                           </button>
                         );
                       })}
@@ -290,7 +556,7 @@ const Contact = () => {
                           required
                           value={formData.fullName}
                           onChange={(e) => setFormData({ ...formData, fullName: onlyNameLetters(e.target.value) })}
-                          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50/50 border border-slate-300 text-slate-900 text-xs font-semibold focus:bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs font-semibold focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
                           placeholder="e.g. Ajay Kumar"
                         />
                       </div>
@@ -311,7 +577,7 @@ const Contact = () => {
                           maxLength={10}
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: onlyDigits(e.target.value, 10) })}
-                          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50/50 border border-slate-300 text-slate-900 text-xs font-semibold focus:bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs font-semibold focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
                           placeholder="10-digit mobile number"
                         />
                       </div>
@@ -332,7 +598,7 @@ const Contact = () => {
                           type="email"
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50/50 border border-slate-300 text-slate-900 text-xs font-semibold focus:bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs font-semibold focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
                           placeholder="e.g. name@example.com"
                         />
                       </div>
@@ -349,12 +615,12 @@ const Contact = () => {
                         <select
                           value={formData.course}
                           onChange={(e) => setFormData({ ...formData, course: e.target.value })}
-                          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50/50 border border-slate-300 text-slate-900 text-xs font-bold focus:bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-100 outline-none transition-all cursor-pointer"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition-all cursor-pointer"
                         >
-                          <option value="ADCA">ADCA (Advance Diploma in Computer App)</option>
+                          <option value="ADCA">ADCA (Advance Diploma in Computer Application)</option>
                           <option value="DCA">DCA (Diploma in Computer Application)</option>
                           <option value="PGDCA">PGDCA (Post Graduate Diploma)</option>
-                          <option value="DIT">DIT (Diploma in Information Tech)</option>
+                          <option value="DIT">DIT (Diploma in Information Technology)</option>
                           <option value="TALLY">Tally Prime & GST Accounting</option>
                           <option value="BASIC">Basic Computer & Internet Office</option>
                           <option value="FRANCHISE">Center Affiliation Inquiry</option>
@@ -372,7 +638,7 @@ const Contact = () => {
                       rows={4}
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50/50 border border-slate-300 text-slate-900 text-xs font-medium focus:bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-100 outline-none transition-all resize-none placeholder:text-slate-400"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs font-medium focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition-all resize-none placeholder:text-slate-400"
                       placeholder="Tell us what you would like to know or how we can help you..."
                     ></textarea>
                   </div>
@@ -387,10 +653,9 @@ const Contact = () => {
                   {/* Action Buttons */}
                   <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
                     <p className="text-[11px] text-slate-500 flex items-center gap-1.5">
-                      <ShieldCheck size={14} className="text-indigo-600 shrink-0" />
+                      <ShieldCheck size={14} className="text-blue-600 shrink-0" />
                       <span>Your information is 100% private and protected.</span>
                     </p>
-
 
                     <button
                       type="submit"
@@ -423,7 +688,7 @@ const Contact = () => {
             <div className="bg-slate-900 text-white rounded-2xl p-6 sm:p-7 shadow-lg border border-slate-800 relative overflow-hidden">
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-white text-slate-950 flex items-center justify-center p-2 shadow-md shadow-amber-500/20 shrink-0">
+                  <div className="w-12 h-12 rounded-2xl bg-white text-slate-950 flex items-center justify-center p-2 shadow-md shrink-0">
                     <img src="/assets/favicon.png" alt="Examirror" className="w-full h-full object-contain" />
                   </div>
                   <div>
@@ -447,56 +712,45 @@ const Contact = () => {
                     Flagship Certified Courses:
                   </span>
                   <div className="flex flex-wrap gap-1.5">
-                    {['BASIC', 'DCA', 'ADCA', 'PGDCA', 'TALLY PRIME', 'DIT'].map((course, idx) => (
+                    {['BASIC', 'DCA', 'ADCA', 'PGDCA', 'TALLY PRIME', 'DIT'].map((course) => (
                       <span
-                        key={idx}
-                        className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-white/10 hover:bg-white/20 border border-white/10 text-white transition-colors"
+                        key={course}
+                        className="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-[10px] font-bold tracking-wide"
                       >
                         {course}
                       </span>
                     ))}
                   </div>
                 </div>
-
-                {/* Direct Action Help Strip */}
-                <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2 text-xs">
-                  <span className="text-slate-400 text-[11px] flex items-center gap-1">
-                    <Clock size={12} className="text-emerald-400" /> Mon - Sat: 9 AM - 7 PM
-                  </span>
-                  <span className="text-emerald-400 text-[11px] font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Desk Open
-                  </span>
-                </div>
               </div>
             </div>
 
-            {/* Interactive Contact Detail Cards */}
-            <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200/80 p-6 space-y-4">
-
-              {/* Phone Helpline Card */}
+            {/* Quick Contact Details */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+              {/* Phone Card */}
               <a
-                href="tel:"
-                className="group flex items-start gap-4 p-3.5 rounded-2xl bg-slate-50 hover:bg-indigo-50/70 border border-slate-200/70 hover:border-indigo-200 transition-all cursor-pointer"
+                href="tel:+919123106042"
+                className="flex items-center gap-4 p-3.5 rounded-2xl bg-slate-50 hover:bg-blue-50/70 border border-slate-200/70 hover:border-blue-300 transition-all group"
               >
-                <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 shrink-0 group-hover:scale-105 transition-transform">
+                <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-200 shrink-0 group-hover:scale-105 transition-transform">
                   <Phone size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Helpline & Admission Support
+                    Phone & WhatsApp Desk
                   </span>
-                  <div className="text-base font-black text-slate-900 group-hover:text-indigo-600 transition-colors">
+                  <div className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors">
                     +91 91231 06042
                   </div>
-                  <span className="text-[11px] text-slate-500 font-medium">Click to dial directly</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Mon - Sat: 9:30 AM - 6:30 PM</span>
                 </div>
-                <ArrowRight size={16} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all mt-3" />
+                <ArrowRight size={16} className="text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
               </a>
 
               {/* Email Card */}
               <a
                 href="mailto:saurabhcsjnu@gmail.com"
-                className="group flex items-start gap-4 p-3.5 rounded-2xl bg-slate-50 hover:bg-indigo-50/70 border border-slate-200/70 hover:border-indigo-200 transition-all cursor-pointer"
+                className="flex items-center gap-4 p-3.5 rounded-2xl bg-slate-50 hover:bg-blue-50/70 border border-slate-200/70 hover:border-blue-300 transition-all group"
               >
                 <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-200 shrink-0 group-hover:scale-105 transition-transform">
                   <Mail size={20} />
@@ -510,7 +764,7 @@ const Contact = () => {
                   </div>
                   <span className="text-[11px] text-slate-500 font-medium">info@examirror.edu.in</span>
                 </div>
-                <ArrowRight size={16} className="text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all mt-3" />
+                <ArrowRight size={16} className="text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
               </a>
 
               {/* Location Card */}
@@ -529,7 +783,7 @@ const Contact = () => {
                     href="https://maps.google.com/?q=Ghatsila+Jamshedpur+Jharkhand+832303"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 mt-1 hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 mt-1 hover:underline cursor-pointer"
                   >
                     <span>View on Google Maps</span>
                     <ExternalLink size={11} />
@@ -554,6 +808,331 @@ const Contact = () => {
 
         </div>
 
+        {/* ========================================================================= */}
+        {/* NEW FEATURE: DEMO CERTIFICATE, CENTER & STUDENT SHOWCASE & SUPER ADMIN CONTROLS */}
+        {/* ========================================================================= */}
+        <section className="mt-14 pt-10 border-t-2 border-slate-200/80">
+          
+          {/* Super Admin Control Bar (Visible when logged in as Super Admin / Admin) */}
+          {isAdmin && (
+            <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-slate-900 text-white border border-slate-800 shadow-md">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
+                    <Sliders size={20} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black uppercase tracking-wider text-amber-400">
+                        Super Admin Controller
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        demoShowcase.enabled ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                      }`}>
+                        {demoShowcase.enabled ? 'Public View: ON' : 'Public View: OFF'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      Toggle public visibility, upload custom demo proofs, or auto-generate live system records.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {/* ON / OFF Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={handleToggleVisibility}
+                    disabled={isSavingSettings}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer border ${
+                      demoShowcase.enabled
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500'
+                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                    }`}
+                    title="Toggle public visibility of Demo Showcase"
+                  >
+                    {demoShowcase.enabled ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                    <span>{demoShowcase.enabled ? 'Showcase: ON' : 'Showcase: OFF'}</span>
+                  </button>
+
+                  {/* Auto Generate System Demo Button */}
+                  <button
+                    type="button"
+                    onClick={handleAutoGenerateDemo}
+                    disabled={isAutoGenerating}
+                    className="btn-3d-primary py-2 px-4 text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    title="Auto-generates demo certificate, center, and student from database records"
+                  >
+                    {isAutoGenerating ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin text-white" />
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw size={14} />
+                        <span>Auto-Generate Demo</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Upload Custom Demo Files Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditFormData(demoShowcase);
+                      setIsEditModalOpen(true);
+                    }}
+                    className="btn-3d-white py-2 px-4 text-xs flex items-center gap-1.5 cursor-pointer"
+                    title="Upload custom demo certificate, center, and student"
+                  >
+                    <Upload size={14} />
+                    <span>Upload & Edit Demo</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Toast Notification for Super Admin */}
+              {adminNotice && (
+                <div className="mt-3 pt-3 border-t border-slate-800 text-xs font-semibold text-emerald-400 flex items-center gap-2">
+                  <CheckCircle size={14} />
+                  <span>{adminNotice}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Public Specimen Showcase (Renders if enabled or if logged in as Admin) */}
+          {(demoShowcase.enabled || isAdmin) && (
+            <div className={!demoShowcase.enabled && isAdmin ? 'opacity-60 border-2 border-dashed border-slate-300 p-4 rounded-3xl' : ''}>
+              
+              {!demoShowcase.enabled && isAdmin && (
+                <div className="mb-4 text-center">
+                  <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">
+                    Notice: This showcase is currently OFF for regular visitors. Only you (Admin) can see this preview.
+                  </span>
+                </div>
+              )}
+
+              {/* Section Header */}
+              <div className="text-center max-w-2xl mx-auto mb-10">
+                <span className="text-xs font-black text-blue-700 bg-blue-50 border border-blue-200 px-3.5 py-1 rounded-full uppercase tracking-wider inline-flex items-center gap-1.5 shadow-xs mb-3">
+                  <Award size={14} className="text-blue-600" />
+                  <span>Instant Verification & Authenticity Proof</span>
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  {demoShowcase.title || 'Official Specimen & Verification Showcase'}
+                </h3>
+                <p className="text-slate-600 text-xs sm:text-sm mt-2">
+                  {demoShowcase.subtitle || 'Explore authentic demo certificates, authorized study center licenses, and online verifiable student marksheets.'}
+                </p>
+              </div>
+
+              {/* 3 Specimen Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                {/* 1. Demo Student Certificate / Marksheet Card */}
+                <div className="bg-white rounded-3xl border border-slate-200/90 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group">
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-md">
+                        Demo Certificate
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <CheckCircle size={10} /> Verifiable
+                      </span>
+                    </div>
+
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 border border-blue-100 group-hover:scale-105 transition-transform">
+                      <Award size={24} />
+                    </div>
+
+                    <h4 className="text-base font-black text-slate-900 leading-snug">
+                      {demoShowcase.demoCertificate.title || 'Diploma in Computer Application (DCA)'}
+                    </h4>
+
+                    <div className="mt-4 space-y-2 text-xs text-slate-600 border-t border-slate-100 pt-3">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">Candidate:</span>
+                        <span className="font-bold text-slate-800">{demoShowcase.demoCertificate.studentName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">Certificate No:</span>
+                        <span className="font-mono font-bold text-blue-600">{demoShowcase.demoCertificate.certificateNo}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">Roll No:</span>
+                        <span className="font-mono font-semibold text-slate-700">{demoShowcase.demoCertificate.rollNo}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">Assessment:</span>
+                        <span className="font-bold text-emerald-600">{demoShowcase.demoCertificate.grade || 'Grade A+ (94%)'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleTestVerify('student', demoShowcase.demoCertificate.certificateNo || demoShowcase.demoCertificate.rollNo)}
+                      className="flex-1 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Search size={13} />
+                      <span>Live Verify Test</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSpecimen({
+                        type: 'certificate',
+                        title: demoShowcase.demoCertificate.title,
+                        data: demoShowcase.demoCertificate
+                      })}
+                      className="py-2 px-3 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-xs flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                      title="View full specimen"
+                    >
+                      <Eye size={13} />
+                      <span>View</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Demo Study Center Affiliation Certificate Card */}
+                <div className="bg-white rounded-3xl border border-slate-200/90 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group">
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-md">
+                        Demo Center License
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <CheckCircle size={10} /> Authorized
+                      </span>
+                    </div>
+
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-100 group-hover:scale-105 transition-transform">
+                      <Building2 size={24} />
+                    </div>
+
+                    <h4 className="text-base font-black text-slate-900 leading-snug">
+                      {demoShowcase.demoCenter.centerName || 'Delhi Main Computer Skill Center'}
+                    </h4>
+
+                    <div className="mt-4 space-y-2 text-xs text-slate-600 border-t border-slate-100 pt-3">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">Affiliation Code:</span>
+                        <span className="font-mono font-bold text-amber-600">{demoShowcase.demoCenter.centerCode}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">Center Director:</span>
+                        <span className="font-bold text-slate-800">{demoShowcase.demoCenter.directorName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">Location:</span>
+                        <span className="font-semibold text-slate-700">{demoShowcase.demoCenter.city}, {demoShowcase.demoCenter.state}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">Accreditation:</span>
+                        <span className="font-bold text-emerald-600">ISO 9001:2015 Approved</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleTestVerify('center', demoShowcase.demoCenter.centerCode)}
+                      className="flex-1 py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Search size={13} />
+                      <span>Verify Center</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSpecimen({
+                        type: 'center',
+                        title: demoShowcase.demoCenter.centerName,
+                        data: demoShowcase.demoCenter
+                      })}
+                      className="py-2 px-3 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-xs flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                      title="View full specimen"
+                    >
+                      <Eye size={13} />
+                      <span>View</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. Demo Student ID Card Specimen Card */}
+                <div className="bg-white rounded-3xl border border-slate-200/90 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group">
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md">
+                        Demo Student ID
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <CheckCircle size={10} /> Active
+                      </span>
+                    </div>
+
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 border border-emerald-100 group-hover:scale-105 transition-transform">
+                      <GraduationCap size={24} />
+                    </div>
+
+                    <h4 className="text-base font-black text-slate-900 leading-snug">
+                      {demoShowcase.demoStudent.studentName || 'Ajay Gupta'}
+                    </h4>
+
+                    <div className="mt-4 space-y-2 text-xs text-slate-600 border-t border-slate-100 pt-3">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">Enrollment No:</span>
+                        <span className="font-mono font-bold text-emerald-700">{demoShowcase.demoStudent.enrollmentNo}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">Roll No:</span>
+                        <span className="font-mono font-semibold text-slate-700">{demoShowcase.demoStudent.rollNo}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">Enrolled Course:</span>
+                        <span className="font-bold text-slate-800 truncate max-w-[150px]">{demoShowcase.demoStudent.courseName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">Affiliated Center:</span>
+                        <span className="font-mono font-bold text-slate-700">{demoShowcase.demoStudent.centerCode}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleTestVerify('student', demoShowcase.demoStudent.enrollmentNo || demoShowcase.demoStudent.rollNo)}
+                      className="flex-1 py-2 px-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Search size={13} />
+                      <span>Verify Student</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSpecimen({
+                        type: 'student',
+                        title: `${demoShowcase.demoStudent.studentName} - Student ID`,
+                        data: demoShowcase.demoStudent
+                      })}
+                      className="py-2 px-3 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-xs flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                      title="View full specimen"
+                    >
+                      <Eye size={13} />
+                      <span>View</span>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
+        </section>
+
         {/* Bottom Feature Badges */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -562,7 +1141,7 @@ const Contact = () => {
           className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-5"
         >
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
               <Award size={24} />
             </div>
             <div>
@@ -593,6 +1172,531 @@ const Contact = () => {
         </motion.div>
 
       </div>
+
+      {/* ========================================================================= */}
+      {/* MODAL 1: SUPER ADMIN UPLOAD & EDIT DEMO SPECIMENS MODAL */}
+      {/* ========================================================================= */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8">
+            <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Upload size={20} className="text-blue-400" />
+                <h3 className="font-black text-base text-white">Upload & Customize Demo Showcase (Super Admin)</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Tabs */}
+            <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setActiveEditTab('cert')}
+                className={`flex-1 py-3 px-4 border-b-2 text-center transition-colors cursor-pointer ${
+                  activeEditTab === 'cert' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                1. Demo Certificate
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveEditTab('center')}
+                className={`flex-1 py-3 px-4 border-b-2 text-center transition-colors cursor-pointer ${
+                  activeEditTab === 'center' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                2. Demo Center License
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveEditTab('student')}
+                className={`flex-1 py-3 px-4 border-b-2 text-center transition-colors cursor-pointer ${
+                  activeEditTab === 'student' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                3. Demo Student ID
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDemoSettings} className="p-6 space-y-4 text-xs">
+
+              {/* Tab 1: Certificate */}
+              {activeEditTab === 'cert' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Course / Certificate Title</label>
+                    <input
+                      type="text"
+                      value={editFormData.demoCertificate.title}
+                      onChange={(e) => setEditFormData({
+                        ...editFormData,
+                        demoCertificate: { ...editFormData.demoCertificate, title: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 border rounded-xl text-slate-900 font-semibold"
+                      placeholder="Diploma in Computer Application (DCA)"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Student / Candidate Name</label>
+                      <input
+                        type="text"
+                        value={editFormData.demoCertificate.studentName}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          demoCertificate: { ...editFormData.demoCertificate, studentName: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border rounded-xl text-slate-900 font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Certificate Number</label>
+                      <input
+                        type="text"
+                        value={editFormData.demoCertificate.certificateNo}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          demoCertificate: { ...editFormData.demoCertificate, certificateNo: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border rounded-xl text-slate-900 font-mono font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Roll Number</label>
+                      <input
+                        type="text"
+                        value={editFormData.demoCertificate.rollNo}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          demoCertificate: { ...editFormData.demoCertificate, rollNo: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border rounded-xl text-slate-900 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Grade / Percentile</label>
+                      <input
+                        type="text"
+                        value={editFormData.demoCertificate.grade}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          demoCertificate: { ...editFormData.demoCertificate, grade: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border rounded-xl text-slate-900 font-semibold"
+                        placeholder="Grade A+ (94%)"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Upload Custom Certificate Image */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Upload Custom Demo Certificate Specimen (PNG/JPG/PDF)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => handleUploadFile(e, 'cert')}
+                      className="w-full p-2 border border-dashed rounded-xl bg-slate-50 cursor-pointer"
+                    />
+                    {editFormData.demoCertificate.sampleImageUrl && (
+                      <p className="text-[11px] text-emerald-600 mt-1 font-semibold">
+                        Uploaded File Attached: {editFormData.demoCertificate.sampleImageUrl}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: Center */}
+              {activeEditTab === 'center' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Center Name</label>
+                    <input
+                      type="text"
+                      value={editFormData.demoCenter.centerName}
+                      onChange={(e) => setEditFormData({
+                        ...editFormData,
+                        demoCenter: { ...editFormData.demoCenter, centerName: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 border rounded-xl text-slate-900 font-semibold"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Center Code</label>
+                      <input
+                        type="text"
+                        value={editFormData.demoCenter.centerCode}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          demoCenter: { ...editFormData.demoCenter, centerCode: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border rounded-xl text-slate-900 font-mono font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Director Name</label>
+                      <input
+                        type="text"
+                        value={editFormData.demoCenter.directorName}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          demoCenter: { ...editFormData.demoCenter, directorName: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border rounded-xl text-slate-900 font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">City</label>
+                      <input
+                        type="text"
+                        value={editFormData.demoCenter.city}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          demoCenter: { ...editFormData.demoCenter, city: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border rounded-xl text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">State</label>
+                      <input
+                        type="text"
+                        value={editFormData.demoCenter.state}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          demoCenter: { ...editFormData.demoCenter, state: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border rounded-xl text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Upload Custom Center Image */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Upload Custom Demo Center License Specimen (PNG/JPG/PDF)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => handleUploadFile(e, 'center')}
+                      className="w-full p-2 border border-dashed rounded-xl bg-slate-50 cursor-pointer"
+                    />
+                    {editFormData.demoCenter.sampleImageUrl && (
+                      <p className="text-[11px] text-emerald-600 mt-1 font-semibold">
+                        Uploaded File Attached: {editFormData.demoCenter.sampleImageUrl}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 3: Student */}
+              {activeEditTab === 'student' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Student Name</label>
+                      <input
+                        type="text"
+                        value={editFormData.demoStudent.studentName}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          demoStudent: { ...editFormData.demoStudent, studentName: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border rounded-xl text-slate-900 font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Enrollment No</label>
+                      <input
+                        type="text"
+                        value={editFormData.demoStudent.enrollmentNo}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          demoStudent: { ...editFormData.demoStudent, enrollmentNo: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border rounded-xl text-slate-900 font-mono font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Roll No</label>
+                      <input
+                        type="text"
+                        value={editFormData.demoStudent.rollNo}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          demoStudent: { ...editFormData.demoStudent, rollNo: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border rounded-xl text-slate-900 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Enrolled Course</label>
+                      <input
+                        type="text"
+                        value={editFormData.demoStudent.courseName}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          demoStudent: { ...editFormData.demoStudent, courseName: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border rounded-xl text-slate-900 font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Upload Custom Student Image */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Upload Custom Demo Student ID Specimen (PNG/JPG/PDF)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => handleUploadFile(e, 'student')}
+                      className="w-full p-2 border border-dashed rounded-xl bg-slate-50 cursor-pointer"
+                    />
+                    {editFormData.demoStudent.sampleImageUrl && (
+                      <p className="text-[11px] text-emerald-600 mt-1 font-semibold">
+                        Uploaded File Attached: {editFormData.demoStudent.sampleImageUrl}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Buttons */}
+              <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-100 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingSettings || isUploadingFile}
+                  className="btn-3d-primary py-2.5 px-6 font-bold cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingSettings ? 'Saving Changes...' : 'Save & Publish Demo'}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 2: SPECIMEN PREVIEW MODAL */}
+      {/* ========================================================================= */}
+      {activeSpecimen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8">
+            <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award size={20} className="text-amber-400" />
+                <h3 className="font-black text-base text-white">{activeSpecimen.title}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveSpecimen(null)}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* If custom image uploaded */}
+              {activeSpecimen.data.sampleImageUrl ? (
+                <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center max-h-[400px]">
+                  <img
+                    src={activeSpecimen.data.sampleImageUrl}
+                    alt={activeSpecimen.title}
+                    className="w-full h-auto object-contain"
+                  />
+                </div>
+              ) : (
+                /* Dynamic Generated Specimen Badge Layout */
+                <div className="p-6 rounded-2xl bg-slate-50 border-2 border-slate-200 text-slate-900 space-y-4">
+                  <div className="text-center pb-4 border-b border-slate-200">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 bg-blue-100 px-3 py-1 rounded-full inline-block mb-2">
+                      Official Verifiable Specimen
+                    </span>
+                    <h4 className="text-lg font-black">{activeSpecimen.title}</h4>
+                    <p className="text-xs text-slate-500 font-medium">Examirror Skill Development Directorate</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    {Object.entries(activeSpecimen.data).map(([k, v]) => {
+                      if (k === 'sampleImageUrl' || !v) return null;
+                      return (
+                        <div key={k} className="p-2.5 rounded-xl bg-white border border-slate-200">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block">{k}</span>
+                          <span className="font-bold text-slate-800 break-all">{String(v)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-200 text-xs">
+                    <span className="text-emerald-700 font-bold flex items-center gap-1">
+                      <ShieldCheck size={16} /> ISO 9001:2015 Verified
+                    </span>
+                    <span className="font-mono text-slate-500 font-bold">STAMP: AUTH-OK</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="btn-3d-white py-2 px-4 text-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Printer size={14} />
+                  <span>Print Specimen</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSpecimen(null)}
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: LIVE VERIFICATION TEST MODAL */}
+      {/* ========================================================================= */}
+      {verifyModal.isOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden">
+            <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Search size={18} className="text-blue-400" />
+                <h3 className="font-black text-sm text-white">
+                  Real-Time Database Verification Result
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVerifyModal(prev => ({ ...prev, isOpen: false }))}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {verifyModal.loading ? (
+                <div className="py-10 text-center space-y-3">
+                  <Loader2 size={32} className="animate-spin text-blue-600 mx-auto" />
+                  <p className="text-xs font-bold text-slate-700">Connecting to Central Academic Registry...</p>
+                </div>
+              ) : verifyModal.result ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                      <CheckCircle2 size={24} />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm text-emerald-950">Record Verified & Authenticated</h4>
+                      <p className="text-xs text-emerald-700">Official status: ACTIVE & RECOGNIZED</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs space-y-2">
+                    {verifyModal.type === 'center' ? (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Center Name:</span>
+                          <span className="font-bold text-slate-900">{verifyModal.result.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Center Code:</span>
+                          <span className="font-mono font-bold text-blue-600">{verifyModal.result.center_code || verifyModal.query}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Director:</span>
+                          <span className="font-semibold text-slate-800">{verifyModal.result.head_name || 'Center Director'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Location:</span>
+                          <span className="font-semibold text-slate-800">{verifyModal.result.city || verifyModal.result.state}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Candidate:</span>
+                          <span className="font-bold text-slate-900">{verifyModal.result.firstName} {verifyModal.result.lastName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Enrollment / Roll:</span>
+                          <span className="font-mono font-bold text-blue-600">{verifyModal.result.enrollment_no || verifyModal.result.roll_no}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Course:</span>
+                          <span className="font-semibold text-slate-800">{verifyModal.result.course_name || 'Certified IT Diploma'}</span>
+                        </div>
+                        {verifyModal.result.certificate_number && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Certificate No:</span>
+                            <span className="font-mono font-bold text-emerald-700">{verifyModal.result.certificate_number}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-2">
+                  <p className="font-bold">Notice:</p>
+                  <p>{verifyModal.error || 'No matching active database record found for this test code.'}</p>
+                </div>
+              )}
+
+              <div className="mt-5 pt-3 border-t border-slate-100 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setVerifyModal(prev => ({ ...prev, isOpen: false }))}
+                  className="px-5 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

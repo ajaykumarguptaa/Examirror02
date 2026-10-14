@@ -171,6 +171,68 @@ router.put('/settings/:key', verifyAdmin, async (req, res) => {
   }
 });
 
+// Auto-generate realistic demo verification records synced with active database
+router.post('/settings/demo_showcase/auto-generate', verifyAdmin, async (_req, res) => {
+  try {
+    const [centers]: any = await db.query("SELECT * FROM centers ORDER BY id ASC LIMIT 5");
+    const [students]: any = await db.query(`
+      SELECT s.*, c.name as course_name 
+      FROM students s 
+      LEFT JOIN courses c ON s.courseId = c.id 
+      ORDER BY s.id DESC 
+      LIMIT 10
+    `);
+
+    const certStudent = students.find((s: any) => s.certificate_number) || students[0] || {};
+    const regularStudent = students.find((s: any) => s.id !== certStudent.id) || students[0] || {};
+    const mainCenter = centers.find((c: any) => c.center_code === 'CENT001') || centers[0] || {};
+
+    const demoData = {
+      enabled: true,
+      title: "Official Specimen & Verification Showcase",
+      subtitle: "Explore authentic demo certificates, authorized study center licenses, and online verifiable student marksheets.",
+      demoCertificate: {
+        title: certStudent.course_name || "Diploma in Computer Application (DCA)",
+        studentName: `${certStudent.firstName || 'Ajay'} ${certStudent.lastName || 'Kumar Gupta'}`.trim(),
+        rollNo: certStudent.roll_no || "ROL-10004",
+        enrollmentNo: certStudent.enrollment_no || "EXAM-2026-1004",
+        certificateNo: certStudent.certificate_number || "EXAM-2026-836087",
+        courseName: certStudent.course_name || "DCA (Diploma in Computer Application)",
+        grade: "Grade A+ (94%)",
+        issueDate: "15-08-2026",
+        sampleImageUrl: certStudent.certificate_file_url || ""
+      },
+      demoCenter: {
+        centerName: mainCenter.name || "Delhi Main Center",
+        centerCode: mainCenter.center_code || "CENT001",
+        directorName: mainCenter.head_name || "Chhoton Ghosh",
+        city: mainCenter.city || "New Delhi-110001",
+        state: mainCenter.state || "Delhi",
+        phone: mainCenter.phone || "+91 98765 43210",
+        sampleImageUrl: mainCenter.certificate_file_url || ""
+      },
+      demoStudent: {
+        studentName: `${regularStudent.firstName || 'Ajay'} ${regularStudent.lastName || 'Gupta'}`.trim(),
+        rollNo: regularStudent.roll_no || "ROL-10001",
+        enrollmentNo: regularStudent.enrollment_no || "EXM-2026-1001",
+        courseName: regularStudent.course_name || "ADCA (Advance Diploma in Computer Application)",
+        centerCode: mainCenter.center_code || "CENT001",
+        sampleImageUrl: regularStudent.photo_url || ""
+      }
+    };
+
+    await publicService.updateSettings('demo_showcase', demoData);
+    res.status(200).json({
+      success: true,
+      message: 'System Demo auto-generated and synced with active database records!',
+      data: demoData
+    });
+  } catch (error: any) {
+    console.error('Error auto-generating demo showcase:', error);
+    res.status(500).json({ success: false, message: 'Failed to auto-generate demo records' });
+  }
+});
+
 // Secure Public Student & Certificate Verification Route (Scannable from QR Code & Barcode)
 router.get('/verify/student/:identifier', publicVerifyLimiter, async (req, res) => {
   try {
