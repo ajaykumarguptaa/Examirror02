@@ -410,28 +410,30 @@ export const StudentMarksheetModal = ({
       <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-200 relative flex flex-col max-h-[96vh] my-2">
         
         {/* Modal Top Header Bar */}
-        <div className="flex justify-between items-center px-6 py-4 bg-[#0f172a] text-white shrink-0 border-b border-blue-800 shadow-md">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-800/60 border border-blue-400/40 flex items-center justify-center text-blue-300">
-              <Award size={20} />
+        <div className="flex flex-wrap sm:flex-nowrap justify-between items-center px-3.5 sm:px-6 py-3 sm:py-4 bg-[#0f172a] text-white shrink-0 border-b border-blue-800 shadow-md gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-800/60 border border-blue-400/40 flex items-center justify-center text-blue-300 shrink-0">
+              <Award size={18} />
             </div>
             <div>
-              <h2 className="text-base font-extrabold tracking-wide text-white">
+              <h2 className="text-sm sm:text-base font-extrabold tracking-wide text-white">
                 Official Statement of Examination Marks
               </h2>
-              <p className="text-[11px] text-blue-200/80 font-medium">
+              <p className="text-[10px] sm:text-[11px] text-blue-200/80 font-medium">
                 National Vocational Standard Verification • Government Grade Marksheet
               </p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-auto sm:ml-0">
             {isCenterPortal && (
               <button
                 onClick={() => setShowSignatureUpload(prev => !prev)}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                className="px-2.5 sm:px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
               >
-                <Upload size={14} /> Center Sign & Stamp
+                <Upload size={13} />
+                <span className="hidden sm:inline">Center Sign & Stamp</span>
+                <span className="sm:hidden">Sign & Stamp</span>
               </button>
             )}
             <button 
@@ -972,25 +974,25 @@ export const StudentMarksheetModal = ({
         </div>
 
         {/* Modal Bottom Action Footer */}
-        <div className="p-4 px-6 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div className="text-xs text-slate-500">
+        <div className="p-3.5 sm:p-4 px-4 sm:px-6 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-slate-500 hidden sm:block">
             Official marksheet can be saved or printed in high resolution A4 format.
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="py-2.5 px-5 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
+              className="flex-1 sm:flex-initial py-2 sm:py-2.5 px-4 sm:px-5 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
             >
               Close
             </button>
             <button
               type="button"
               onClick={handlePrint}
-              className="py-2.5 px-6 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-md shadow-blue-700/20 cursor-pointer transition-all active:scale-95"
+              className="flex-1 sm:flex-initial py-2 sm:py-2.5 px-4 sm:px-6 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-md shadow-blue-700/20 cursor-pointer transition-all active:scale-95"
             >
-              <Printer size={16} /> Print Marksheet
+              <Printer size={16} /> <span>Print Marksheet</span>
             </button>
           </div>
         </div>

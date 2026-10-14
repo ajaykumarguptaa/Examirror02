@@ -568,14 +568,14 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
           {/* Section View Switcher (Overview vs Deep Analytics) */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
               type="button"
               onClick={() => setShowAnalyticsTab('overview')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                showAnalyticsTab === 'overview' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                showAnalyticsTab === 'overview' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <LayoutGrid size={13} />
@@ -585,11 +585,11 @@ const AdminDashboard = () => {
               type="button"
               onClick={() => setShowAnalyticsTab('analytics')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                showAnalyticsTab === 'analytics' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                showAnalyticsTab === 'analytics' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <BarChart3 size={13} />
-              <span>Growth Analytics</span>
+              <span>Analytics</span>
             </button>
           </div>
 
@@ -604,16 +604,17 @@ const AdminDashboard = () => {
           <button
             type="button"
             onClick={() => setIsAuthoritySignModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+            className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
             title="Configure Official Authority Digital Signature & Seal"
           >
             <PenTool size={13} />
-            <span>Authority E-Sign</span>
+            <span className="hidden sm:inline">Authority E-Sign</span>
+            <span className="sm:hidden">E-Sign</span>
           </button>
 
           <Link
             to="/admin/centers/create"
-            className="px-4 py-2 rounded-xl bg-[#1e1b4b] hover:bg-[#2e2b5e] text-amber-400 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+            className="px-3.5 sm:px-4 py-2 rounded-xl bg-[#1e1b4b] hover:bg-[#2e2b5e] text-amber-400 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer shrink-0"
           >
             <Plus size={15} />
             <span>Add Center</span>
@@ -987,7 +988,7 @@ const AdminDashboard = () => {
               </div>
 
               {/* Combined Revenue Highlight Pill */}
-              <div className="flex items-center gap-3 bg-gradient-to-r from-slate-900 to-indigo-950 text-white px-4 py-2.5 rounded-xl shadow-xs self-start sm:self-auto">
+              <div className="flex items-center gap-3 bg-[#1e1b4b] text-white px-4 py-2.5 rounded-xl shadow-xs self-start sm:self-auto">
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-amber-400">
                   <IndianRupee size={16} />
                 </div>
@@ -1004,7 +1005,7 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               
               {/* Card 1: Test Series Purchased */}
-              <div className="bg-gradient-to-br from-indigo-50/60 to-slate-50 p-4 rounded-xl border border-indigo-100/80 flex flex-col justify-between space-y-3">
+              <div className="bg-indigo-50/70 p-4 rounded-xl border border-indigo-100 flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-indigo-900 uppercase tracking-wider">Test Series Bought</span>
                   <span className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
@@ -1027,7 +1028,7 @@ const AdminDashboard = () => {
               </div>
 
               {/* Card 2: Test Series Total Earning */}
-              <div className="bg-gradient-to-br from-emerald-50/60 to-slate-50 p-4 rounded-xl border border-emerald-100/80 flex flex-col justify-between space-y-3">
+              <div className="bg-emerald-50/70 p-4 rounded-xl border border-emerald-100 flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">Test Series Earning</span>
                   <span className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
@@ -1049,7 +1050,7 @@ const AdminDashboard = () => {
               </div>
 
               {/* Card 3: Notes / Study Material Purchased */}
-              <div className="bg-gradient-to-br from-blue-50/60 to-slate-50 p-4 rounded-xl border border-blue-100/80 flex flex-col justify-between space-y-3">
+              <div className="bg-blue-50/70 p-4 rounded-xl border border-blue-100 flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-blue-900 uppercase tracking-wider">Notes & Materials Bought</span>
                   <span className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
@@ -1072,7 +1073,7 @@ const AdminDashboard = () => {
               </div>
 
               {/* Card 4: Notes Total Earning */}
-              <div className="bg-gradient-to-br from-amber-50/60 to-slate-50 p-4 rounded-xl border border-amber-100/80 flex flex-col justify-between space-y-3">
+              <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-100 flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">Notes Total Earning</span>
                   <span className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
@@ -2053,11 +2054,11 @@ const AdminDashboard = () => {
             </div>
 
             {/* Navigation Tabs inside Center Modal */}
-            <div className="flex items-center gap-2 px-6 pt-3 border-b border-slate-200 bg-slate-50">
+            <div className="flex items-center gap-2 px-3.5 sm:px-6 pt-3 border-b border-slate-200 bg-slate-50 overflow-x-auto no-scrollbar">
               <button
                 type="button"
                 onClick={() => setCenterModalTab('students')}
-                className={`pb-3 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`pb-3 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
                   centerModalTab === 'students' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -2068,7 +2069,7 @@ const AdminDashboard = () => {
               <button
                 type="button"
                 onClick={() => setCenterModalTab('transactions')}
-                className={`pb-3 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`pb-3 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
                   centerModalTab === 'transactions' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -2079,7 +2080,7 @@ const AdminDashboard = () => {
               <button
                 type="button"
                 onClick={() => setCenterModalTab('requests')}
-                className={`pb-3 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`pb-3 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
                   centerModalTab === 'requests' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -2089,7 +2090,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* Modal Body Content */}
-            <div className="p-6 overflow-y-auto flex-1 text-xs">
+            <div className="p-3.5 sm:p-6 overflow-y-auto flex-1 text-xs">
               
               {/* TAB 1: Enrolled Students */}
               {centerModalTab === 'students' && (
@@ -2099,8 +2100,8 @@ const AdminDashboard = () => {
                       No students enrolled in this center yet.
                     </div>
                   ) : (
-                    <div className="border border-slate-200 rounded-xl overflow-hidden">
-                      <table className="w-full text-left border-collapse text-xs">
+                    <div className="border border-slate-200 rounded-xl overflow-x-auto no-scrollbar">
+                      <table className="w-full text-left border-collapse text-xs min-w-[500px]">
                         <thead>
                           <tr className="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-[11px] border-b">
                             <th className="py-2.5 px-3">Student Name</th>
@@ -2149,8 +2150,8 @@ const AdminDashboard = () => {
                       No wallet transactions recorded for this center.
                     </div>
                   ) : (
-                    <div className="border border-slate-200 rounded-xl overflow-hidden">
-                      <table className="w-full text-left border-collapse text-xs">
+                    <div className="border border-slate-200 rounded-xl overflow-x-auto no-scrollbar">
+                      <table className="w-full text-left border-collapse text-xs min-w-[500px]">
                         <thead>
                           <tr className="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-[11px] border-b">
                             <th className="py-2.5 px-3">Type</th>
@@ -2197,8 +2198,8 @@ const AdminDashboard = () => {
                       No recharge requests submitted by this center.
                     </div>
                   ) : (
-                    <div className="border border-slate-200 rounded-xl overflow-hidden">
-                      <table className="w-full text-left border-collapse text-xs">
+                    <div className="border border-slate-200 rounded-xl overflow-x-auto no-scrollbar">
+                      <table className="w-full text-left border-collapse text-xs min-w-[500px]">
                         <thead>
                           <tr className="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-[11px] border-b">
                             <th className="py-2.5 px-3">Bank UTR / Ref</th>

@@ -96,7 +96,7 @@ const PageCustomizationHub = () => {
       </div>
 
       {/* Navigation Sub-Tabs Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -105,14 +105,14 @@ const PageCustomizationHub = () => {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              className={`p-3 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                 isActive 
                   ? 'bg-[#1e1b4b] text-white border-[#1e1b4b] shadow-md -translate-y-0.5' 
                   : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
               }`}
             >
               <div className="flex items-center justify-between">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 ${
                   isActive ? 'bg-white/10 text-yellow-400' : 'bg-indigo-50 text-indigo-700'
                 }`}>
                   <Icon size={18} />

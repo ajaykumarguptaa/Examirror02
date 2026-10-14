@@ -751,7 +751,7 @@ const ExamsList = () => {
                               </p>
                               <button
                                 onClick={() => openCertConfirmation(st, true)}
-                                className="w-full py-1.5 px-2 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg text-[10px] font-extrabold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+                                className="w-full py-1.5 px-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-extrabold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs active:scale-95"
                                 title={`Issue Instant Certificate (₹${st.instant_certificate_charge || instantCharge} Wallet Fee)`}
                               >
                                 <Zap size={11} className="fill-white shrink-0" />
@@ -768,7 +768,7 @@ const ExamsList = () => {
                   <td className="py-5 px-4 border-r border-gray-200 align-top">
                     <div className="space-y-3">
                       {/* Course Header Bar */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-slate-100 to-indigo-50/40 p-2.5 rounded-xl border border-gray-200">
+                      <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-100 p-2.5 rounded-xl border border-gray-200">
                         <div className="flex items-center gap-2">
                           <BookOpen size={16} className="text-indigo-600 shrink-0" />
                           <span className="font-extrabold text-gray-900 text-xs sm:text-sm uppercase tracking-tight">
@@ -956,7 +956,7 @@ const ExamsList = () => {
                                       className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold shrink-0 border transition-all cursor-pointer ${
                                         sem.isPublishedToStudent !== false
                                           ? 'bg-white hover:bg-red-50 text-red-600 border-red-200 hover:border-red-300 shadow-2xs'
-                                          : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white border-emerald-600 shadow-2xs'
+                                          : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-2xs'
                                       }`}
                                       title={sem.isPublishedToStudent !== false ? 'Hide marksheet from student portal due to pending dues' : 'Verify dues clearance & send marksheet to student portal'}
                                     >

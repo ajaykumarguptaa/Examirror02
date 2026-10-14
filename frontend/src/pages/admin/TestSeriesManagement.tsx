@@ -1307,7 +1307,7 @@ export const TestSeriesManagement = () => {
 
               {/* Digital Products Monetization & Sales Strip */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-indigo-50/70 to-white p-4 rounded-2xl border border-indigo-100 flex items-center justify-between shadow-2xs">
+                <div className="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-100 flex items-center justify-between shadow-2xs">
                   <div>
                     <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-wider block">
                       Test Series Bought
@@ -1324,7 +1324,7 @@ export const TestSeriesManagement = () => {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-amber-50/70 to-white p-4 rounded-2xl border border-amber-100 flex items-center justify-between shadow-2xs">
+                <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-100 flex items-center justify-between shadow-2xs">
                   <div>
                     <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider block">
                       Notes / Study Materials Bought
@@ -1341,7 +1341,7 @@ export const TestSeriesManagement = () => {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-emerald-50/70 to-white p-4 rounded-2xl border border-emerald-100 flex items-center justify-between shadow-2xs">
+                <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-100 flex items-center justify-between shadow-2xs">
                   <div>
                     <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider block">
                       Combined Digital Products Earnings

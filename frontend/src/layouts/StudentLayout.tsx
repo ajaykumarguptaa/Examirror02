@@ -1,5 +1,5 @@
 import { Outlet, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
-import { LogOut, User, Trophy, LayoutDashboard } from 'lucide-react';
+import { LogOut, Trophy, LayoutDashboard, ShieldCheck, CreditCard } from 'lucide-react';
 import SEO from '../components/SEO';
 import NotificationBell from '../components/common/NotificationBell';
 
@@ -23,17 +23,25 @@ const StudentLayout = () => {
   const isDashboardActive = location.pathname === '/student' || location.pathname === '/student/dashboard';
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans w-full">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans w-full overflow-x-hidden">
       <SEO title="Student Dashboard | Examirror" noindex={true} />
-      <header className="bg-white border-b border-slate-200 px-4 sm:px-8 lg:px-10 py-3.5 flex justify-between items-center sticky top-0 z-40 shadow-xs w-full">
-        <div className="flex items-center gap-8">
-          <Link to="/student" className="flex items-center gap-2.5 text-indigo-700 font-bold text-lg">
-            <span className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-xs">
+      
+      {/* Top Header */}
+      <header className="bg-white border-b border-slate-200 px-3.5 sm:px-8 lg:px-10 py-3 flex justify-between items-center sticky top-0 z-40 shadow-2xs w-full">
+        <div className="flex items-center gap-4 sm:gap-8">
+          <Link to="/student" className="flex items-center gap-2 text-indigo-700 font-bold text-base sm:text-lg">
+            <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-xs sm:text-sm shadow-2xs shrink-0">
               S
             </span>
-            <span className="tracking-tight">Student Portal</span>
+            <div className="flex flex-col">
+              <span className="tracking-tight leading-tight">Student Portal</span>
+              <span className="text-[10px] text-slate-500 font-normal sm:hidden">
+                {user.firstName || 'Student'}
+              </span>
+            </div>
           </Link>
 
+          {/* Desktop Navigation */}
           <nav className="hidden sm:flex items-center gap-2">
             <Link
               to="/student"
@@ -50,7 +58,7 @@ const StudentLayout = () => {
               to="/student/test-series"
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 isTestSeriesActive
-                  ? 'bg-indigo-50 text-indigo-700 shadow-xs'
+                  ? 'bg-indigo-50 text-indigo-700 shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
@@ -60,7 +68,7 @@ const StudentLayout = () => {
           </nav>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <NotificationBell userType="student" userId={user.id || null} />
 
           <div className="hidden md:flex items-center gap-2 text-xs">
@@ -70,16 +78,65 @@ const StudentLayout = () => {
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-red-600 bg-slate-100 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-red-600 bg-slate-100 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+            title="Sign out of student account"
           >
-            <LogOut size={15} /> Logout
+            <LogOut size={14} />
+            <span className="hidden sm:inline">Logout</span>
           </button>
         </div>
       </header>
 
-      <main className="flex-1 w-full px-4 sm:px-8 lg:px-10 py-6">
+      {/* Main Content Area */}
+      <main className="flex-1 w-full px-3.5 sm:px-8 lg:px-10 py-5 sm:py-6 pb-24 sm:pb-8">
         <Outlet />
       </main>
+
+      {/* Mobile Bottom Navigation Dock (Screens < 640px) */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-lg flex items-center justify-around">
+        <Link
+          to="/student"
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
+            isDashboardActive
+              ? 'text-indigo-600 font-bold'
+              : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+            isDashboardActive ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500'
+          }`}>
+            <LayoutDashboard size={18} />
+          </div>
+          <span className="text-[10px] font-bold mt-0.5">Dashboard</span>
+        </Link>
+
+        <Link
+          to="/student/test-series"
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all relative ${
+            isTestSeriesActive
+              ? 'text-indigo-600 font-bold'
+              : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+            isTestSeriesActive ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500'
+          }`}>
+            <Trophy size={18} className={isTestSeriesActive ? 'text-amber-500' : ''} />
+          </div>
+          <span className="text-[10px] font-bold mt-0.5">Test Series</span>
+          <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-amber-500"></span>
+        </Link>
+
+        <button
+          onClick={handleLogout}
+          className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-500 hover:text-red-600 transition-all cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-red-50 hover:text-red-600">
+            <LogOut size={18} />
+          </div>
+          <span className="text-[10px] font-bold mt-0.5">Logout</span>
+        </button>
+      </nav>
     </div>
   );
 };

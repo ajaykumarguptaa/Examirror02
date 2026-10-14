@@ -336,31 +336,41 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
       <div className="center-cert-modal-card bg-white rounded-3xl max-w-6xl w-full max-h-[96vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden text-slate-800 animate-in zoom-in-95 duration-200">
         
         {/* Modal Top Bar */}
-        <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between shrink-0 border-b border-indigo-900/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 font-bold shadow-xs">
-              <Building2 size={22} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base text-white tracking-tight">
-                  Official Center Affiliation Certificate
-                </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                  <ShieldCheck size={12} />
-                  <span>Verified & Authorized</span>
-                </span>
+        <div className="px-3.5 sm:px-6 py-3 sm:py-4 bg-[#1e1b4b] text-white flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0 border-b border-indigo-900/50">
+          <div className="flex items-center justify-between w-full md:w-auto">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 font-bold shadow-xs shrink-0">
+                <Building2 size={20} />
               </div>
-              <p className="text-xs text-slate-300">
-                {centerName} &bull; Code: <span className="font-mono font-bold text-amber-300">{centerCode}</span>
-              </p>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="font-bold text-sm sm:text-base text-white tracking-tight truncate max-w-[200px] sm:max-w-none">
+                    Center Affiliation Certificate
+                  </h3>
+                  <span className="hidden sm:flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 items-center gap-1">
+                    <ShieldCheck size={12} />
+                    <span>Verified</span>
+                  </span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-slate-300 truncate max-w-[230px] sm:max-w-none">
+                  {centerName} &bull; Code: <span className="font-mono font-bold text-amber-300">{centerCode}</span>
+                </p>
+              </div>
             </div>
+
+            {/* Mobile close button (visible only on small screens) */}
+            <button
+              onClick={onClose}
+              className="md:hidden p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <X size={20} />
+            </button>
           </div>
 
-          {/* Action Buttons & Close */}
-          <div className="flex items-center gap-2">
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 justify-end w-full md:w-auto">
             {/* Interactive Zoom Controls */}
-            <div className="hidden md:flex items-center bg-white/10 rounded-xl p-1 border border-white/10 gap-1 text-xs">
+            <div className="hidden lg:flex items-center bg-white/10 rounded-xl p-1 border border-white/10 gap-1 text-xs">
               <button
                 type="button"
                 onClick={() => setZoomLevel(prev => Math.max(0.35, Number((prev - 0.06).toFixed(2))))}
@@ -392,36 +402,36 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
 
             <button
               onClick={handlePrint}
-              className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-white/10"
+              className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-white/10"
               title="Print Certificate (Landscape)"
             >
               <Printer size={14} />
-              <span className="hidden sm:inline">Print</span>
+              <span>Print</span>
             </button>
 
             <button
               onClick={handleDownloadPdf}
               disabled={downloading}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-amber-500/20 disabled:opacity-50"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-amber-500/20 disabled:opacity-50"
               title="Download Official PDF Certificate"
             >
               <FileText size={14} />
-              <span>{downloading ? 'Exporting...' : 'Download PDF'}</span>
+              <span>{downloading ? 'Exporting...' : 'PDF'}</span>
             </button>
 
             <button
               onClick={handleDownloadImage}
               disabled={downloading}
-              className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-white/10 disabled:opacity-50"
+              className="hidden sm:flex px-3 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl items-center gap-1.5 transition-colors cursor-pointer border border-white/10 disabled:opacity-50"
               title="Download High-Resolution PNG"
             >
               <Download size={14} />
-              <span className="hidden sm:inline">HD PNG</span>
+              <span>PNG</span>
             </button>
 
             <button
               onClick={handleShareWhatsApp}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
               title="Share on WhatsApp"
             >
               <Share2 size={14} />
@@ -430,7 +440,7 @@ export const CenterCertificateModal: React.FC<CenterCertificateModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+              className="hidden md:flex p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
             >
               <X size={20} />
             </button>

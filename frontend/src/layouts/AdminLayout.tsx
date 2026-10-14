@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  Menu,
   ExternalLink,
   CreditCard,
   Sparkles,
@@ -35,6 +36,9 @@ import SEO from '../components/SEO';
 const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Mobile drawer state
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   // Pending requests real-time state
   const [pendingCount, setPendingCount] = useState<number>(0);
@@ -257,11 +261,33 @@ const AdminLayout = () => {
         </div>
       )}
 
-      {/* Sidebar */}
-      <aside className="w-64 bg-[#1e1b4b] text-white hidden md:flex flex-col shadow-xl z-20">
+      {/* Mobile Drawer Backdrop Overlay */}
+      {isMobileDrawerOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-950/60 z-40 md:hidden backdrop-blur-xs transition-opacity duration-200"
+          onClick={() => setIsMobileDrawerOpen(false)}
+        />
+      )}
+
+      {/* Sidebar (Desktop Persistent & Mobile Off-Canvas Drawer) */}
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-[#1e1b4b] text-white flex flex-col shadow-2xl transition-transform duration-300 ease-in-out ${
+        isMobileDrawerOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      }`}>
+
+        {/* Mobile Close Button */}
+        <div className="absolute top-4 right-4 md:hidden z-10">
+          <button 
+            type="button"
+            onClick={() => setIsMobileDrawerOpen(false)} 
+            className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Close Admin Menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
         {/* Brand Header */}
-        <div className="p-6 border-b border-indigo-950 flex flex-col items-center justify-center">
+        <div className="p-5 sm:p-6 border-b border-indigo-950 flex flex-col items-center justify-center shrink-0">
           <span className="font-black text-2xl tracking-wider text-yellow-400 font-mono">
             SUPER ADMIN
           </span>
@@ -271,7 +297,7 @@ const AdminLayout = () => {
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 p-3.5 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.exact
@@ -282,6 +308,7 @@ const AdminLayout = () => {
               <Link
                 key={item.to}
                 to={item.to}
+                onClick={() => setIsMobileDrawerOpen(false)}
                 className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all font-medium text-xs ${isActive
                     ? 'bg-[#2e2b5e] text-white shadow-xs font-bold border-l-4 border-yellow-400'
                     : item.highlight
@@ -307,9 +334,12 @@ const AdminLayout = () => {
         </nav>
 
         {/* Exit Admin Button */}
-        <div className="p-4 border-t border-indigo-950">
+        <div className="p-4 border-t border-indigo-950 shrink-0">
           <button
-            onClick={handleLogout}
+            onClick={() => {
+              setIsMobileDrawerOpen(false);
+              handleLogout();
+            }}
             className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-rose-300 hover:bg-rose-950/50 hover:text-rose-200 transition-colors text-xs font-bold cursor-pointer"
           >
             <LogOut size={18} />
@@ -320,37 +350,53 @@ const AdminLayout = () => {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* Header Ribbon */}
-        <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-10 shrink-0">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={18} className="text-indigo-600" />
-            <span className="font-bold text-xs text-slate-800 uppercase tracking-wider">
-              Examirror Administration
-            </span>
+        <header className="h-14 sm:h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-6 z-10 shrink-0 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Mobile Hamburger Button */}
+            <button
+              type="button"
+              onClick={() => setIsMobileDrawerOpen(true)}
+              className="md:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100 hover:text-indigo-600 transition-colors cursor-pointer relative shrink-0"
+              aria-label="Open Super Admin Navigation"
+            >
+              <Menu size={20} />
+              {(pendingCount > 0 || pendingFranchiseCount > 0 || pendingContactCount > 0 || pendingTestPaymentsCount > 0) && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 animate-pulse border-2 border-white" />
+              )}
+            </button>
+
+            <div className="flex items-center gap-1.5 min-w-0">
+              <ShieldCheck size={18} className="text-indigo-600 shrink-0" />
+              <span className="font-bold text-xs text-slate-800 uppercase tracking-wider truncate">
+                <span className="hidden sm:inline">Examirror Administration</span>
+                <span className="sm:hidden">Admin Portal</span>
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Live Franchise Applications Pill */}
             <Link
               to="/admin/franchise-requests"
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
                 pendingFranchiseCount > 0
-                  ? 'bg-amber-500/15 text-amber-900 border border-amber-400 hover:bg-amber-500/25 shadow-xs'
+                  ? 'bg-amber-500/15 text-amber-900 border border-amber-400 hover:bg-amber-500/25 shadow-2xs'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
               title="Franchise Applications Queue"
             >
               <div className="relative flex items-center justify-center">
-                <Building2 size={15} className={pendingFranchiseCount > 0 ? 'text-amber-700' : 'text-slate-500'} />
+                <Building2 size={14} className={pendingFranchiseCount > 0 ? 'text-amber-700' : 'text-slate-500'} />
                 {pendingFranchiseCount > 0 && (
-                  <span className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-amber-600 text-[10px] font-bold text-white shadow-xs border-2 border-white animate-bounce">
+                  <span className="absolute -top-2 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-600 text-[9px] font-bold text-white shadow-2xs border border-white">
                     {pendingFranchiseCount}
                   </span>
                 )}
               </div>
-              <span>
+              <span className="hidden sm:inline">
                 {pendingFranchiseCount > 0 ? `Franchise (${pendingFranchiseCount})` : 'Franchise'}
               </span>
             </Link>
@@ -358,60 +404,58 @@ const AdminLayout = () => {
             {/* Live Token Notification Icon */}
             <Link
               to="/admin/wallet-requests"
-              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${pendingCount > 0
-                  ? 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 shadow-sm'
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                pendingCount > 0
+                  ? 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 shadow-2xs'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
+              }`}
               title="Token Recharge Requests Queue"
             >
               <div className="relative flex items-center justify-center">
-                <Bell size={16} className={pendingCount > 0 ? 'text-amber-700' : 'text-slate-500'} />
+                <Bell size={14} className={pendingCount > 0 ? 'text-amber-700' : 'text-slate-500'} />
                 {pendingCount > 0 && (
-                  <span className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm border-2 border-amber-100">
+                  <span className="absolute -top-2 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-2xs border border-white">
                     {pendingCount}
                   </span>
                 )}
               </div>
-              <span>
-                {pendingCount > 0 ? 'Token Approvals' : 'No Pending Tokens'}
+              <span className="hidden sm:inline">
+                {pendingCount > 0 ? `Tokens (${pendingCount})` : 'Tokens'}
               </span>
             </Link>
-
-            {/* Note Distribution Fee Indicator (Removed: Now dynamic per note) */}
-
-            <span className="text-slate-300 mx-1">|</span>
 
             {/* Authority E-Signature Settings */}
             <button
               type="button"
               onClick={() => setIsAuthorityModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-900 border border-amber-500/30 hover:bg-amber-500/20 transition-all cursor-pointer shadow-2xs active:scale-95"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-900 border border-amber-500/30 hover:bg-amber-500/20 transition-all cursor-pointer shadow-2xs active:scale-95"
               title="Super Admin E-Signature & Stamp Settings"
             >
               <PenTool size={13} className="text-amber-700" />
               <span>Authority E-Sign</span>
             </button>
 
-            <span className="text-slate-300">|</span>
+            <span className="text-slate-300 hidden sm:inline">|</span>
 
-            <div className="flex items-center mx-2">
+            <div className="flex items-center">
               <NotificationBell userType="admin" />
             </div>
 
-            <span className="text-slate-300">|</span>
+            <span className="text-slate-300 hidden sm:inline">|</span>
 
             <button
               onClick={handleLogout}
-              className="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1 cursor-pointer"
+              className="text-xs font-bold text-rose-600 hover:text-rose-700 p-1.5 sm:px-2 rounded-lg hover:bg-rose-50 flex items-center gap-1 cursor-pointer transition-colors"
+              title="Sign out of Admin"
             >
-              <LogOut size={14} />
-              <span>Logout</span>
+              <LogOut size={15} />
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </header>
 
         {/* Dynamic Page Outlet */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">
+        <main className="flex-1 overflow-y-auto p-3.5 sm:p-6 md:p-8">
           <Outlet />
         </main>
 

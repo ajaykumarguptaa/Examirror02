@@ -3465,7 +3465,7 @@ const HomePageCustomizer = () => {
 
               {/* Marquee Notice */}
               {data.marquee?.enabled && (
-                <div className="bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400 text-slate-950 py-2 px-4 text-[11px] font-extrabold overflow-hidden whitespace-nowrap shadow-inner flex items-center gap-2">
+                <div className="bg-amber-400 text-slate-950 py-2 px-4 text-[11px] font-extrabold overflow-hidden whitespace-nowrap shadow-inner flex items-center gap-2">
                   <span className="bg-slate-950 text-white px-2 py-0.5 rounded text-[9px] uppercase tracking-wider font-black shrink-0">
                     Notice
                   </span>
@@ -3709,7 +3709,7 @@ const HomePageCustomizer = () => {
 
               {/* Bottom CTA in Light Mode */}
               {data.cta?.enabled !== false && (
-                <section className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white py-8 px-4 text-center space-y-3">
+                <section className="bg-[#0f172a] text-white py-8 px-4 text-center space-y-3">
                   <h3 className="text-base sm:text-lg font-black text-white">
                     {data.cta.heading}
                   </h3>

@@ -887,7 +887,7 @@ const FreeTestManager: React.FC = () => {
             <button
               type="button"
               onClick={() => handleOpenPublishModal(activeTest)}
-              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 text-white font-bold rounded-xl text-xs shadow-sm flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
             >
               <Share2 size={14} /> Publish & Share
             </button>
@@ -1143,7 +1143,7 @@ const FreeTestManager: React.FC = () => {
       )}
 
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#1e1b4b] via-indigo-950 to-[#1e1b4b] rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-[#1e1b4b] rounded-3xl p-5 sm:p-8 text-white shadow-xl flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-indigo-300 text-[11px] font-bold backdrop-blur-xs mb-2">
             <Award size={13} /> Assessment & Examination Hub
@@ -1234,8 +1234,8 @@ const FreeTestManager: React.FC = () => {
           {quota && (
             <div className={`rounded-3xl p-5 sm:p-6 border transition-all ${
               quota.requires_charge
-                ? 'bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50/50 border-amber-300'
-                : 'bg-gradient-to-r from-indigo-50/70 via-white to-blue-50/60 border-indigo-100'
+                ? 'bg-amber-50 border-amber-300'
+                : 'bg-indigo-50/70 border-indigo-100'
             }`}>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="space-y-1">
@@ -1425,7 +1425,7 @@ const FreeTestManager: React.FC = () => {
 
           {/* Warning Counter Banner (72h Expiry & Auto-Purge System) */}
           {(expiringSoonTests.length > 0 || deletedOrExpiredTests.length > 0) && (
-            <div className="bg-gradient-to-r from-amber-50/90 via-rose-50/70 to-amber-50/90 border border-amber-200/90 rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in">
+            <div className="bg-amber-50/90 border border-amber-200/90 rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in">
               <div className="flex items-start gap-3.5">
                 <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0 mt-0.5 border border-amber-200/60">
                   <Clock size={20} className="animate-pulse" />
@@ -1990,7 +1990,7 @@ const FreeTestManager: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => setMarksheetModalSubmission(sub)}
-                              className="px-2.5 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold rounded-xl text-[11px] shadow-2xs inline-flex items-center gap-1 transition-all cursor-pointer"
+                              className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-[11px] shadow-2xs inline-flex items-center gap-1 transition-all cursor-pointer"
                               title="Generate Official Marksheet PDF"
                             >
                               <FileCheck2 size={12} /> Marksheet (PDF)

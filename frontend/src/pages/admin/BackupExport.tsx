@@ -209,8 +209,7 @@ const BackupExport = () => {
       )}
 
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#1e1b4b] p-5 sm:p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden border border-indigo-900">
         <div className="space-y-2 relative z-10">
           <div className="inline-flex items-center gap-2 bg-indigo-800/60 border border-indigo-400/30 px-3 py-1 rounded-full text-xs font-semibold text-amber-300 uppercase tracking-wider">
             <Database size={13} />
@@ -300,7 +299,7 @@ const BackupExport = () => {
             </div>
           </div>
 
-          <div className="lg:col-span-5 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-indigo-50/80 to-white rounded-3xl border border-indigo-100/80 text-center space-y-4">
+          <div className="lg:col-span-5 flex flex-col items-center justify-center p-5 sm:p-6 bg-indigo-50/60 rounded-3xl border border-indigo-100 text-center space-y-4">
             <div className="w-16 h-16 rounded-3xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/30">
               <HardDriveDownload size={32} />
             </div>

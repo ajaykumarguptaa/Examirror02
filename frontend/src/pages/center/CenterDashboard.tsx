@@ -203,14 +203,11 @@ const CenterDashboard = () => {
       <FadeUp delay={0.08}>
         {centerProfile?.certificateStatus === 'action_required' ? (
           /* STATE 1: SUPER ADMIN DEMANDED DOCUMENTS */
-          <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-rose-500/40">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-rose-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative overflow-hidden bg-[#0f172a] text-white rounded-3xl p-5 sm:p-7 shadow-xl border border-rose-500/30">
             <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div className="flex items-start gap-4 sm:gap-5 max-w-2xl">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-rose-500 to-amber-400 p-0.5 shadow-lg shadow-rose-500/30 shrink-0">
-                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                    <AlertTriangle size={30} className="text-rose-400 animate-pulse" />
-                  </div>
+                <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-rose-500/20 border border-rose-500/40 p-3 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={28} className="text-rose-400 animate-pulse" />
                 </div>
 
                 <div className="space-y-2">
@@ -247,7 +244,7 @@ const CenterDashboard = () => {
                 <button
                   type="button"
                   onClick={() => setShowUploadModal(true)}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-lg shadow-rose-600/30 hover:shadow-xl transition-all transform active:scale-95 cursor-pointer"
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-sm rounded-xl shadow-md transition-all transform active:scale-95 cursor-pointer"
                 >
                   <Upload size={18} />
                   <span>Upload Requested Documents</span>
@@ -257,14 +254,11 @@ const CenterDashboard = () => {
           </div>
         ) : centerProfile?.certificateStatus === 'pending' ? (
           /* STATE 2: CLAIM REQUEST SUBMITTED & PENDING APPROVAL */
-          <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-amber-500/30">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative overflow-hidden bg-[#0f172a] text-white rounded-3xl p-5 sm:p-7 shadow-xl border border-amber-500/30">
             <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div className="flex items-start gap-4 sm:gap-5 max-w-2xl">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 p-0.5 shadow-lg shadow-amber-500/30 shrink-0">
-                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                    <Clock size={30} className="text-amber-400 animate-pulse" />
-                  </div>
+                <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 p-3 flex items-center justify-center shrink-0">
+                  <Clock size={28} className="text-amber-400 animate-pulse" />
                 </div>
 
                 <div className="space-y-1.5">
@@ -300,16 +294,11 @@ const CenterDashboard = () => {
           </div>
         ) : centerProfile?.certificateStatus === 'approved' ? (
           /* STATE 3: OFFICIALLY APPROVED & ACTIVE */
-          <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-amber-500/30">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
+          <div className="relative overflow-hidden bg-[#0f172a] text-white rounded-3xl p-5 sm:p-7 shadow-xl border border-amber-500/30">
             <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div className="flex items-start gap-4 sm:gap-5 max-w-2xl">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 p-0.5 shadow-lg shadow-amber-500/30 shrink-0">
-                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                    <Award size={32} className="text-amber-400 animate-pulse" />
-                  </div>
+                <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 p-3 flex items-center justify-center shrink-0">
+                  <Award size={28} className="text-amber-400 animate-pulse" />
                 </div>
 
                 <div className="space-y-1.5">
@@ -339,7 +328,7 @@ const CenterDashboard = () => {
                 <button
                   type="button"
                   onClick={() => setShowCertModal(true)}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/30 hover:shadow-xl transition-all transform active:scale-95 cursor-pointer"
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm rounded-xl shadow-md transition-all transform active:scale-95 cursor-pointer"
                 >
                   <Award size={18} className="text-slate-950" />
                   <span>Claim & View Certificate</span>
@@ -358,14 +347,11 @@ const CenterDashboard = () => {
           </div>
         ) : (
           /* STATE 4: UNCLAIMED (INITIAL STATE) */
-          <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-indigo-500/30">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative overflow-hidden bg-[#1e1b4b] text-white rounded-3xl p-5 sm:p-7 shadow-xl border border-indigo-500/30">
             <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div className="flex items-start gap-4 sm:gap-5 max-w-2xl">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-amber-300 p-0.5 shadow-lg shadow-indigo-500/30 shrink-0">
-                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                    <Award size={32} className="text-indigo-300" />
-                  </div>
+                <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 p-3 flex items-center justify-center shrink-0">
+                  <Award size={28} className="text-indigo-300" />
                 </div>
 
                 <div className="space-y-1.5">
@@ -396,7 +382,7 @@ const CenterDashboard = () => {
                   type="button"
                   disabled={claimLoading}
                   onClick={handleClaimCertificate}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/30 hover:shadow-xl transition-all transform active:scale-95 cursor-pointer"
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm rounded-xl shadow-md transition-all transform active:scale-95 cursor-pointer"
                 >
                   {claimLoading ? <RefreshCw size={18} className="animate-spin text-slate-950" /> : <Award size={18} className="text-slate-950" />}
                   <span>Claim Center Certificate</span>

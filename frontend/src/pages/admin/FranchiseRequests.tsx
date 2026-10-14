@@ -1070,7 +1070,7 @@ const FranchiseRequests = () => {
           <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh] text-slate-800 animate-in zoom-in-95 duration-200">
 
             {/* Modal Header */}
-            <div className="p-5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex items-center justify-between">
+            <div className="p-4 sm:p-5 bg-[#1e1b4b] text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-yellow-400/20 border border-yellow-400/30 flex items-center justify-center text-yellow-400 font-bold">
                   <Building2 size={22} />
@@ -1485,7 +1485,7 @@ const FranchiseRequests = () => {
                               const typeInfo = getDocTypeInfo(doc.url);
                               if (typeInfo.isPdf) {
                                 return (
-                                  <div className="w-full h-full bg-gradient-to-br from-rose-50 to-red-100/70 flex flex-col items-center justify-center p-3 text-center transition-all group-hover:scale-102">
+                                  <div className="w-full h-full bg-rose-50/90 flex flex-col items-center justify-center p-3 text-center transition-all group-hover:scale-102">
                                     <div className="w-10 h-10 rounded-xl bg-white shadow-xs border border-rose-200 flex items-center justify-center text-rose-600 mb-1.5">
                                       <FileText size={22} className="stroke-[2.2]" />
                                     </div>
@@ -1500,7 +1500,7 @@ const FranchiseRequests = () => {
                               }
                               if (typeInfo.isExcel) {
                                 return (
-                                  <div className="w-full h-full bg-gradient-to-br from-emerald-50 to-teal-100/70 flex flex-col items-center justify-center p-3 text-center transition-all group-hover:scale-102">
+                                  <div className="w-full h-full bg-emerald-50/90 flex flex-col items-center justify-center p-3 text-center transition-all group-hover:scale-102">
                                     <div className="w-10 h-10 rounded-xl bg-white shadow-xs border border-emerald-200 flex items-center justify-center text-emerald-600 mb-1.5">
                                       <Table size={22} className="stroke-[2.2]" />
                                     </div>
@@ -1515,7 +1515,7 @@ const FranchiseRequests = () => {
                               }
                               if (typeInfo.isWord) {
                                 return (
-                                  <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100/70 flex flex-col items-center justify-center p-3 text-center transition-all group-hover:scale-102">
+                                  <div className="w-full h-full bg-blue-50/90 flex flex-col items-center justify-center p-3 text-center transition-all group-hover:scale-102">
                                     <div className="w-10 h-10 rounded-xl bg-white shadow-xs border border-blue-200 flex items-center justify-center text-blue-600 mb-1.5">
                                       <FileText size={22} className="stroke-[2.2]" />
                                     </div>
@@ -2222,7 +2222,7 @@ const FranchiseRequests = () => {
           <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 text-slate-800 animate-in zoom-in-95 duration-200">
 
             {/* Modal Header */}
-            <div className="p-5 bg-gradient-to-r from-slate-900 to-rose-950 text-white flex items-center justify-between">
+            <div className="p-4 sm:p-5 bg-[#0f172a] border-b border-rose-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 font-bold">
                   <ShieldAlert size={22} />
@@ -2463,7 +2463,7 @@ const FranchiseRequests = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="p-5 bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 text-white flex items-center justify-between">
+            <div className="p-4 sm:p-5 bg-[#0f172a] border-b border-emerald-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
                   <Award size={22} />
@@ -2605,7 +2605,7 @@ const FranchiseRequests = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="p-5 bg-gradient-to-r from-amber-950 via-slate-900 to-amber-900 text-white flex items-center justify-between">
+            <div className="p-4 sm:p-5 bg-[#0f172a] border-b border-amber-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400">
                   <FileCheck size={22} />

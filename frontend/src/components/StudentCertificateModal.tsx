@@ -180,26 +180,29 @@ export const StudentCertificateModal = ({ student, onClose, onOpenMarksheet }: a
           </div>
         </div>
       {/* Footer Actions */}
-      <div className="p-4 bg-white border-t border-gray-200 flex justify-between shrink-0">
-        <div className="flex gap-2">
+      <div className="p-3 sm:p-4 bg-white border-t border-gray-200 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {onOpenMarksheet && (
             <button
               onClick={() => { onClose(); onOpenMarksheet(); }}
-              className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-md text-sm"
+              className="flex-1 sm:flex-initial px-4 py-2 sm:py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-md text-xs sm:text-sm cursor-pointer"
             >
               View Marksheet
             </button>
           )}
         </div>
-        <div className="flex gap-3">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button 
+            onClick={onClose} 
+            className="flex-1 sm:flex-initial px-4 py-2 sm:py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors text-xs sm:text-sm cursor-pointer"
+          >
             Close
           </button>
           <button
             onClick={handlePrint}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-2 transition-all shadow-md shadow-blue-500/20"
+            className="flex-1 sm:flex-initial px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-500/20 text-xs sm:text-sm cursor-pointer"
           >
-            <Printer size={18} /> Print Certificate
+            <Printer size={16} /> <span>Print Certificate</span>
           </button>
         </div>
       </div>
