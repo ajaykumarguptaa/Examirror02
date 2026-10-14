@@ -569,8 +569,8 @@ const Home = () => {
       {hero?.enabled !== false && (
         <section className="relative bg-white pt-10 pb-8 sm:pt-14 sm:pb-10 lg:pt-14 lg:pb-12 border-b border-slate-200/80 overflow-hidden w-full">
 
-          {/* Crisp Geometric Dot Pattern (Non-Gradient) */}
-          <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#0f172a_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
+          {/* Clean Solid Background */}
+          <div className="absolute inset-0 bg-slate-50/20 pointer-events-none" />
 
           <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center text-center lg:text-left">
@@ -1491,7 +1491,7 @@ const Home = () => {
 
       {/* 6. Popular Courses Showcase (Modern Fluid Drag & Scroll-Trigger Slider) */}
       {coursesSection?.enabled !== false && allDisplayCourses.length > 0 && (
-        <section className="py-20 bg-gradient-to-b from-white via-indigo-50/20 to-slate-50/70 border-t border-slate-100 relative w-full overflow-hidden">
+        <section className="py-20 bg-slate-50/70 border-t border-slate-200/80 relative w-full overflow-hidden">
           <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
 
             {/* Section Header & Slider Controls */}
@@ -1584,7 +1584,7 @@ const Home = () => {
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out opacity-95 pointer-events-none"
                       loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-slate-950/45 pointer-events-none" />
 
                     {/* Tag Overlay Badge */}
                     <div className="absolute top-3 left-3">
@@ -1640,7 +1640,7 @@ const Home = () => {
                 {/* Smooth Progress Bar Line */}
                 <div className="w-48 sm:w-64 h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 rounded-full transition-all duration-200 ease-out"
+                    className="h-full bg-indigo-600 rounded-full transition-all duration-200 ease-out"
                     style={{ width: `${Math.max(courseScrollProgress * 100, 15)}%` }}
                   />
                 </div>
@@ -1673,7 +1673,7 @@ const Home = () => {
 
       {/* 6.5. Dynamic Test Series & Exam Categories Showcase */}
       {publicTestCategories && publicTestCategories.length > 0 && (
-        <section className="py-20 bg-gradient-to-b from-white via-blue-50/25 to-slate-50/60 border-t border-slate-100 relative w-full overflow-hidden">
+        <section className="py-20 bg-white border-t border-slate-200/80 relative w-full overflow-hidden">
           <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
             
             {/* Header */}
@@ -1725,7 +1725,7 @@ const Home = () => {
                         e.target.src = getCategoryFallbackImage(cat.name);
                       }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent" />
+                    <div className="absolute inset-0 bg-slate-950/45" />
 
                     {/* Series Count Badge Overlay */}
                     <div className="absolute top-3 right-3">
