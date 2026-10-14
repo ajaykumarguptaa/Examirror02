@@ -1070,9 +1070,9 @@ const FranchiseRequests = () => {
           <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh] text-slate-800 animate-in zoom-in-95 duration-200">
 
             {/* Modal Header */}
-            <div className="p-4 sm:p-5 bg-[#1e1b4b] text-white flex items-center justify-between">
+            <div className="p-4 sm:p-5 bg-[#1e1b4b] text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-yellow-400/20 border border-yellow-400/30 flex items-center justify-center text-yellow-400 font-bold">
+                <div className="w-10 h-10 rounded-xl bg-yellow-400/20 border border-yellow-400/30 flex items-center justify-center text-yellow-400 font-bold shrink-0">
                   <Building2 size={22} />
                 </div>
                 <div>
@@ -1084,14 +1084,14 @@ const FranchiseRequests = () => {
               </div>
               <button
                 onClick={() => setSelectedApp(null)}
-                className="text-slate-400 hover:text-white text-2xl font-bold cursor-pointer leading-none"
+                className="text-slate-400 hover:text-white text-2xl font-bold cursor-pointer leading-none p-1"
               >
                 &times;
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-6 overflow-y-auto">
+            <div className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1 min-h-0">
 
               {/* Application Status Banner */}
               <div className="flex items-center justify-between p-4 rounded-2xl border bg-slate-50">
@@ -1720,52 +1720,57 @@ const FranchiseRequests = () => {
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+            <div className="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <button
+                  type="button"
                   onClick={() => setSelectedApp(null)}
-                  className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                  className="flex-1 sm:flex-initial px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer text-center"
                 >
                   Close
                 </button>
 
                 {selectedApp.status !== 'Trash' ? (
                   <button
+                    type="button"
                     onClick={() => {
                       const appToDel = selectedApp;
                       setSelectedApp(null);
                       openDeleteModal(appToDel, 'soft');
                     }}
-                    className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                   >
-                    <Trash2 size={13} />
+                    <Trash2 size={13} className="shrink-0" />
                     <span>Move to Trash</span>
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => {
                       handleRestore(selectedApp.id);
                       setSelectedApp(null);
                     }}
-                    className="px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                   >
-                    <RotateCcw size={13} />
+                    <RotateCcw size={13} className="shrink-0" />
                     <span>Restore Application</span>
                   </button>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 {selectedApp.status === 'Pending' && (
                   <>
                     <button
+                      type="button"
                       onClick={() => handleReject(selectedApp.id)}
-                      className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition-colors cursor-pointer"
+                      className="flex-1 sm:flex-initial px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition-colors cursor-pointer text-center whitespace-nowrap"
                     >
                       Reject Application
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => {
                         setApprovingApp(selectedApp);
                         setCustomCenterCode(selectedApp.login_id?.trim() || `EXAMc2026-${String(100 + selectedApp.id).padStart(3, '0')}`);
@@ -1777,9 +1782,9 @@ const FranchiseRequests = () => {
                         setInitialWallet(500);
                         setApprovalResult(null);
                       }}
-                      className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="w-full sm:w-auto justify-center px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      <CheckCircle2 size={15} />
+                      <CheckCircle2 size={15} className="shrink-0" />
                       <span>Approve & Create Center</span>
                     </button>
                   </>
@@ -1796,9 +1801,9 @@ const FranchiseRequests = () => {
                             setDemandedDocList([]);
                             setDemandNotes(selectedApp.certificate_demand_notes || '');
                           }}
-                          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                          className="flex-1 sm:flex-initial px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                         >
-                          <FileCheck size={14} />
+                          <FileCheck size={14} className="shrink-0" />
                           <span>Demand Documents</span>
                         </button>
 
@@ -1809,10 +1814,10 @@ const FranchiseRequests = () => {
                             setSecondaryConfirmed(false);
                             setCertApprovalNotes('');
                           }}
-                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition-colors cursor-pointer"
+                          className="w-full sm:w-auto justify-center px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                         >
-                          <Award size={14} />
-                          <span>Approve Certificate (Secondary Confirmation)</span>
+                          <Award size={14} className="shrink-0" />
+                          <span>Approve Certificate</span>
                         </button>
                       </>
                     ) : (
@@ -1839,9 +1844,9 @@ const FranchiseRequests = () => {
                           });
                           setCertModalOpen(true);
                         }}
-                        className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-600/30 flex items-center gap-1.5 transition-colors cursor-pointer"
+                        className="w-full sm:w-auto justify-center px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-600/30 flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                       >
-                        <Award size={14} />
+                        <Award size={14} className="shrink-0" />
                         <span>View Center Certificate</span>
                       </button>
                     )}
@@ -2192,11 +2197,11 @@ const FranchiseRequests = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2">
+                <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
                   <button
                     type="button"
                     onClick={() => setApprovingApp(null)}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+                    className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer text-center"
                   >
                     Cancel
                   </button>
@@ -2204,9 +2209,9 @@ const FranchiseRequests = () => {
                     type="button"
                     onClick={handleApprove}
                     disabled={actionLoading}
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md cursor-pointer flex items-center gap-1.5"
+                    className="w-full sm:w-auto justify-center px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
                   >
-                    {actionLoading && <RefreshCw size={13} className="animate-spin" />}
+                    {actionLoading && <RefreshCw size={13} className="animate-spin shrink-0" />}
                     <span>Confirm & Activate Center</span>
                   </button>
                 </div>
@@ -2561,14 +2566,14 @@ const FranchiseRequests = () => {
             </div>
 
             {/* Modal Actions */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => {
                   setCertApprovalTarget(null);
                   setSecondaryConfirmed(false);
                 }}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl cursor-pointer text-center"
               >
                 Cancel
               </button>
@@ -2577,7 +2582,7 @@ const FranchiseRequests = () => {
                 type="button"
                 disabled={!secondaryConfirmed || certApproving}
                 onClick={() => handleConfirmCertificateApproval(certApprovalTarget.id)}
-                className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow-md flex items-center gap-2 transition-all ${
+                className={`w-full sm:w-auto justify-center px-5 py-2.5 font-bold text-xs rounded-xl shadow-md flex items-center gap-2 transition-all whitespace-nowrap ${
                   secondaryConfirmed && !certApproving
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-emerald-600/30'
                     : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
