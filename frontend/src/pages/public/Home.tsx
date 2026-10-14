@@ -193,9 +193,14 @@ const Home = () => {
   const enquiry = content.enquiry || DEFAULT_HOME_SETTINGS.enquiry;
   const cta = content.cta || DEFAULT_HOME_SETTINGS.cta;
 
-  // Slider State for Courses Carousel
-  const [courseSlidePage, setCourseSlidePage] = useState(0);
+  // Slider State for Courses Carousel (Modern Drag & Scroll Trigger Mode)
+  const coursesScrollRef = useRef<HTMLDivElement>(null);
+  const [courseScrollProgress, setCourseScrollProgress] = useState(0);
+  const [activeCourseIdx, setActiveCourseIdx] = useState(0);
   const [isCourseAutoSlide, setIsCourseAutoSlide] = useState(true);
+  const [isDraggingCourse, setIsDraggingCourse] = useState(false);
+  const [dragStartX, setDragStartX] = useState(0);
+  const [dragScrollLeft, setDragScrollLeft] = useState(0);
 
   // Real-Time Online Verification Gateway State
   const [centerInput, setCenterInput] = useState('');
@@ -315,17 +320,85 @@ const Home = () => {
       : DEFAULT_HOME_SETTINGS.coursesSection.categories;
   }, [publicCourses, coursesSection]);
 
-  const coursesPerPage = 4;
-  const totalCoursePages = Math.ceil(allDisplayCourses.length / coursesPerPage) || 1;
+  // Modern Course Scroller Handlers
+  const handleCoursesScroll = () => {
+    if (!coursesScrollRef.current) return;
+    const el = coursesScrollRef.current;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const progress = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
+    setCourseScrollProgress(Math.min(Math.max(progress, 0), 1));
 
-  // Auto slide timer for courses carousel
+    const card = el.querySelector<HTMLElement>('.course-card-item');
+    const cardWidth = (card?.offsetWidth || 320) + 24;
+    const newIdx = Math.round(el.scrollLeft / cardWidth);
+    setActiveCourseIdx(Math.min(Math.max(newIdx, 0), allDisplayCourses.length - 1));
+  };
+
+  const handleCourseMouseDown = (e: React.MouseEvent) => {
+    if (!coursesScrollRef.current) return;
+    setIsDraggingCourse(true);
+    setIsCourseAutoSlide(false);
+    setDragStartX(e.pageX - coursesScrollRef.current.offsetLeft);
+    setDragScrollLeft(coursesScrollRef.current.scrollLeft);
+  };
+
+  const handleCourseMouseLeaveOrUp = () => {
+    setIsDraggingCourse(false);
+  };
+
+  const handleCourseMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingCourse || !coursesScrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - coursesScrollRef.current.offsetLeft;
+    const walk = (x - dragStartX) * 1.5;
+    coursesScrollRef.current.scrollLeft = dragScrollLeft - walk;
+  };
+
+  const handleScrollCourses = (direction: 'left' | 'right') => {
+    if (!coursesScrollRef.current) return;
+    const el = coursesScrollRef.current;
+    const card = el.querySelector<HTMLElement>('.course-card-item');
+    const cardWidth = (card?.offsetWidth || 320) + 24;
+    if (direction === 'left') {
+      if (el.scrollLeft <= 15) {
+        el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+      }
+    } else {
+      if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 25) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: cardWidth, behavior: 'smooth' });
+      }
+    }
+  };
+
+  const scrollToCourseIndex = (idx: number) => {
+    if (!coursesScrollRef.current) return;
+    const el = coursesScrollRef.current;
+    const card = el.querySelector<HTMLElement>('.course-card-item');
+    const cardWidth = (card?.offsetWidth || 320) + 24;
+    el.scrollTo({ left: idx * cardWidth, behavior: 'smooth' });
+  };
+
+  // Modern Auto-Slide timer (pauses seamlessly during drag/hover)
   useEffect(() => {
-    if (!isCourseAutoSlide || totalCoursePages <= 1) return;
+    if (!isCourseAutoSlide || allDisplayCourses.length <= 1) return;
     const timer = setInterval(() => {
-      setCourseSlidePage((prev) => (prev + 1) % totalCoursePages);
-    }, 5000);
+      if (coursesScrollRef.current && !isDraggingCourse) {
+        const el = coursesScrollRef.current;
+        const card = el.querySelector<HTMLElement>('.course-card-item');
+        const cardWidth = (card?.offsetWidth || 320) + 24;
+        if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 30) {
+          el.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          el.scrollBy({ left: cardWidth, behavior: 'smooth' });
+        }
+      }
+    }, 4500);
     return () => clearInterval(timer);
-  }, [isCourseAutoSlide, totalCoursePages]);
+  }, [isCourseAutoSlide, isDraggingCourse, allDisplayCourses.length]);
 
   // Center Ticker Scroll Handler
   const handleScrollCenters = (direction: 'left' | 'right') => {
@@ -1416,17 +1489,17 @@ const Home = () => {
         </section>
       )}
 
-      {/* 6. Popular Courses Showcase (Dynamic Slider / Carousel) */}
+      {/* 6. Popular Courses Showcase (Modern Fluid Drag & Scroll-Trigger Slider) */}
       {coursesSection?.enabled !== false && allDisplayCourses.length > 0 && (
-        <section className="py-20 bg-slate-50/60 border-t border-slate-100 relative w-full overflow-hidden">
+        <section className="py-20 bg-gradient-to-b from-white via-indigo-50/20 to-slate-50/70 border-t border-slate-100 relative w-full overflow-hidden">
           <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
 
             {/* Section Header & Slider Controls */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
               <FadeUp>
                 <div className="text-left max-w-2xl">
-                  <span className="text-xs font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-3.5 py-1 rounded-full uppercase tracking-wider inline-flex items-center gap-1 shadow-xs">
-                    <BookOpen size={13} />
+                  <span className="text-xs font-black text-indigo-700 bg-indigo-50 border border-indigo-200/90 px-3.5 py-1 rounded-full uppercase tracking-wider inline-flex items-center gap-1.5 shadow-xs">
+                    <BookOpen size={13} className="text-indigo-600 animate-pulse" />
                     <span>Job-Ready Diplomas & Certificates</span>
                   </span>
                   <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 mt-3.5 mb-2 tracking-tight">
@@ -1438,21 +1511,21 @@ const Home = () => {
                 </div>
               </FadeUp>
 
-              {/* Slider Navigation Buttons (if multiple course pages) */}
-              {totalCoursePages > 1 && (
+              {/* Slider Navigation Buttons & Dynamic Stepper Counter */}
+              {allDisplayCourses.length > 1 && (
                 <div className="flex items-center gap-3 shrink-0 self-start md:self-auto">
-                  <div className="text-xs font-bold text-slate-500 mr-1">
-                    <span className="text-indigo-600 font-black">{courseSlidePage + 1}</span> / {totalCoursePages}
+                  <div className="text-xs font-black text-slate-600 bg-white/90 backdrop-blur-xs border border-slate-200/90 px-3.5 py-1.5 rounded-xl shadow-xs">
+                    <span className="text-indigo-600 font-extrabold">{activeCourseIdx + 1}</span> / {allDisplayCourses.length}
                   </div>
 
                   <button
                     type="button"
                     onClick={() => {
                       setIsCourseAutoSlide(false);
-                      setCourseSlidePage((prev) => (prev === 0 ? totalCoursePages - 1 : prev - 1));
+                      handleScrollCourses('left');
                     }}
                     className="w-10 h-10 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 flex items-center justify-center shadow-sm transition-all cursor-pointer active:scale-90"
-                    title="Previous Courses"
+                    title="Previous Course"
                   >
                     <ChevronLeft size={18} />
                   </button>
@@ -1461,17 +1534,17 @@ const Home = () => {
                     type="button"
                     onClick={() => {
                       setIsCourseAutoSlide(false);
-                      setCourseSlidePage((prev) => (prev + 1) % totalCoursePages);
+                      handleScrollCourses('right');
                     }}
                     className="w-10 h-10 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 flex items-center justify-center shadow-sm transition-all cursor-pointer active:scale-90"
-                    title="Next Courses"
+                    title="Next Course"
                   >
                     <ChevronRight size={18} />
                   </button>
 
                   <Link
                     to="/courses"
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md shadow-indigo-200 transition-colors ml-2 active:scale-95"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md shadow-indigo-200 transition-all ml-1 hover:scale-102 active:scale-95"
                   >
                     <span>View All</span>
                     <ArrowRight size={13} />
@@ -1480,88 +1553,117 @@ const Home = () => {
               )}
             </div>
 
-            {/* Dynamic Slider Slide Cards */}
-            <div className="relative overflow-hidden min-h-[220px]">
-              <AnimatePresence mode="wait">
+            {/* Dynamic Continuous Horizontal Slider Scroller with Scroll-Trigger Reveal */}
+            <div
+              ref={coursesScrollRef}
+              onScroll={handleCoursesScroll}
+              onMouseDown={handleCourseMouseDown}
+              onMouseLeave={handleCourseMouseLeaveOrUp}
+              onMouseUp={handleCourseMouseLeaveOrUp}
+              onMouseMove={handleCourseMouseMove}
+              onMouseEnter={() => setIsCourseAutoSlide(false)}
+              className={`flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory py-4 px-1 no-scrollbar select-none ${
+                isDraggingCourse ? 'cursor-grabbing' : 'cursor-grab'
+              }`}
+            >
+              {allDisplayCourses.map((cat: any, idx: number) => (
                 <motion.div
-                  key={courseSlidePage}
-                  initial={{ opacity: 0, x: 30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -30 }}
-                  transition={{ duration: 0.35, ease: 'easeOut' }}
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left"
+                  key={cat.id || idx}
+                  initial={{ opacity: 0, y: 35, scale: 0.95 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  viewport={{ once: true, margin: '-40px' }}
+                  transition={{ duration: 0.55, delay: Math.min(idx * 0.08, 0.4), ease: [0.16, 1, 0.3, 1] }}
+                  whileHover={{ y: -8 }}
+                  className="course-card-item snap-start shrink-0 w-[285px] sm:w-[325px] lg:w-[calc(25%-18px)] rounded-3xl flex flex-col justify-between group relative overflow-hidden bg-white/95 backdrop-blur-md shadow-md hover:shadow-2xl hover:shadow-indigo-500/15 transition-all duration-400 h-full border border-slate-200/90 hover:border-indigo-400/60"
                 >
-                  {allDisplayCourses
-                    .slice(courseSlidePage * coursesPerPage, (courseSlidePage + 1) * coursesPerPage)
-                    .map((cat: any, idx: number) => (
-                      <motion.div
-                        key={cat.id || idx}
-                        whileHover={{ y: -6, scale: 1.01 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="card-3d rounded-2xl flex flex-col justify-between group relative overflow-hidden bg-white shadow-md hover:shadow-xl transition-all duration-300 h-full border border-slate-200"
-                      >
-                        {/* Course Card Thumbnail Image Header */}
-                        <div className="h-36 sm:h-40 w-full relative overflow-hidden bg-slate-900 shrink-0">
-                          <img
-                            src={cat.image || getCourseFallbackImage(cat.name, cat.tag)}
-                            alt={cat.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-95"
-                            loading="lazy"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
-                          
-                          {/* Tag Overlay over Image */}
-                          <div className="absolute bottom-2.5 left-3">
-                            <span className="text-[10px] font-bold text-white bg-blue-600/95 backdrop-blur-xs px-2.5 py-1 rounded-md inline-block uppercase tracking-wide shadow-xs border border-white/20">
-                              {cat.tag}
-                            </span>
-                          </div>
-                        </div>
+                  {/* Course Card Thumbnail Image Header */}
+                  <div className="h-44 sm:h-48 w-full relative overflow-hidden bg-slate-900 shrink-0">
+                    <img
+                      src={cat.image || getCourseFallbackImage(cat.name, cat.tag)}
+                      alt={cat.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out opacity-95 pointer-events-none"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent pointer-events-none" />
 
-                        {/* Card Body */}
-                        <div className="p-5 flex-1 flex flex-col justify-between">
-                          <div>
-                            <h3 className="font-bold text-slate-900 text-base sm:text-lg group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
-                              {cat.name}
-                            </h3>
-                            <p className="text-slate-500 text-xs mt-2 font-medium flex items-center gap-1.5">
-                              <Clock3 size={13} className="text-slate-400" />
-                              <span>Duration: {cat.duration}</span>
-                            </p>
-                          </div>
+                    {/* Tag Overlay Badge */}
+                    <div className="absolute top-3 left-3">
+                      <span className="text-[10px] font-black text-indigo-700 bg-white/95 backdrop-blur-md px-3 py-1 rounded-full uppercase tracking-wider inline-flex items-center gap-1 shadow-sm border border-white/50">
+                        <Sparkles size={11} className="text-indigo-600" />
+                        <span>{cat.tag || 'Diploma'}</span>
+                      </span>
+                    </div>
 
-                          <Link
-                            to="/courses"
-                            className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-blue-700 group-hover:text-blue-900 cursor-pointer"
-                          >
-                            <span>Explore Curriculum</span>
-                            <ArrowRight size={15} className="group-hover:translate-x-1.5 transition-transform duration-300" />
-                          </Link>
-                        </div>
-                      </motion.div>
-                    ))}
+                    {/* Recognized Badge Overlay */}
+                    <div className="absolute top-3 right-3">
+                      <span className="text-[10px] font-bold text-white/90 bg-slate-900/70 backdrop-blur-md px-2.5 py-1 rounded-full inline-flex items-center gap-1 border border-white/10">
+                        <Award size={11} className="text-amber-400" />
+                        <span>Certified</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card Body */}
+                  <div className="p-5 flex-1 flex flex-col justify-between text-left">
+                    <div>
+                      <h3 className="font-black text-slate-900 text-base sm:text-lg group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug">
+                        {cat.name}
+                      </h3>
+                      <div className="flex items-center justify-between text-slate-500 text-xs mt-3 font-medium">
+                        <span className="flex items-center gap-1.5">
+                          <Clock3 size={13} className="text-slate-400" />
+                          <span>Duration: {cat.duration}</span>
+                        </span>
+                        <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          Job-Ready
+                        </span>
+                      </div>
+                    </div>
+
+                    <Link
+                      to="/courses"
+                      className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs font-black text-indigo-600 group-hover:text-indigo-800 transition-colors cursor-pointer"
+                    >
+                      <span className="group-hover:underline">Explore Curriculum</span>
+                      <div className="w-7 h-7 rounded-full bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center transition-all duration-300">
+                        <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                      </div>
+                    </Link>
+                  </div>
                 </motion.div>
-              </AnimatePresence>
+              ))}
             </div>
 
-            {/* Pagination Dots Indicator */}
-            {totalCoursePages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-8">
-                {Array.from({ length: totalCoursePages }).map((_, dotIdx) => (
-                  <button
-                    key={dotIdx}
-                    type="button"
-                    onClick={() => {
-                      setIsCourseAutoSlide(false);
-                      setCourseSlidePage(dotIdx);
-                    }}
-                    className={`h-2 rounded-full transition-all cursor-pointer ${courseSlidePage === dotIdx
-                      ? 'w-8 bg-blue-600'
-                      : 'w-2 bg-slate-300 hover:bg-slate-400'
-                      }`}
-                    title={`Go to Slide ${dotIdx + 1}`}
+            {/* Modern Bottom Progress Indicator & Dot Steppers */}
+            {allDisplayCourses.length > 1 && (
+              <div className="flex flex-col items-center justify-center gap-3 mt-8">
+                {/* Smooth Progress Bar Line */}
+                <div className="w-48 sm:w-64 h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 rounded-full transition-all duration-200 ease-out"
+                    style={{ width: `${Math.max(courseScrollProgress * 100, 15)}%` }}
                   />
-                ))}
+                </div>
+
+                {/* Stepper Dots Indicator */}
+                <div className="flex items-center gap-2">
+                  {allDisplayCourses.map((_, dotIdx) => (
+                    <button
+                      key={dotIdx}
+                      type="button"
+                      onClick={() => {
+                        setIsCourseAutoSlide(false);
+                        scrollToCourseIndex(dotIdx);
+                      }}
+                      className={`h-2 rounded-full transition-all cursor-pointer ${
+                        activeCourseIdx === dotIdx
+                          ? 'w-7 bg-indigo-600 shadow-xs shadow-indigo-300'
+                          : 'w-2 bg-slate-300 hover:bg-slate-400'
+                      }`}
+                      title={`Go to Course ${dotIdx + 1}`}
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
