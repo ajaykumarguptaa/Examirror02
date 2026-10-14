@@ -6,6 +6,18 @@ import { validateBody, walletRequestSchema } from '../middleware/validate.middle
 
 const router = Router();
 
+// ==========================================
+// PUBLIC TRAINING & TUTORIAL VIDEOS FOR CENTERS
+// ==========================================
+router.get('/training-videos', async (req, res) => {
+  try {
+    const rows = await centerService.getTrainingVideos();
+    res.status(200).json({ success: true, data: rows });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Enforce center or admin authentication and IDOR protection across center routes
 router.use(verifyCenterOrAdmin);
 
@@ -600,16 +612,8 @@ router.delete('/free-tests/questions/:id', async (req, res) => {
 });
 
 // ==========================================
-// 7. TRAINING VIDEOS
+// 7. TRAINING VIDEOS (Center Actions)
 // ==========================================
-router.get('/training-videos', async (req, res) => {
-  try {
-    const rows = await centerService.getTrainingVideos();
-    res.status(200).json({ success: true, data: rows });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
 
 router.post('/training-videos', async (req, res) => {
   const { title, url, description, duration, thumbnail } = req.body;

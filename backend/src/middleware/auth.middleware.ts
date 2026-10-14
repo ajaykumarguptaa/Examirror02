@@ -80,7 +80,7 @@ export const verifyCenterOrAdmin = (req: Request, res: Response, next: NextFunct
           'courses', 'wallet', 'sample-csv', 'bulk-upload', 'id-cards-pdf', 
           'marksheet-pdf', 'certificate-pdf', 'diploma-pdf', 'students', 
           'admit-cards-pdf', 'edit-requests', 'settings', 'all-admit-cards-pdf',
-          'franchise-certificate', 'bonafide-certificate'
+          'franchise-certificate', 'bonafide-certificate', 'training-videos'
         ];
         if (segments.length > 0 && !reservedWords.includes(segments[0])) {
           requestedCenterId = segments[0];
