@@ -443,20 +443,35 @@ export const InteractiveCard: React.FC<BaseMotionProps> = ({
 };
 
 /**
- * 12. InteractiveButton (Tactile micro-interaction button wrapper)
+ * 12. InteractiveButton (Tactile micro-interaction button wrapper with spring physics & sheen)
  */
 interface InteractiveButtonProps extends HTMLMotionProps<'button'> {
   className?: string;
   children?: React.ReactNode;
+  variant?: 'glow' | 'emerald' | 'primary' | 'outline' | 'ghost' | 'default';
+  shimmer?: boolean;
 }
 
 export const InteractiveButton: React.FC<InteractiveButtonProps> = ({
   children,
   className = '',
+  variant = 'default',
+  shimmer = false,
   ...props
 }) => {
   const prefersReduced = useReducedMotion();
-  if (prefersReduced) return <button className={className} {...(props as any)}>{children}</button>;
+
+  const variantClass = variant === 'glow'
+    ? 'btn-glow-primary'
+    : variant === 'emerald'
+    ? 'btn-glow-emerald'
+    : variant === 'primary'
+    ? 'btn-3d-primary'
+    : '';
+
+  const combinedClass = `btn-elastic ${variantClass} ${shimmer ? 'btn-shimmer' : ''} ${className}`.trim();
+
+  if (prefersReduced) return <button className={combinedClass} {...(props as any)}>{children}</button>;
 
   return (
     <motion.button
@@ -464,7 +479,7 @@ export const InteractiveButton: React.FC<InteractiveButtonProps> = ({
       initial="rest"
       whileHover="hover"
       whileTap="tap"
-      className={className}
+      className={combinedClass}
       {...props}
     >
       {children}

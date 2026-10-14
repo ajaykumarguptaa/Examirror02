@@ -618,7 +618,7 @@ const Home = () => {
                 >
                   <Link
                     to="/courses"
-                    className="font-semibold py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer hover:-translate-y-0.5 active:scale-98"
+                    className="btn-glow-primary btn-shimmer btn-elastic font-bold py-3.5 px-6 rounded-2xl text-white text-xs sm:text-sm flex items-center gap-2 shadow-md cursor-pointer"
                   >
                     <BookOpen size={16} />
                     <span>Explore Certified Courses</span>
@@ -627,7 +627,7 @@ const Home = () => {
 
                   <Link
                     to="/franchise/requirements"
-                    className="font-semibold py-3 px-6 rounded-xl bg-slate-900 hover:bg-slate-950 text-white text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer hover:-translate-y-0.5 active:scale-98"
+                    className="btn-elastic font-bold py-3.5 px-6 rounded-2xl bg-slate-900 hover:bg-slate-950 text-white text-xs sm:text-sm flex items-center gap-2 shadow-sm border border-slate-700/50 cursor-pointer"
                   >
                     <Building2 size={16} />
                     <span>Apply for Franchise</span>
@@ -635,7 +635,7 @@ const Home = () => {
 
                   <a
                     href="#verify-gateway"
-                    className="font-semibold py-3 px-5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm flex items-center gap-1.5 transition-all cursor-pointer active:scale-98"
+                    className="btn-elastic font-bold py-3.5 px-5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm flex items-center gap-1.5 border border-slate-200 cursor-pointer"
                   >
                     <ShieldCheck size={16} className="text-emerald-600" />
                     <span>Verify Credentials</span>
@@ -1452,18 +1452,18 @@ const Home = () => {
                       </div>
 
                       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2.5">
                           <button
                             type="button"
                             onClick={() => downloadOfficialVerificationPdf(verificationResult.data)}
-                            className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg transition-colors inline-flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-98"
+                            className="btn-glow-emerald btn-shimmer btn-elastic px-4.5 py-2.5 text-white text-xs font-bold rounded-xl inline-flex items-center gap-2 shadow-md cursor-pointer"
                           >
-                            <Download size={14} />
+                            <Download size={15} />
                             <span>Download Official Verification PDF</span>
                           </button>
                           <Link
                             to={`/verify/student/${encodeURIComponent(verificationResult.data.enrollment_no || verificationResult.data.roll_no || verificationResult.data.id)}`}
-                            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition-colors inline-flex items-center gap-1.5 border border-slate-200"
+                            className="btn-elastic px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 border border-slate-200 cursor-pointer shadow-xs"
                           >
                             <FileText size={14} className="text-blue-600" />
                             <span>Full Details</span>
@@ -1524,7 +1524,7 @@ const Home = () => {
                       setIsCourseAutoSlide(false);
                       handleScrollCourses('left');
                     }}
-                    className="w-10 h-10 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 flex items-center justify-center shadow-sm transition-all cursor-pointer active:scale-90"
+                    className="btn-icon-bounce w-10 h-10 rounded-2xl bg-white/95 border border-slate-200/90 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 flex items-center justify-center shadow-xs cursor-pointer"
                     title="Previous Course"
                   >
                     <ChevronLeft size={18} />
@@ -1536,7 +1536,7 @@ const Home = () => {
                       setIsCourseAutoSlide(false);
                       handleScrollCourses('right');
                     }}
-                    className="w-10 h-10 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 flex items-center justify-center shadow-sm transition-all cursor-pointer active:scale-90"
+                    className="btn-icon-bounce w-10 h-10 rounded-2xl bg-white/95 border border-slate-200/90 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 flex items-center justify-center shadow-xs cursor-pointer"
                     title="Next Course"
                   >
                     <ChevronRight size={18} />
@@ -1544,7 +1544,7 @@ const Home = () => {
 
                   <Link
                     to="/courses"
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md shadow-indigo-200 transition-all ml-1 hover:scale-102 active:scale-95"
+                    className="btn-glow-primary btn-shimmer btn-elastic px-4.5 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md ml-1"
                   >
                     <span>View All</span>
                     <ArrowRight size={13} />
@@ -1622,11 +1622,11 @@ const Home = () => {
 
                     <Link
                       to="/courses"
-                      className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs font-black text-indigo-600 group-hover:text-indigo-800 transition-colors cursor-pointer"
+                      className="btn-elastic pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs font-black text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer group/link"
                     >
-                      <span className="group-hover:underline">Explore Curriculum</span>
-                      <div className="w-7 h-7 rounded-full bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center transition-all duration-300">
-                        <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                      <span className="group-hover/link:underline">Explore Curriculum</span>
+                      <div className="btn-icon-bounce w-7 h-7 rounded-full bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center shadow-xs transition-colors">
+                        <ArrowRight size={13} className="group-hover/link:translate-x-0.5 transition-transform" />
                       </div>
                     </Link>
                   </div>
@@ -1696,7 +1696,7 @@ const Home = () => {
               <div className="shrink-0 self-start md:self-auto">
                 <Link
                   to="/student/test-series"
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-black inline-flex items-center gap-2 shadow-md shadow-blue-200 transition-all hover:scale-102 active:scale-95"
+                  className="btn-glow-primary btn-shimmer btn-elastic px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black inline-flex items-center gap-2 shadow-md cursor-pointer"
                 >
                   <span>Explore All Test Series</span>
                   <ArrowRight size={15} />
@@ -1759,7 +1759,7 @@ const Home = () => {
                       </span>
                       <Link
                         to="/student/test-series"
-                        className="inline-flex items-center gap-1.5 text-xs font-black text-blue-600 group-hover:text-blue-800 transition-colors cursor-pointer"
+                        className="btn-elastic inline-flex items-center gap-1.5 text-xs font-black text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
                       >
                         <span>Start Test</span>
                         <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
@@ -1792,7 +1792,7 @@ const Home = () => {
                 <button
                   type="button"
                   onClick={() => handleScrollCenters('left')}
-                  className="p-2 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 border border-slate-200 transition-colors cursor-pointer active:scale-90"
+                  className="btn-icon-bounce p-2.5 rounded-xl bg-white hover:bg-blue-50 hover:text-blue-600 text-slate-600 border border-slate-200/90 shadow-xs cursor-pointer"
                   title="Scroll Left"
                 >
                   <ChevronLeft size={16} />
@@ -1800,16 +1800,17 @@ const Home = () => {
                 <button
                   type="button"
                   onClick={() => handleScrollCenters('right')}
-                  className="p-2 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 border border-slate-200 transition-colors cursor-pointer active:scale-90"
+                  className="btn-icon-bounce p-2.5 rounded-xl bg-white hover:bg-blue-50 hover:text-blue-600 text-slate-600 border border-slate-200/90 shadow-xs cursor-pointer"
                   title="Scroll Right"
                 >
                   <ChevronRight size={16} />
                 </button>
                 <Link
                   to="/branches"
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline ml-2"
+                  className="btn-elastic text-xs font-bold text-blue-600 hover:text-blue-800 ml-2 py-1 px-2.5 rounded-lg hover:bg-blue-50/60 inline-flex items-center gap-1"
                 >
-                  View All Branches &rarr;
+                  <span>View All Branches</span>
+                  <ArrowRight size={12} />
                 </Link>
               </div>
             </div>

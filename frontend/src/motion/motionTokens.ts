@@ -39,6 +39,7 @@ export const motionTokens = {
     snappy: [0.25, 0.1, 0.25, 1] as const,      // Responsive UI interactions
     gentle: [0.33, 1, 0.68, 1] as const,       // Soft organic reveals
     bounceSubtle: [0.34, 1.4, 0.64, 1] as const, // Subtle tactile overshoot
+    elastic: [0.34, 1.56, 0.64, 1] as const,    // Snappy elastic overshoot
   },
 
   // Spring configurations for physics-based interaction
@@ -46,6 +47,7 @@ export const motionTokens = {
     snappy: { type: 'spring', stiffness: 450, damping: 30 },
     gentle: { type: 'spring', stiffness: 280, damping: 24 },
     bouncy: { type: 'spring', stiffness: 400, damping: 18 },
+    elastic: { type: 'spring', stiffness: 480, damping: 14 }, // Lively elastic spring
     smooth: { type: 'spring', stiffness: 200, damping: 20 },
   }
 } as const;

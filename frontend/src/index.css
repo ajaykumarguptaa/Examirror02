@@ -84,6 +84,108 @@ textarea {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
 }
 
+/* Ultra-Premium Tactile & Elastic Button System (GSAP & Physics Inspired) */
+.btn-elastic {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease, background 0.3s ease, border-color 0.3s ease !important;
+  will-change: transform, box-shadow;
+}
+.btn-elastic:hover {
+  transform: translateY(-2.5px) scale(1.035);
+}
+.btn-elastic:active {
+  transform: translateY(1.5px) scale(0.93) !important;
+  transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+/* Light Sheen Sweep across button on hover */
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 65%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.32) 50%,
+    transparent 100%
+  );
+  transform: skewX(-25deg);
+  pointer-events: none;
+  transition: left 0.75s ease;
+}
+.btn-shimmer:hover::before {
+  left: 190%;
+  transition: left 0.75s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Vibrant Glowing Primary Button (Indigo/Blue) */
+.btn-glow-primary {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 50%, #2563eb 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease, filter 0.25s ease;
+  will-change: transform, box-shadow;
+}
+.btn-glow-primary:hover {
+  transform: translateY(-2.5px) scale(1.03);
+  box-shadow: 0 10px 25px -2px rgba(79, 70, 229, 0.55), 0 0 15px 2px rgba(59, 130, 246, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.45);
+  filter: brightness(1.08);
+}
+.btn-glow-primary:active {
+  transform: translateY(1.5px) scale(0.94);
+  box-shadow: 0 2px 8px 0 rgba(79, 70, 229, 0.4);
+  transition: transform 0.1s ease;
+}
+
+/* Vibrant Glowing Emerald Button (Matches Ease Visualizer Green) */
+.btn-glow-emerald {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 4px 16px 0 rgba(16, 185, 129, 0.42), inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease, filter 0.25s ease;
+  will-change: transform, box-shadow;
+}
+.btn-glow-emerald:hover {
+  transform: translateY(-2.5px) scale(1.035);
+  box-shadow: 0 10px 25px -2px rgba(16, 185, 129, 0.6), 0 0 20px 4px rgba(16, 185, 129, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+  filter: brightness(1.1);
+}
+.btn-glow-emerald:active {
+  transform: translateY(1.5px) scale(0.94);
+  box-shadow: 0 2px 8px 0 rgba(16, 185, 129, 0.4);
+  transition: transform 0.1s ease;
+}
+
+/* Elastic Icon Controls (< and > arrows) */
+.btn-icon-bounce {
+  transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, background-color 0.2s ease, border-color 0.2s ease;
+  will-change: transform;
+}
+.btn-icon-bounce:hover {
+  transform: scale(1.14) translateY(-1.5px);
+  box-shadow: 0 8px 20px -3px rgba(79, 70, 229, 0.28);
+}
+.btn-icon-bounce:active {
+  transform: scale(0.88);
+  transition: transform 0.1s ease;
+}
+
 /* Modern Minimalist Buttons with Clean Solid Colors & Soft Shadow */
 .btn-3d-primary {
   background-color: #2563eb;
@@ -92,14 +194,15 @@ textarea {
   border-radius: 0.625rem;
   font-weight: 600;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  transition: all 0.15s ease;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease;
 }
 .btn-3d-primary:hover {
   background-color: #1d4ed8;
-  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.25);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 12px -2px rgba(37, 99, 235, 0.3);
 }
 .btn-3d-primary:active {
-  transform: scale(0.98);
+  transform: scale(0.95);
 }
 
 .btn-3d-dark {
@@ -109,13 +212,15 @@ textarea {
   border-radius: 0.625rem;
   font-weight: 600;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  transition: all 0.15s ease;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease;
 }
 .btn-3d-dark:hover {
   background-color: #0f172a;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 12px -2px rgba(15, 23, 42, 0.3);
 }
 .btn-3d-dark:active {
-  transform: scale(0.98);
+  transform: scale(0.95);
 }
 
 .btn-3d-amber {
@@ -125,14 +230,16 @@ textarea {
   border-radius: 0.625rem;
   font-weight: 700;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  transition: all 0.15s ease;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease;
 }
 .btn-3d-amber:hover {
   background-color: #d97706;
   color: #ffffff;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 12px -2px rgba(245, 158, 11, 0.35);
 }
 .btn-3d-amber:active {
-  transform: scale(0.98);
+  transform: scale(0.95);
 }
 
 .btn-3d-white {
@@ -142,14 +249,16 @@ textarea {
   border-radius: 0.625rem;
   font-weight: 600;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  transition: all 0.15s ease;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .btn-3d-white:hover {
   background-color: #f8fafc;
   border-color: #94a3b8;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.08);
 }
 .btn-3d-white:active {
-  transform: scale(0.98);
+  transform: scale(0.95);
 }
 
 .top-accent-strip {

@@ -126,16 +126,22 @@ export const cardHoverVariant: Variants = {
   },
 };
 
-// Tactile button interaction
+// Tactile button interaction with elastic spring physics & lift
 export const buttonTapVariant: Variants = {
-  rest: { scale: 1 },
+  rest: {
+    scale: 1,
+    y: 0,
+    transition: { type: 'spring', stiffness: 400, damping: 20 },
+  },
   hover: {
-    scale: 1.02,
-    transition: { duration: motionTokens.duration.fast, ease: motionTokens.easing.standard },
+    scale: 1.04,
+    y: -2.5,
+    transition: { type: 'spring', stiffness: 480, damping: 14 },
   },
   tap: {
-    scale: 0.97,
-    transition: { duration: motionTokens.duration.instant, ease: motionTokens.easing.snappy },
+    scale: 0.93,
+    y: 1,
+    transition: { type: 'spring', stiffness: 600, damping: 25 },
   },
 };
 
