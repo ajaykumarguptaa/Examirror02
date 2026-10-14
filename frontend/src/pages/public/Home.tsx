@@ -413,14 +413,6 @@ const Home = () => {
     return () => clearInterval(timer);
   }, [isCourseAutoSlide, isDraggingCourse, allDisplayCourses.length]);
 
-  // Center Ticker Scroll Handler
-  const handleScrollCenters = (direction: 'left' | 'right') => {
-    if (centersScrollRef.current) {
-      const scrollAmount = direction === 'left' ? -280 : 280;
-      centersScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
-  };
-
   // Dynamic Recent Center Codes list
   const dynamicRecentCenters = React.useMemo(() => {
     if (publicStats?.recentCenters && publicStats.recentCenters.length > 0) {
@@ -435,6 +427,70 @@ const Home = () => {
   }, [publicStats, centersSection]);
 
   const spotlightCode = dynamicRecentCenters[0]?.code || centersSection.featuredCode || 'EXAMc2026-199';
+
+  // State for Infinite Centers Marquee
+  const [isCentersHovered, setIsCentersHovered] = useState(false);
+
+  // Seamless Duplication for Infinite Scrolling Loop (incorporates spotlight in repeating unit for perfect seamless geometry)
+  const infiniteCentersList = React.useMemo(() => {
+    if (!dynamicRecentCenters || dynamicRecentCenters.length === 0) return [];
+    const baseList = [
+      { isSpotlight: true, code: spotlightCode, name: 'Spotlight Verified Center' },
+      ...dynamicRecentCenters
+    ];
+    let list = [...baseList];
+    while (list.length < 14) {
+      list = [...list, ...baseList];
+    }
+    return [...list, ...list];
+  }, [dynamicRecentCenters, spotlightCode]);
+
+  // Infinite Continuous Auto-Scroll Effect (pauses seamlessly on hover and touch)
+  useEffect(() => {
+    const el = centersScrollRef.current;
+    if (!el || infiniteCentersList.length === 0) return;
+
+    let animId: number;
+    let currentPos = el.scrollLeft;
+    const speed = 0.85;
+
+    const step = () => {
+      if (!isCentersHovered && el) {
+        currentPos += speed;
+        const half = el.scrollWidth / 2;
+        if (half > 0) {
+          if (currentPos >= half) {
+            currentPos -= half;
+          } else if (currentPos < 0) {
+            currentPos += half;
+          }
+        }
+        el.scrollLeft = currentPos;
+      } else if (el) {
+        // Keep in sync with user touch, mouse wheel or manual drag
+        currentPos = el.scrollLeft;
+      }
+      animId = requestAnimationFrame(step);
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
+  }, [isCentersHovered, infiniteCentersList.length]);
+
+  // Center Ticker Scroll Handler (< and > buttons) with seamless boundary wrap
+  const handleScrollCenters = (direction: 'left' | 'right') => {
+    if (centersScrollRef.current) {
+      const el = centersScrollRef.current;
+      const half = el.scrollWidth / 2;
+      if (direction === 'left' && el.scrollLeft <= 40 && half > 0) {
+        el.scrollLeft += half;
+      } else if (direction === 'right' && el.scrollLeft >= half && half > 0) {
+        el.scrollLeft -= half;
+      }
+      const scrollAmount = direction === 'left' ? -280 : 280;
+      el.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   // Filter out hidden cards
   const visibleStats: StatItem[] = React.useMemo(() => {
@@ -1795,46 +1851,64 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Horizontal Slider Track */}
+            {/* Horizontal Slider Track (Seamless Continuous Infinite Marquee) */}
             <div
               ref={centersScrollRef}
-              className="flex items-center gap-3 overflow-x-auto pb-3 pt-1 scroll-smooth no-scrollbar"
+              onMouseEnter={() => setIsCentersHovered(true)}
+              onMouseLeave={() => setIsCentersHovered(false)}
+              onTouchStart={() => setIsCentersHovered(true)}
+              onTouchEnd={() => setIsCentersHovered(false)}
+              className="flex items-center gap-3 overflow-x-auto pb-3 pt-1 no-scrollbar select-none"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
-              {/* Spotlight Center Pill */}
-              <motion.div
-                whileHover={{ scale: 1.04 }}
-                className="px-5 py-3 bg-blue-50 text-blue-950 font-mono font-bold rounded-xl text-xs sm:text-sm border border-blue-200 shadow-xs flex items-center gap-2.5 shrink-0 cursor-pointer"
-                title={`Spotlight Verified Center: ${spotlightCode}`}
-              >
-                <Sparkles size={16} className="text-blue-600 animate-pulse" />
-                <div>
-                  <span className="text-blue-600 font-bold uppercase text-[10px] tracking-wider block">Spotlight</span>
-                  <span className="text-slate-900 font-bold">{spotlightCode}</span>
-                </div>
-              </motion.div>
-
-              {/* Dynamic Center Pills */}
-              {dynamicRecentCenters.map((center: any, idx: number) => (
-                <motion.div
-                  key={center.code || idx}
-                  whileHover={{ y: -2, scale: 1.03 }}
-                  className="px-4 py-2.5 bg-slate-50 hover:bg-blue-50/60 border border-slate-200 hover:border-blue-400 text-slate-800 font-mono rounded-xl text-xs shadow-xs transition-all cursor-pointer shrink-0 flex items-center gap-2 group"
-                  title={`${center.name || 'Examirror Authorized Study Center'} - ${center.city || ''}, ${center.state || ''}`}
-                >
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 group-hover:scale-125 transition-transform" />
-                  <div>
-                    <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                      {center.code}
+              {infiniteCentersList.map((center: any, idx: number) => {
+                const isSpotlight = center.isSpotlight;
+                return isSpotlight ? (
+                  <motion.div
+                    key={`center-spot-${center.code || 'spot'}-${idx}`}
+                    whileHover={{ scale: 1.04 }}
+                    onClick={() => {
+                      setCenterInput(center.code);
+                      setMobileVerifyTab('center');
+                      handleVerifyCenter(center.code);
+                      document.getElementById('verify-gateway')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-5 py-2.5 bg-blue-50 hover:bg-blue-100/80 text-blue-950 font-mono font-bold rounded-xl text-xs sm:text-sm border border-blue-200 hover:border-blue-400 shadow-xs flex items-center gap-2.5 shrink-0 cursor-pointer transition-all"
+                    title={`Spotlight Verified Center: ${center.code}`}
+                  >
+                    <Sparkles size={16} className="text-blue-600 animate-pulse" />
+                    <div>
+                      <span className="text-blue-600 font-bold uppercase text-[9px] tracking-wider block">Spotlight</span>
+                      <span className="text-slate-900 font-bold">{center.code}</span>
                     </div>
-                    {center.city && (
-                      <div className="text-[10px] font-sans font-medium text-slate-400 group-hover:text-slate-600 truncate max-w-[120px]">
-                        {center.city}
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key={`center-${center.code || 'item'}-${idx}`}
+                    whileHover={{ y: -2, scale: 1.03 }}
+                    onClick={() => {
+                      setCenterInput(center.code);
+                      setMobileVerifyTab('center');
+                      handleVerifyCenter(center.code);
+                      document.getElementById('verify-gateway')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-4 py-2.5 bg-slate-50 hover:bg-blue-50/70 border border-slate-200 hover:border-blue-400 text-slate-800 font-mono rounded-xl text-xs shadow-xs transition-all cursor-pointer shrink-0 flex items-center gap-2 group"
+                    title={`${center.name || 'Examirror Authorized Study Center'} - ${center.city || ''}, ${center.state || ''}`}
+                  >
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 group-hover:scale-125 transition-transform" />
+                    <div>
+                      <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                        {center.code}
                       </div>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
+                      {center.city && (
+                        <div className="text-[10px] font-sans font-medium text-slate-400 group-hover:text-slate-600 truncate max-w-[120px]">
+                          {center.city}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
 
           </div>
