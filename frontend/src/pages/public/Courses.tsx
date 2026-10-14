@@ -390,13 +390,35 @@ export const Courses = () => {
           ? (rawImg.startsWith('http') || rawImg.startsWith('data:') ? rawImg : `http://localhost:3000${rawImg}`)
           : (matchingTemplate?.thumbnailUrl || COMPREHENSIVE_COURSES[index % COMPREHENSIVE_COURSES.length].thumbnailUrl);
 
+        // Intelligent category resolver for category tabs
+        const textToMatch = `${c.name} ${c.code || ''} ${c.categoryId || ''}`.toLowerCase();
+        let derivedCategory = matchingTemplate?.category || c.categoryId || 'Professional Program';
+        let derivedCategoryId = matchingTemplate?.categoryId || 'all';
+
+        if (textToMatch.includes('adca') || textToMatch.includes('dca') || textToMatch.includes('pgdca') || textToMatch.includes('computer application')) {
+          derivedCategory = 'DCA / ADCA';
+          derivedCategoryId = 'dca-adca';
+        } else if (textToMatch.includes('web') || textToMatch.includes('programming') || textToMatch.includes('stack') || textToMatch.includes('python') || textToMatch.includes('java') || textToMatch.includes('dit') || textToMatch.includes('it')) {
+          derivedCategory = 'Programming & Web';
+          derivedCategoryId = 'programming';
+        } else if (textToMatch.includes('tally') || textToMatch.includes('gst') || textToMatch.includes('account') || textToMatch.includes('finan')) {
+          derivedCategory = 'Accounting & Tally';
+          derivedCategoryId = 'accounting';
+        } else if (textToMatch.includes('hardware') || textToMatch.includes('network') || textToMatch.includes('cctv') || textToMatch.includes('lan')) {
+          derivedCategory = 'Hardware & Networking';
+          derivedCategoryId = 'hardware-networking';
+        } else if (textToMatch.includes('typing') || textToMatch.includes('office') || textToMatch.includes('basic') || textToMatch.includes('vocational') || textToMatch.includes('repair') || textToMatch.includes('tailor') || textToMatch.includes('fashion')) {
+          derivedCategory = 'Vocational Skills';
+          derivedCategoryId = 'vocational';
+        }
+
         return {
           id: c.id || index + 1,
           slug: c.slug || c.code?.toLowerCase() || `course-${index + 1}`,
           code: c.code || 'EXM-CRS',
           name: c.name,
-          category: matchingTemplate?.category || c.categoryId || 'Career Diploma',
-          categoryId: matchingTemplate?.categoryId || (c.categoryId ? c.categoryId.toLowerCase() : 'all'),
+          category: derivedCategory,
+          categoryId: derivedCategoryId,
           duration: c.duration || matchingTemplate?.duration || '3–6 Months',
           mode: matchingTemplate?.mode || 'Classroom & Hands-on Lab',
           badge: matchingTemplate?.badge || (index === 0 ? 'Featured' : 'Industry Aligned'),

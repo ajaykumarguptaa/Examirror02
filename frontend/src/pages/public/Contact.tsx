@@ -135,10 +135,10 @@ const Contact = () => {
         const res = await axios.get('http://localhost:3000/api/public/courses');
         if (res.data?.success && Array.isArray(res.data.data)) {
           setDynamicCourses(res.data.data);
-          
+
           if (queryCourse) {
             const matched = res.data.data.find(
-              (c: DynamicCourseOption) => 
+              (c: DynamicCourseOption) =>
                 c.name.toLowerCase() === queryCourse.toLowerCase() ||
                 (c.code && queryCode && c.code.toLowerCase() === queryCode.toLowerCase())
             );
@@ -452,11 +452,10 @@ const Contact = () => {
                             key={type.id}
                             type="button"
                             onClick={() => setSelectedInquiry(type.id)}
-                            className={`px-3 py-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer text-center min-h-[76px] ${
-                              isSelected
+                            className={`px-3 py-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer text-center min-h-[76px] ${isSelected
                                 ? 'bg-blue-600 border-blue-600 text-white shadow-sm ring-2 ring-blue-600/20'
                                 : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
-                            }`}
+                              }`}
                           >
                             <Icon size={18} className={isSelected ? 'text-amber-300' : 'text-slate-500'} />
                             <span className="w-full text-center leading-snug">{type.label}</span>
@@ -1099,7 +1098,7 @@ const Contact = () => {
                   className="btn-3d-white py-2 px-4 text-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <Printer size={14} />
-                  <span>Print Specimen</span>
+                  <span></span>
                 </button>
                 <button
                   type="button"
