@@ -320,18 +320,25 @@ const Home = () => {
       : DEFAULT_HOME_SETTINGS.coursesSection.categories;
   }, [publicCourses, coursesSection]);
 
-  // Modern Course Scroller Handlers
-  const handleCoursesScroll = () => {
-    if (!coursesScrollRef.current) return;
-    const el = coursesScrollRef.current;
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    const progress = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
-    setCourseScrollProgress(Math.min(Math.max(progress, 0), 1));
+  // Modern Course Scroller Handlers (Optimized with requestAnimationFrame for 120fps fluid scrolling)
+  const scrollRafRef = useRef<number | null>(null);
+  const dragRafRef = useRef<number | null>(null);
 
-    const card = el.querySelector<HTMLElement>('.course-card-item');
-    const cardWidth = (card?.offsetWidth || 320) + 24;
-    const newIdx = Math.round(el.scrollLeft / cardWidth);
-    setActiveCourseIdx(Math.min(Math.max(newIdx, 0), allDisplayCourses.length - 1));
+  const handleCoursesScroll = () => {
+    if (scrollRafRef.current) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      if (!coursesScrollRef.current) return;
+      const el = coursesScrollRef.current;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      const progress = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
+      setCourseScrollProgress(Math.min(Math.max(progress, 0), 1));
+
+      const card = el.querySelector<HTMLElement>('.course-card-item');
+      const cardWidth = (card?.offsetWidth || 320) + 24;
+      const newIdx = Math.round(el.scrollLeft / cardWidth);
+      setActiveCourseIdx((prev) => (prev !== newIdx ? Math.min(Math.max(newIdx, 0), allDisplayCourses.length - 1) : prev));
+    });
   };
 
   const handleCourseMouseDown = (e: React.MouseEvent) => {
@@ -349,9 +356,15 @@ const Home = () => {
   const handleCourseMouseMove = (e: React.MouseEvent) => {
     if (!isDraggingCourse || !coursesScrollRef.current) return;
     e.preventDefault();
-    const x = e.pageX - coursesScrollRef.current.offsetLeft;
-    const walk = (x - dragStartX) * 1.5;
-    coursesScrollRef.current.scrollLeft = dragScrollLeft - walk;
+    const clientX = e.pageX;
+    if (dragRafRef.current) return;
+    dragRafRef.current = requestAnimationFrame(() => {
+      dragRafRef.current = null;
+      if (!coursesScrollRef.current) return;
+      const x = clientX - coursesScrollRef.current.offsetLeft;
+      const walk = (x - dragStartX) * 1.3;
+      coursesScrollRef.current.scrollLeft = dragScrollLeft - walk;
+    });
   };
 
   const handleScrollCourses = (direction: 'left' | 'right') => {
