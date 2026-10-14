@@ -307,9 +307,18 @@ export const StudentMarksheetModal = ({
               <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=Great+Vibes&display=swap" rel="stylesheet">
               <style>
                 @media print {
-                  body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0; padding: 0; }
+                  body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0; padding: 0; background: white !important; }
                   @page { size: A4 portrait; margin: 6mm; }
-                  #printable-marksheet { border: none !important; box-shadow: none !important; max-width: 100% !important; width: 100% !important; padding: 12px !important; }
+                  #printable-marksheet { 
+                    border: 2px solid #1e3a8a !important; 
+                    box-shadow: none !important; 
+                    max-width: 100% !important; 
+                    width: 100% !important; 
+                    min-height: auto !important; 
+                    height: auto !important; 
+                    padding: 16px 20px !important; 
+                    page-break-inside: avoid !important;
+                  }
                   .no-print { display: none !important; }
                 }
                 .font-cinzel { font-family: 'Cinzel', serif; }
@@ -596,8 +605,7 @@ export const StudentMarksheetModal = ({
           <div className="w-full overflow-x-auto flex justify-start sm:justify-center py-2 no-scrollbar">
             <div 
               id="printable-marksheet" 
-              className="w-full max-w-[780px] min-w-[580px] sm:min-w-[700px] bg-white text-slate-900 border-2 border-blue-900 shadow-xl relative rounded-xl p-4 sm:p-8 overflow-hidden font-sans select-none shrink-0"
-              style={{ minHeight: '1000px' }}
+              className="w-full max-w-[780px] min-w-[580px] sm:min-w-[700px] bg-white text-slate-900 border-2 border-blue-900 shadow-xl relative rounded-xl p-4 sm:p-6 overflow-hidden font-sans select-none shrink-0"
             >
             {/* Ornate Corner Accents */}
             <div className="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-blue-800" />
@@ -609,76 +617,101 @@ export const StudentMarksheetModal = ({
             <div className="absolute inset-3 border border-blue-800/40 pointer-events-none rounded-lg" />
             <div className="absolute inset-3.5 border border-amber-500/30 pointer-events-none rounded-lg" />
 
-            {/* Dynamic Center Watermark in background */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden watermark-center opacity-[0.065]">
-              <div className="flex flex-col items-center justify-center text-center rotate-[-22deg] transform scale-110">
-                {activeStudent.centerLogo ? (
-                  <div className="relative mb-3 flex items-center justify-center">
-                    <div className="absolute inset-[-12px] rounded-full border-2 border-dashed border-slate-900 opacity-40 animate-spin" style={{ animationDuration: '60s' }} />
-                    <img src={getAssetUrl(activeStudent.centerLogo)} alt="Center Watermark" className="w-36 h-36 object-contain grayscale" />
-                  </div>
-                ) : (
-                  <div className="w-32 h-32 rounded-full border-4 border-double border-slate-900 flex flex-col items-center justify-center mb-3 font-serif font-black text-slate-900 p-2">
-                    <span className="text-4xl leading-none">{centerName ? centerName.charAt(0) : 'C'}</span>
-                    <span className="text-[8px] font-mono tracking-widest mt-1 uppercase">ESTD</span>
-                  </div>
-                )}
-                <div className="font-serif font-black tracking-wider uppercase text-3xl sm:text-4xl text-slate-900 leading-tight max-w-[540px]">
+            {/* Dynamic Official Examirror & Center Watermark in background */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden watermark-center opacity-[0.045]">
+              <div className="flex flex-col items-center justify-center text-center transform scale-105">
+                <img 
+                  src="/assets/favicon.png" 
+                  alt="Examirror Watermark" 
+                  className="w-44 h-44 sm:w-52 sm:h-52 object-contain grayscale mb-1 select-none" 
+                />
+                <div className="font-serif font-black tracking-[0.25em] uppercase text-2xl sm:text-3xl text-slate-900 leading-tight">
+                  EXAMIRROR
+                </div>
+                <div className="font-serif font-bold tracking-wider uppercase text-sm sm:text-base text-slate-800 mt-1 max-w-[500px]">
                   {centerName || 'AUTHORIZED STUDY CENTER'}
                 </div>
-                <div className="font-mono font-black tracking-[0.25em] text-xs text-blue-900 mt-1 uppercase">
-                  CENTER CODE: {centerCode || 'CENTER-01'} • VERIFIED
+                <div className="font-mono font-black tracking-[0.2em] text-[10px] text-blue-900 mt-0.5 uppercase">
+                  CENTER CODE: {centerCode || '6767'} • VERIFIED ACADEMIC RECORD
                 </div>
-                <div className="font-serif font-extrabold tracking-[0.3em] text-[10px] text-slate-800 mt-1 uppercase">
-                  VOCATIONAL EDUCATION & EXAMINATION CELL
+                <div className="font-serif font-extrabold tracking-[0.25em] text-[8.5px] text-slate-700 mt-0.5 uppercase">
+                  VOCATIONAL EDUCATION & EXAMINATION AUTHORITY
                 </div>
               </div>
             </div>
 
-            <div className="relative z-10 space-y-4">
+            <div className="relative z-10 space-y-3.5">
               
-              {/* TOP HEADER: STUDY CENTER NAME & LOGO EMBLEM */}
-              <div className="text-center pb-3 border-b-2 border-blue-900/80 relative">
+              {/* TOP HEADER: EXAMIRROR BRAND & STUDY CENTER EMBLEM */}
+              <div className="text-center pb-2.5 border-b-2 border-blue-900/80 relative">
                 
                 {/* Top Meta Bar */}
-                <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold uppercase tracking-wider pb-1">
+                <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold uppercase tracking-wider pb-1.5 border-b border-slate-200/80 mb-2">
                   <span>REF NO: MS/{new Date().getFullYear()}/{centerCode}-{activeStudent.id || '101'}{refNumberSuffix}</span>
-                  <span className="text-blue-900 font-extrabold">ISO 9001:2015 CERTIFIED INSTITUTION</span>
+                  <span className="text-blue-900 font-extrabold flex items-center gap-1.5">
+                    <span className="font-serif tracking-wider">EXAMIRROR</span> • <span>ISO 9001:2015 CERTIFIED INSTITUTION</span>
+                  </span>
                   <span>CENTER CODE: {centerCode}</span>
                 </div>
 
-                {/* Main Study Center Header */}
-                <div className="flex items-center justify-center gap-3.5 my-2">
-                  {activeStudent.centerLogo ? (
-                    <img 
-                      src={getAssetUrl(activeStudent.centerLogo)} 
-                      alt={centerName} 
-                      className="w-14 h-14 object-contain rounded-xl p-1 bg-white border-2 border-blue-800 shadow-md shrink-0" 
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded-2xl bg-[#0f172a] text-amber-300 flex items-center justify-center font-serif font-black text-2xl shadow-md border-2 border-amber-400 shrink-0">
-                      {centerName ? centerName.substring(0, 2).toUpperCase() : 'SC'}
-                    </div>
-                  )}
+                {/* Main Institutional Header Row */}
+                <div className="flex items-center justify-between gap-3 my-1">
                   
-                  <div className="text-center sm:text-left">
-                    <h1 className="text-2xl sm:text-3xl font-serif font-black text-slate-900 tracking-wide uppercase leading-tight">
+                  {/* Left: Examirror Brand Logo */}
+                  <div className="flex flex-col items-center sm:items-start shrink-0">
+                    <img 
+                      src="/assets/logo.png" 
+                      alt="Examirror Official Logo" 
+                      className="h-10 sm:h-12 w-auto object-contain" 
+                    />
+                    <span className="text-[7.5px] font-extrabold text-blue-900 tracking-wider uppercase mt-0.5 font-mono">
+                      EXAMINATION BOARD
+                    </span>
+                  </div>
+
+                  {/* Center: Study Center Name & Location */}
+                  <div className="flex-1 text-center px-1">
+                    <div className="inline-block text-[8px] font-extrabold uppercase tracking-widest text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 mb-0.5">
+                      AUTHORIZED STUDY & EXAMINATION CENTRE
+                    </div>
+                    <h1 className="text-xl sm:text-2xl font-serif font-black text-slate-900 tracking-wide uppercase leading-tight">
                       {centerName}
                     </h1>
-                    <div className="text-[10px] sm:text-[11px] font-bold text-blue-800 tracking-wider uppercase mt-0.5">
+                    <div className="text-[9.5px] sm:text-[10.5px] font-bold text-blue-800 tracking-wider uppercase mt-0.5">
                       {centerAddress ? `${centerAddress}, ` : ''}{centerCity ? `${centerCity}, ` : ''}{centerState || 'India'}
                     </div>
+                    <p className="text-[8px] text-slate-500 font-medium tracking-wide mt-0.5">
+                      Autonomous Institute for Technical, Computer Science & Vocational Skills Education
+                    </p>
+                  </div>
+
+                  {/* Right: Center Logo / SC Emblem */}
+                  <div className="flex flex-col items-center sm:items-end shrink-0">
+                    {activeStudent.centerLogo ? (
+                      <img 
+                        src={getAssetUrl(activeStudent.centerLogo)} 
+                        alt={centerName} 
+                        className="w-11 h-11 sm:w-12 sm:h-12 object-contain rounded-xl p-1 bg-white border border-blue-800 shadow-xs shrink-0" 
+                      />
+                    ) : (
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-[#0f172a] text-amber-300 flex items-center justify-center font-serif font-black text-lg sm:text-xl shadow-xs border border-amber-400 shrink-0">
+                        {centerName ? centerName.substring(0, 2).toUpperCase() : 'SC'}
+                      </div>
+                    )}
+                    <span className="text-[7.5px] font-mono font-bold text-slate-500 uppercase mt-0.5">
+                      CODE: {centerCode}
+                    </span>
+                  </div>
+
+                </div>
+
+                {/* Marksheet Badge Banner */}
+                <div className="text-center mt-2">
+                  <div className="inline-block px-7 py-1 bg-[#0f172a] text-white font-serif font-bold text-xs uppercase tracking-widest rounded-full shadow-xs border border-amber-400/60">
+                    {marksheetBadgeText}
                   </div>
                 </div>
 
-                <p className="text-[9px] text-slate-500 font-medium tracking-wide">
-                  Autonomous Institute for Technical, Computer Science & Vocational Skills Education
-                </p>
-
-                {/* Marksheet Badge Banner */}
-                <div className="inline-block mt-2 px-7 py-1 bg-[#0f172a] text-white font-serif font-bold text-xs uppercase tracking-widest rounded-full shadow-sm border border-amber-400/60">
-                  {marksheetBadgeText}
-                </div>
               </div>
 
               {/* CANDIDATE & COURSE CREDENTIALS GRID */}
