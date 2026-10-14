@@ -1720,8 +1720,8 @@ const FranchiseRequests = () => {
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => setSelectedApp(null)}
@@ -1758,13 +1758,13 @@ const FranchiseRequests = () => {
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 {selectedApp.status === 'Pending' && (
                   <>
                     <button
                       type="button"
                       onClick={() => handleReject(selectedApp.id)}
-                      className="flex-1 sm:flex-initial px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition-colors cursor-pointer text-center whitespace-nowrap"
+                      className="w-full sm:w-auto px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition-colors cursor-pointer text-center whitespace-nowrap"
                     >
                       Reject Application
                     </button>
@@ -1801,7 +1801,7 @@ const FranchiseRequests = () => {
                             setDemandedDocList([]);
                             setDemandNotes(selectedApp.certificate_demand_notes || '');
                           }}
-                          className="flex-1 sm:flex-initial px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                          className="w-full sm:w-auto px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                         >
                           <FileCheck size={14} className="shrink-0" />
                           <span>Demand Documents</span>
