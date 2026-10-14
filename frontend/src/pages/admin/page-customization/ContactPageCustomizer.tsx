@@ -95,6 +95,22 @@ const ContactPageCustomizer = () => {
     }
   };
 
+  const handleToggleShowcase = async () => {
+    const updated = { ...demoData, enabled: !demoData.enabled };
+    setDemoData(updated);
+    try {
+      await axios.put('http://localhost:3000/api/v1/settings/demo_showcase', { data: updated }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      setToast({ 
+        type: 'success', 
+        text: `Demo Showcase public visibility is now ${updated.enabled ? 'ON (Visible on Contact page)' : 'OFF (Hidden from public)'}` 
+      });
+    } catch (err: any) {
+      setToast({ type: 'error', text: err.response?.data?.message || 'Failed to toggle visibility' });
+    }
+  };
+
   const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>, target: 'cert' | 'center' | 'student') => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -389,7 +405,7 @@ const ContactPageCustomizer = () => {
             {/* Toggle ON/OFF */}
             <button
               type="button"
-              onClick={() => setDemoData({ ...demoData, enabled: !demoData.enabled })}
+              onClick={handleToggleShowcase}
               className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors border ${
                 demoData.enabled
                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500'

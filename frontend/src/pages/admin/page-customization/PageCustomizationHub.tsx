@@ -37,8 +37,8 @@ const PageCustomizationHub = () => {
     },
     {
       id: 'contact' as const,
-      label: 'Contact & Address',
-      description: 'Helplines, emails, office address, map embed',
+      label: 'Contact & Demo Showcase',
+      description: 'Helplines, office address, demo certificates & student verification proofs',
       icon: Phone
     },
     {
