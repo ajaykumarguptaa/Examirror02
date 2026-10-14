@@ -1144,7 +1144,7 @@ const AdminDashboard = () => {
               
               {/* Table 1: Top Performing Test Series */}
               <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
-                <div className="bg-slate-50/80 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+                <div className="bg-slate-50/80 px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Trophy size={15} className="text-indigo-600" />
                     <span className="text-xs font-bold text-slate-800">Top Earning Test Series</span>
@@ -1201,7 +1201,7 @@ const AdminDashboard = () => {
 
               {/* Table 2: Top Performing Notes & Study Materials */}
               <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
-                <div className="bg-slate-50/80 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+                <div className="bg-slate-50/80 px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <FileText size={15} className="text-amber-600" />
                     <span className="text-xs font-bold text-slate-800">Top Earning Study Notes</span>
@@ -1266,7 +1266,7 @@ const AdminDashboard = () => {
       {/* Quick Pending Wallet Queue Strip (if any pending) */}
       {pendingRequests.length > 0 && (
         <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
               <h3 className="font-bold text-sm text-amber-900">
@@ -1770,14 +1770,14 @@ const AdminDashboard = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-            <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-start sm:justify-end">
+            <div className="flex flex-nowrap overflow-x-auto no-scrollbar max-w-full gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
               {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(tab => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setTestSeriesPaymentFilter(tab)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     testSeriesPaymentFilter === tab
                       ? 'bg-white text-slate-900 shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -1790,10 +1790,10 @@ const AdminDashboard = () => {
 
             <Link
               to="/admin/test-series"
-              className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl flex items-center gap-1 border border-purple-200 transition-colors"
+              className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1 border border-purple-200 transition-colors whitespace-nowrap shrink-0"
             >
               <span>Test Series Master</span>
-              <ChevronRight size={14} />
+              <ChevronRight size={14} className="shrink-0" />
             </Link>
           </div>
         </div>
@@ -1814,8 +1814,8 @@ const AdminDashboard = () => {
           }
 
           return (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="w-full overflow-x-auto max-w-full pb-2">
+              <table className="w-full text-left text-xs border-collapse min-w-[700px]">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500 border-b border-slate-200">
                     <th className="py-2.5 px-3 font-bold">Student</th>
