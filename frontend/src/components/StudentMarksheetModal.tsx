@@ -602,10 +602,10 @@ export const StudentMarksheetModal = ({
           )}
 
           {/* PRINTABLE OFFICIAL MARKSHEET CONTAINER (With mobile responsive scroll wrapper) */}
-          <div className="w-full overflow-x-auto flex justify-start sm:justify-center py-2 no-scrollbar">
+          <div className="w-full overflow-x-auto py-2 no-scrollbar">
             <div 
               id="printable-marksheet" 
-              className="w-full max-w-[780px] min-w-[580px] sm:min-w-[700px] bg-white text-slate-900 border-2 border-blue-900 shadow-xl relative rounded-xl p-4 sm:p-6 overflow-hidden font-sans select-none shrink-0"
+              className="w-full max-w-[780px] min-w-[580px] sm:min-w-[700px] mx-auto bg-white text-slate-900 border-2 border-blue-900 shadow-xl relative rounded-xl p-4 sm:p-7 pb-8 sm:pb-10 font-sans select-none shrink-0"
             >
             {/* Ornate Corner Accents */}
             <div className="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-blue-800" />
@@ -945,14 +945,14 @@ export const StudentMarksheetModal = ({
 
                   {/* 2. Official Rosette Hologram & Verified Stamp Seal */}
                   <div className="flex flex-col items-center justify-center text-center relative">
-                    <div className="relative w-24 h-24 rounded-full flex items-center justify-center p-1 bg-[#1e3a8a] shadow-md border-2 border-amber-300">
+                    <div className="relative w-20 h-20 sm:w-22 sm:h-22 rounded-full flex items-center justify-center p-1 bg-[#1e3a8a] shadow-md border-2 border-amber-300">
                       {/* Inner Ring */}
                       <div className="w-full h-full rounded-full border-2 border-dashed border-amber-200/90 flex flex-col items-center justify-center bg-slate-900/90 text-white text-center p-1 relative overflow-hidden">
                         <span className="text-[7px] font-extrabold uppercase text-amber-300 tracking-wider leading-none">
                           OFFICIAL
                         </span>
                         <div className="my-0.5">
-                          <CheckCircle2 size={16} className="text-amber-300 mx-auto" />
+                          <CheckCircle2 size={15} className="text-amber-300 mx-auto" />
                         </div>
                         <span className="text-[8px] font-black uppercase tracking-widest text-white leading-none">
                           VERIFIED
