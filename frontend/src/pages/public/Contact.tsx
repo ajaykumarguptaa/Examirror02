@@ -28,9 +28,18 @@ import {
   Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import SEO from '../../components/SEO';
 import { onlyDigits, onlyNameLetters, isValidIndianPhone, isValidEmail } from '../../utils/validators';
+
+interface DynamicCourseOption {
+  id: number;
+  name: string;
+  code?: string;
+  duration?: string;
+  fee?: number | string;
+}
 
 export const DEFAULT_DEMO_SHOWCASE = {
   enabled: true,
@@ -74,14 +83,20 @@ const INQUIRY_TYPES = [
 ];
 
 const Contact = () => {
+  const [searchParams] = useSearchParams();
+  const queryCourse = searchParams.get('course') || '';
+  const queryCode = searchParams.get('code') || '';
+
   const [selectedInquiry, setSelectedInquiry] = useState('admission');
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
     email: '',
-    course: 'ADCA',
+    course: queryCourse || '',
     message: ''
   });
+  const [dynamicCourses, setDynamicCourses] = useState<DynamicCourseOption[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -111,6 +126,43 @@ const Contact = () => {
     query: '',
     result: null
   });
+
+  // Fetch Dynamic Courses from Super Admin / Public Catalog
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoadingCourses(true);
+        const res = await axios.get('http://localhost:3000/api/public/courses');
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          setDynamicCourses(res.data.data);
+          
+          if (queryCourse) {
+            const matched = res.data.data.find(
+              (c: DynamicCourseOption) => 
+                c.name.toLowerCase() === queryCourse.toLowerCase() ||
+                (c.code && queryCode && c.code.toLowerCase() === queryCode.toLowerCase())
+            );
+            if (matched) {
+              setFormData(prev => ({ ...prev, course: matched.name }));
+            } else {
+              setFormData(prev => ({ ...prev, course: queryCourse }));
+            }
+          } else if (res.data.data.length > 0) {
+            setFormData(prev => ({
+              ...prev,
+              course: prev.course ? prev.course : res.data.data[0].name
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load courses dynamically:', err);
+      } finally {
+        setLoadingCourses(false);
+      }
+    };
+
+    fetchCourses();
+  }, [queryCourse, queryCode]);
 
   // Fetch Demo Showcase Settings
   useEffect(() => {
@@ -478,9 +530,16 @@ const Contact = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Preferred Course / Program
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700">
+                          Preferred Course / Program
+                        </label>
+                        {loadingCourses && (
+                          <span className="text-[10px] text-blue-600 font-medium flex items-center gap-1">
+                            <Loader2 size={10} className="animate-spin" /> Loading...
+                          </span>
+                        )}
+                      </div>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                           <BookOpen size={16} />
@@ -490,13 +549,34 @@ const Contact = () => {
                           onChange={(e) => setFormData({ ...formData, course: e.target.value })}
                           className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition-all cursor-pointer"
                         >
-                          <option value="ADCA">ADCA (Advance Diploma in Computer Application)</option>
-                          <option value="DCA">DCA (Diploma in Computer Application)</option>
-                          <option value="PGDCA">PGDCA (Post Graduate Diploma)</option>
-                          <option value="DIT">DIT (Diploma in Information Technology)</option>
-                          <option value="TALLY">Tally Prime & GST Accounting</option>
-                          <option value="BASIC">Basic Computer & Internet Office</option>
-                          <option value="FRANCHISE">Center Affiliation Inquiry</option>
+                          {/* If query course from URL not in dynamic list yet, show it */}
+                          {queryCourse && !dynamicCourses.some(c => c.name.toLowerCase() === queryCourse.toLowerCase()) && (
+                            <option value={queryCourse}>{queryCourse} (Selected Course)</option>
+                          )}
+
+                          {/* Dynamic Master Catalog Courses */}
+                          {dynamicCourses.length > 0 ? (
+                            dynamicCourses.map((c) => {
+                              const label = c.code ? `${c.name} (${c.code})` : c.name;
+                              return (
+                                <option key={c.id} value={c.name}>
+                                  {label}
+                                </option>
+                              );
+                            })
+                          ) : (
+                            /* Fallback placeholder while loading */
+                            <>
+                              <option value="ADCA (Advance Diploma in Computer Application)">ADCA (Advance Diploma in Computer Application)</option>
+                              <option value="DCA (Diploma in Computer Application)">DCA (Diploma in Computer Application)</option>
+                              <option value="PGDCA (Post Graduate Diploma)">PGDCA (Post Graduate Diploma)</option>
+                              <option value="DIT (Diploma in Information Technology)">DIT (Diploma in Information Technology)</option>
+                              <option value="Tally Prime & GST Accounting">Tally Prime & GST Accounting</option>
+                              <option value="Basic Computer & Internet Office">Basic Computer & Internet Office</option>
+                            </>
+                          )}
+                          <option value="Center Affiliation Inquiry">Center Affiliation Inquiry</option>
+                          <option value="Other / General Program Inquiry">Other / General Program Inquiry</option>
                         </select>
                       </div>
                     </div>
