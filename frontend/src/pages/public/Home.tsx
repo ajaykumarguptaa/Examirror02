@@ -1647,39 +1647,6 @@ const Home = () => {
               ))}
             </div>
 
-            {/* Modern Bottom Progress Indicator & Dot Steppers */}
-            {allDisplayCourses.length > 1 && (
-              <div className="flex flex-col items-center justify-center gap-3 mt-8">
-                {/* Smooth Progress Bar Line */}
-                <div className="w-48 sm:w-64 h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-600 rounded-full transition-all duration-200 ease-out"
-                    style={{ width: `${Math.max(courseScrollProgress * 100, 15)}%` }}
-                  />
-                </div>
-
-                {/* Stepper Dots Indicator */}
-                <div className="flex items-center gap-2">
-                  {allDisplayCourses.map((_, dotIdx) => (
-                    <button
-                      key={dotIdx}
-                      type="button"
-                      onClick={() => {
-                        setIsCourseAutoSlide(false);
-                        scrollToCourseIndex(dotIdx);
-                      }}
-                      className={`h-2 rounded-full transition-all cursor-pointer ${
-                        activeCourseIdx === dotIdx
-                          ? 'w-7 bg-indigo-600 shadow-xs shadow-indigo-300'
-                          : 'w-2 bg-slate-300 hover:bg-slate-400'
-                      }`}
-                      title={`Go to Course ${dotIdx + 1}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
           </div>
         </section>
       )}
