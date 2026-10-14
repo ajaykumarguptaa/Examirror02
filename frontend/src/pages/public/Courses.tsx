@@ -59,273 +59,6 @@ const CATEGORIES = [
   { id: 'vocational', label: 'Vocational Skills' }
 ];
 
-const COMPREHENSIVE_COURSES: CourseItem[] = [
-  {
-    id: 1,
-    slug: 'advanced-diploma-in-computer-application',
-    code: 'ADCA',
-    name: 'Advanced Diploma in Computer Application',
-    category: 'DCA / ADCA',
-    categoryId: 'dca-adca',
-    duration: '12 Months',
-    mode: 'Classroom & Lab',
-    badge: 'Most Popular',
-    eligibility: '10th / 12th Pass',
-    certification: 'Govt. Aligned National Diploma',
-    shortDescription: 'Comprehensive one-year professional diploma covering computer fundamentals, office automation, web design, financial accounting, and DTP.',
-    fee: 12000,
-    thumbnailUrl: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=600',
-    modules: [
-      {
-        moduleNumber: 'Module 01',
-        title: 'Computer Fundamentals & Windows OS',
-        duration: '2 Months',
-        topics: ['History & Architecture of Computers', 'Operating Systems (Windows 10/11 & Linux CLI Basics)', 'File Management, Control Panel & System Utilities', 'Typing Skills & Keyboard Ergonomics (English / Regional)']
-      },
-      {
-        moduleNumber: 'Module 02',
-        title: 'Office Automation & Business Productivity',
-        duration: '3 Months',
-        topics: ['MS Word: Advanced Document Formatting, Mail Merge, Tables & Macros', 'MS Excel: Formulas (VLOOKUP, XLOOKUP, INDEX-MATCH), Pivot Tables & Charts', 'MS PowerPoint: Professional Slide Decks & Animations', 'MS Access: Database Design & Query Execution']
-      },
-      {
-        moduleNumber: 'Module 03',
-        title: 'Financial Accounting with Tally Prime & GST',
-        duration: '3 Months',
-        topics: ['Accounting Principles, Journal Entries & Ledger Creation', 'Voucher Entry, Inventory Management & Bank Reconciliation', 'GST Computation, E-Way Bill & Tax Filing Basics', 'Final Accounts: Balance Sheet, P&L Statement']
-      },
-      {
-        moduleNumber: 'Module 04',
-        title: 'Web Designing & Desktop Publishing (DTP)',
-        duration: '4 Months',
-        topics: ['HTML5, CSS3 & Responsive Web Design Basics', 'Adobe Photoshop: Image Editing, Retouching & Banner Creation', 'CorelDraw: Vector Graphics, Logo & Pamphlet Designing', 'Live Capstone Project & Portfolio Submission']
-      }
-    ]
-  },
-  {
-    id: 2,
-    slug: 'diploma-in-computer-application',
-    code: 'DCA',
-    name: 'Diploma in Computer Application',
-    category: 'DCA / ADCA',
-    categoryId: 'dca-adca',
-    duration: '6 Months',
-    mode: 'Classroom & Lab',
-    badge: 'Job-Ready Diploma',
-    eligibility: '10th Pass',
-    certification: 'Recognized 6-Month Diploma',
-    shortDescription: 'Essential 6-month foundational computer program covering Windows, MS Office suite, internet technologies, and basic cyber safety.',
-    fee: 6500,
-    thumbnailUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=600',
-    modules: [
-      {
-        moduleNumber: 'Module 01',
-        title: 'Foundations of Computer & Peripherals',
-        duration: '1.5 Months',
-        topics: ['Computer Hardware Architecture & Storage Devices', 'OS Installation & User Account Management', 'Printers, Scanners & Peripheral Configuration']
-      },
-      {
-        moduleNumber: 'Module 02',
-        title: 'MS Office Suite Mastery',
-        duration: '2.5 Months',
-        topics: ['MS Word Drafting, Reports & Certificates', 'MS Excel Data Entry, Formulas & Filter Tools', 'MS PowerPoint Presentation Delivery']
-      },
-      {
-        moduleNumber: 'Module 03',
-        title: 'Internet, Email & Digital Security',
-        duration: '2 Months',
-        topics: ['Internet Protocols, Web Browsing & Search Techniques', 'Professional Email Writing & Cloud Drive Sync', 'Cyber Hygiene, Antivirus & Online Safety']
-      }
-    ]
-  },
-  {
-    id: 3,
-    slug: 'full-stack-web-development-diploma',
-    code: 'FSWD',
-    name: 'Full Stack Web Development Diploma',
-    category: 'Programming & Web',
-    categoryId: 'programming',
-    duration: '8 Months',
-    mode: 'Hybrid / Practical Lab',
-    badge: 'Industry Aligned',
-    eligibility: '12th Pass / Graduate',
-    certification: 'National Tech Certification',
-    shortDescription: 'Master modern frontend and backend development with JavaScript, React, Node.js, Express, and relational/NoSQL databases.',
-    fee: 18500,
-    thumbnailUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600',
-    modules: [
-      {
-        moduleNumber: 'Module 01',
-        title: 'Modern Frontend Fundamentals (HTML5, CSS3, JS)',
-        duration: '2 Months',
-        topics: ['Semantic HTML5, CSS Grid, Flexbox & Responsive Layouts', 'Vanilla JavaScript (ES6+), DOM Manipulation & Fetch API', 'Git, GitHub, Branches & Collaboration Workflows']
-      },
-      {
-        moduleNumber: 'Module 02',
-        title: 'Frontend Frameworks with React',
-        duration: '2 Months',
-        topics: ['React Components, Props, State & Hooks', 'React Router, Context API & State Management', 'Tailwind CSS & Component Libraries Integration']
-      },
-      {
-        moduleNumber: 'Module 03',
-        title: 'Backend Engineering with Node.js & Express',
-        duration: '2 Months',
-        topics: ['RESTful API Architecture & Express Middleware', 'Authentication with JWT & Password Hashing', 'PostgreSQL & MongoDB Database Schema Design']
-      },
-      {
-        moduleNumber: 'Module 04',
-        title: 'Deployment & Full-Stack Capstone Project',
-        duration: '2 Months',
-        topics: ['Cloud Deployment (Vercel, Render, Railway)', 'Performance Optimization & Security Best Practices', 'Production-Grade SaaS Application Portfolio']
-      }
-    ]
-  },
-  {
-    id: 4,
-    slug: 'tally-prime-with-gst-specialist',
-    code: 'TALLY-GST',
-    name: 'Tally Prime with GST & E-Way Bill',
-    category: 'Accounting & Tally',
-    categoryId: 'accounting',
-    duration: '3 Months',
-    mode: 'Practical Lab Based',
-    badge: '100% Practical',
-    eligibility: '10th / 12th / Commerce',
-    certification: 'Certified Accounting Specialist',
-    shortDescription: 'Complete computerized accounting diploma covering ledger vouchers, inventory control, GST invoicing, TDS, payroll, and audit reports.',
-    fee: 5500,
-    thumbnailUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=600',
-    modules: [
-      {
-        moduleNumber: 'Module 01',
-        title: 'Accounting Fundamentals & Company Creation',
-        duration: '3 Weeks',
-        topics: ['Double Entry Accounting Rules & Journal Bookkeeping', 'Company Creation, Security Control & Groups Setup', 'Ledger & Sub-Ledger Classification']
-      },
-      {
-        moduleNumber: 'Module 02',
-        title: 'Voucher Entries & Inventory Management',
-        duration: '4 Weeks',
-        topics: ['Payment, Receipt, Journal, Contra & Sales Vouchers', 'Stock Items, Units of Measure & Godown Tracking', 'Order Processing: Purchase & Sales Orders']
-      },
-      {
-        moduleNumber: 'Module 03',
-        title: 'GST, TDS, Payroll & E-Filing Reporting',
-        duration: '5 Weeks',
-        topics: ['GST Activation, CGST/SGST/IGST Calculations & Invoices', 'TDS Deduction & Statutory Reports', 'Payroll Management: Salary Slips & Attendance', 'Balance Sheet, Profit & Loss and Trial Balance Analysis']
-      }
-    ]
-  },
-  {
-    id: 5,
-    slug: 'hardware-networking-cctv-technician',
-    code: 'HN-CCTV',
-    name: 'Hardware, Networking & CCTV Engineering',
-    category: 'Hardware & Networking',
-    categoryId: 'hardware-networking',
-    duration: '4 Months',
-    mode: 'Hands-on Hardware Lab',
-    badge: 'High Demand',
-    eligibility: '10th Pass',
-    certification: 'Certified Hardware Technician',
-    shortDescription: 'Hands-on hardware assembly, desktop/laptop troubleshooting, LAN/WAN routing, IP configuration, and CCTV camera network installation.',
-    fee: 8500,
-    thumbnailUrl: 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&q=80&w=600',
-    modules: [
-      {
-        moduleNumber: 'Module 01',
-        title: 'PC Hardware Assembly & Diagnostics',
-        duration: '1 Month',
-        topics: ['Motherboards, CPUs, RAM, SMPS & Storage Installation', 'BIOS/UEFI Configuration & OS Deployment', 'Hardware Diagnostics & Component Testing']
-      },
-      {
-        moduleNumber: 'Module 02',
-        title: 'Computer Networking & Wi-Fi Configuration',
-        duration: '1.5 Months',
-        topics: ['OSI Model, IP Addressing (IPv4/IPv6) & Subnetting', 'Crimping (RJ45), Switches, Routers & LAN Setup', 'Wi-Fi Access Points, Security & Firewall Basics']
-      },
-      {
-        moduleNumber: 'Module 03',
-        title: 'Analog & IP CCTV Surveillance Systems',
-        duration: '1.5 Months',
-        topics: ['DVR & NVR Installation, BNC/RJ45 Cabling', 'IP Camera Configuration, Port Forwarding & Mobile Remote View', 'Storage Calculation & CCTV Maintenance Troubleshooting']
-      }
-    ]
-  },
-  {
-    id: 6,
-    slug: 'smartphone-repairing-technology',
-    code: 'SM-TECH',
-    name: 'Smartphone Hardware & Software Repairing',
-    category: 'Vocational Skills',
-    categoryId: 'vocational',
-    duration: '3 Months',
-    mode: 'Practical Workshop',
-    badge: 'Self-Employment',
-    eligibility: '8th / 10th Pass',
-    certification: 'Professional Repairing Certificate',
-    shortDescription: 'Master SMD micro-soldering, IC reballing, display/touch combo replacement, flashing, unlocking, and software troubleshooting for all smartphones.',
-    fee: 9000,
-    thumbnailUrl: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&q=80&w=600',
-    modules: [
-      {
-        moduleNumber: 'Module 01',
-        title: 'Mobile Electronics & Circuit Architecture',
-        duration: '3 Weeks',
-        topics: ['Multimeter Usage, Resistors, Capacitors & Diodes', 'PCB Tracing & Schematic Diagram Reading', 'Short Circuit Detection & Power Supply Testing']
-      },
-      {
-        moduleNumber: 'Module 02',
-        title: 'Hardware Repairs & Micro-Soldering',
-        duration: '5 Weeks',
-        topics: ['SMD Rework Station Handling & Temperature Management', 'Charging Port, Speaker, Mic & Display Combo Replacement', 'IC Reballing & BGA Chip Replacement Basics']
-      },
-      {
-        moduleNumber: 'Module 03',
-        title: 'Software Flashing & FRP Unlocking',
-        duration: '4 Weeks',
-        topics: ['Stock ROM Flashing (Odin, SP Flash Tool, Mi Flash)', 'FRP Bypass, Pattern Lock Removal & IMEI Repair Basics', 'Troubleshooting Dead Boot & Bootloop Issues']
-      }
-    ]
-  },
-  {
-    id: 7,
-    slug: 'professional-fashion-designing-tailoring',
-    code: 'FASHION-STITCH',
-    name: 'Professional Fashion Designing & Tailoring',
-    category: 'Vocational Skills',
-    categoryId: 'vocational',
-    duration: '6 Months',
-    mode: 'Studio Practical',
-    badge: 'Women Empowerment',
-    eligibility: 'Open to All',
-    certification: 'Govt. Aligned Vocational Diploma',
-    shortDescription: 'Learn garment drafting, pattern making, professional cutting, boutique sewing techniques, and modern fashion illustration.',
-    fee: 7500,
-    thumbnailUrl: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&q=80&w=600',
-    modules: [
-      {
-        moduleNumber: 'Module 01',
-        title: 'Sewing Machine Handling & Basic Stitches',
-        duration: '1.5 Months',
-        topics: ['Machine Maintenance, Threading & Tension Control', 'Hand Stitches, Seams & Hemming Techniques', 'Body Measurements & Proportion Rules']
-      },
-      {
-        moduleNumber: 'Module 02',
-        title: 'Pattern Making & Garment Drafting',
-        duration: '2.5 Months',
-        topics: ['Drafting Kurti, Salwar, Blouse, Frocks & Western Tops', 'Paper Pattern Cutting, Layout & Fabric Estimation', 'Dart Manipulation & Neckline Finishing']
-      },
-      {
-        moduleNumber: 'Module 03',
-        title: 'Designer Boutique Finishing & Business Skills',
-        duration: '2 Months',
-        topics: ['Piping, Zips, Buttonholes & Embroidery Accents', 'Fitting Adjustments & Alteration Expertise', 'Costing, Pricing & Boutique Management Basics']
-      }
-    ]
-  }
-];
-
 export const Courses = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -342,7 +75,7 @@ export const Courses = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // TanStack Query for Dynamic Courses from backend
+  // TanStack Query for Dynamic Courses from backend database
   const { data: dbCourses, isLoading } = useQuery({
     queryKey: ['publicCoursesList'],
     queryFn: async () => {
@@ -357,100 +90,75 @@ export const Courses = () => {
     }
   });
 
-  // Merge backend courses with rich syllabus data
+  // Map purely dynamic backend courses from database (NO demo data)
   const allCourses = useMemo(() => {
-    if (dbCourses && Array.isArray(dbCourses) && dbCourses.length > 0) {
-      // Enrich backend courses with fallback modules if missing
-      return dbCourses.map((c: any, index: number) => {
-        const matchingTemplate = COMPREHENSIVE_COURSES.find(
-          tc => tc.code.toLowerCase() === (c.code || '').toLowerCase() ||
-            tc.name.toLowerCase().includes(c.name.toLowerCase()) ||
-            c.name.toLowerCase().includes(tc.name.toLowerCase())
-        );
-
-        let parsedModules: CourseModule[] | undefined = undefined;
-        if (c.semesters) {
-          try {
-            const sems = typeof c.semesters === 'string' ? JSON.parse(c.semesters) : c.semesters;
-            if (Array.isArray(sems) && sems.length > 0) {
-              parsedModules = sems.map((s: any) => ({
-                moduleNumber: `Semester ${s.num || 1}`,
-                title: s.subjects ? (s.subjects.split(',')[0] || `Semester ${s.num || 1}`) : `Semester ${s.num || 1}`,
-                duration: c.duration ? `Part of ${c.duration}` : 'Semester Duration',
-                topics: s.subjects
-                  ? s.subjects.split(',').map((subj: string) => subj.trim()).filter(Boolean)
-                  : ['Core Theory & Practical Training', 'Hands-on Lab Exercises', 'Assessment & Viva']
-              }));
-            }
-          } catch (_) {}
-        }
-
-        const rawImg = c.image_url || c.thumbnail_url;
-        const resolvedImg = rawImg 
-          ? (rawImg.startsWith('http') || rawImg.startsWith('data:') ? rawImg : `http://localhost:3000${rawImg}`)
-          : (matchingTemplate?.thumbnailUrl || COMPREHENSIVE_COURSES[index % COMPREHENSIVE_COURSES.length].thumbnailUrl);
-
-        // Intelligent category resolver for category tabs
-        const textToMatch = `${c.name} ${c.code || ''} ${c.categoryId || ''}`.toLowerCase();
-        let derivedCategory = matchingTemplate?.category || c.categoryId || 'Professional Program';
-        let derivedCategoryId = matchingTemplate?.categoryId || 'all';
-
-        if (textToMatch.includes('adca') || textToMatch.includes('dca') || textToMatch.includes('pgdca') || textToMatch.includes('computer application')) {
-          derivedCategory = 'DCA / ADCA';
-          derivedCategoryId = 'dca-adca';
-        } else if (textToMatch.includes('web') || textToMatch.includes('programming') || textToMatch.includes('stack') || textToMatch.includes('python') || textToMatch.includes('java') || textToMatch.includes('dit') || textToMatch.includes('it')) {
-          derivedCategory = 'Programming & Web';
-          derivedCategoryId = 'programming';
-        } else if (textToMatch.includes('tally') || textToMatch.includes('gst') || textToMatch.includes('account') || textToMatch.includes('finan')) {
-          derivedCategory = 'Accounting & Tally';
-          derivedCategoryId = 'accounting';
-        } else if (textToMatch.includes('hardware') || textToMatch.includes('network') || textToMatch.includes('cctv') || textToMatch.includes('lan')) {
-          derivedCategory = 'Hardware & Networking';
-          derivedCategoryId = 'hardware-networking';
-        } else if (textToMatch.includes('typing') || textToMatch.includes('office') || textToMatch.includes('basic') || textToMatch.includes('vocational') || textToMatch.includes('repair') || textToMatch.includes('tailor') || textToMatch.includes('fashion')) {
-          derivedCategory = 'Vocational Skills';
-          derivedCategoryId = 'vocational';
-        }
-
-        return {
-          id: c.id || index + 1,
-          slug: c.slug || c.code?.toLowerCase() || `course-${index + 1}`,
-          code: c.code || 'EXM-CRS',
-          name: c.name,
-          category: derivedCategory,
-          categoryId: derivedCategoryId,
-          duration: c.duration || matchingTemplate?.duration || '3–6 Months',
-          mode: matchingTemplate?.mode || 'Classroom & Hands-on Lab',
-          badge: matchingTemplate?.badge || (index === 0 ? 'Featured' : 'Industry Aligned'),
-          eligibility: c.eligibility || matchingTemplate?.eligibility || '10th / 12th Pass',
-          certification: matchingTemplate?.certification || 'Recognized National Certificate',
-          shortDescription: c.shortDescription || c.description || matchingTemplate?.shortDescription || 'Professional certification curriculum tailored for career readiness and practical skills.',
-          fee: Number(c.fee) || matchingTemplate?.fee || 5000,
-          thumbnailUrl: resolvedImg,
-          modules: (parsedModules && parsedModules.length > 0) ? parsedModules : (matchingTemplate?.modules || [
-            {
-              moduleNumber: 'Module 01',
-              title: 'Core Fundamentals & Theory',
-              duration: '1 Month',
-              topics: ['Fundamental Concepts & Terminology', 'Standard Operating Procedures', 'Safety & Best Practices']
-            },
-            {
-              moduleNumber: 'Module 02',
-              title: 'Practical Application & Hands-on Lab',
-              duration: '2 Months',
-              topics: ['Software/Hardware Tool Training', 'Real-world Case Studies', 'Supervised Practical Exercises']
-            },
-            {
-              moduleNumber: 'Module 03',
-              title: 'Project Work & Exam Preparation',
-              duration: '1 Month',
-              topics: ['Live Capstone Project', 'Viva & Practical Assessment', 'Final Examination & Certification']
-            }
-          ])
-        } as CourseItem;
-      });
+    if (!dbCourses || !Array.isArray(dbCourses) || dbCourses.length === 0) {
+      return [];
     }
-    return COMPREHENSIVE_COURSES;
+
+    return dbCourses.map((c: any, index: number) => {
+      let parsedModules: CourseModule[] | undefined = undefined;
+      if (c.semesters) {
+        try {
+          const sems = typeof c.semesters === 'string' ? JSON.parse(c.semesters) : c.semesters;
+          if (Array.isArray(sems) && sems.length > 0) {
+            parsedModules = sems.map((s: any) => ({
+              moduleNumber: `Semester ${s.num || 1}`,
+              title: s.subjects ? (s.subjects.split(',')[0] || `Semester ${s.num || 1}`) : `Semester ${s.num || 1}`,
+              duration: c.duration ? `Part of ${c.duration}` : 'Semester Duration',
+              topics: s.subjects
+                ? s.subjects.split(',').map((subj: string) => subj.trim()).filter(Boolean)
+                : ['Curriculum Theory & Practicals', 'Hands-on Lab Exercises', 'Assessment & Viva']
+            }));
+          }
+        } catch (_) {}
+      }
+
+      const rawImg = c.image_url || c.thumbnail_url;
+      const resolvedImg = rawImg 
+        ? (rawImg.startsWith('http') || rawImg.startsWith('data:') ? rawImg : `http://localhost:3000${rawImg}`)
+        : undefined;
+
+      // Intelligent category resolver for category tabs
+      const textToMatch = `${c.name} ${c.code || ''} ${c.categoryId || ''}`.toLowerCase();
+      let derivedCategory = c.categoryId || 'Certified Program';
+      let derivedCategoryId = 'all';
+
+      if (textToMatch.includes('adca') || textToMatch.includes('dca') || textToMatch.includes('pgdca') || textToMatch.includes('computer application')) {
+        derivedCategory = 'DCA / ADCA';
+        derivedCategoryId = 'dca-adca';
+      } else if (textToMatch.includes('web') || textToMatch.includes('programming') || textToMatch.includes('stack') || textToMatch.includes('python') || textToMatch.includes('java') || textToMatch.includes('dit') || textToMatch.includes('it')) {
+        derivedCategory = 'Programming & Web';
+        derivedCategoryId = 'programming';
+      } else if (textToMatch.includes('tally') || textToMatch.includes('gst') || textToMatch.includes('account') || textToMatch.includes('finan')) {
+        derivedCategory = 'Accounting & Tally';
+        derivedCategoryId = 'accounting';
+      } else if (textToMatch.includes('hardware') || textToMatch.includes('network') || textToMatch.includes('cctv') || textToMatch.includes('lan')) {
+        derivedCategory = 'Hardware & Networking';
+        derivedCategoryId = 'hardware-networking';
+      } else if (textToMatch.includes('typing') || textToMatch.includes('office') || textToMatch.includes('basic') || textToMatch.includes('vocational') || textToMatch.includes('repair') || textToMatch.includes('tailor') || textToMatch.includes('fashion')) {
+        derivedCategory = 'Vocational Skills';
+        derivedCategoryId = 'vocational';
+      }
+
+      return {
+        id: c.id || index + 1,
+        slug: c.slug || c.code?.toLowerCase() || `course-${c.id || index + 1}`,
+        code: c.code || `CRS-${c.id}`,
+        name: c.name,
+        category: derivedCategory,
+        categoryId: derivedCategoryId,
+        duration: c.duration || '3 Months',
+        mode: 'Classroom & Hands-on Lab',
+        badge: '',
+        eligibility: c.eligibility || '10th / 12th Pass',
+        certification: 'Recognized Examirror Certificate',
+        shortDescription: c.shortDescription || c.description || (c.semesters ? 'Course curriculum configured by academic master catalog.' : 'Official course curriculum available at authorized study centers.'),
+        fee: Number(c.fee) || 0,
+        thumbnailUrl: resolvedImg,
+        modules: parsedModules
+      } as CourseItem;
+    });
   }, [dbCourses]);
 
   // Filtered & Sorted Courses
@@ -502,7 +210,7 @@ export const Courses = () => {
             '@type': 'ItemList',
             name: 'Examirror Career Certification Courses',
             description: 'Accredited computer & vocational certification courses offered across India.',
-            itemListElement: COMPREHENSIVE_COURSES.slice(0, 10).map((c, index) => ({
+            itemListElement: allCourses.slice(0, 10).map((c: CourseItem, index: number) => ({
               '@type': 'ListItem',
               position: index + 1,
               item: {
@@ -646,12 +354,19 @@ export const Courses = () => {
               >
                 {/* Thumbnail Image */}
                 <div className="h-48 overflow-hidden relative bg-slate-100">
-                  <img
-                    src={course.thumbnailUrl}
-                    alt={course.name}
-                    className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
-                    loading="lazy"
-                  />
+                  {course.thumbnailUrl ? (
+                    <img
+                      src={course.thumbnailUrl}
+                      alt={course.name}
+                      className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-indigo-50/60 text-indigo-400">
+                      <BookOpen size={42} className="mb-2 text-[#6b6eed] opacity-75" />
+                      <span className="text-xs font-semibold text-slate-500">Official Master Course</span>
+                    </div>
+                  )}
                   {/* Category & Badge */}
                   <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
                     <span className="bg-slate-900/90 text-white px-2.5 py-0.5 rounded-md text-[11px] font-bold backdrop-blur-xs">
