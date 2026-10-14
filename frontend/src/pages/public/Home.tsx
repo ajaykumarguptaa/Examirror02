@@ -1631,7 +1631,7 @@ const Home = () => {
               onMouseUp={handleCourseMouseLeaveOrUp}
               onMouseMove={handleCourseMouseMove}
               onMouseEnter={() => setIsCourseAutoSlide(false)}
-              className={`flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory py-4 px-1 no-scrollbar select-none ${
+              className={`flex items-stretch gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory py-4 px-1 no-scrollbar select-none ${
                 isDraggingCourse ? 'cursor-grabbing' : 'cursor-grab'
               }`}
             >
@@ -1643,7 +1643,7 @@ const Home = () => {
                   viewport={{ once: true, margin: '-40px' }}
                   transition={{ duration: 0.55, delay: Math.min(idx * 0.08, 0.4), ease: [0.16, 1, 0.3, 1] }}
                   whileHover={{ y: -8 }}
-                  className="course-card-item snap-start shrink-0 w-[285px] sm:w-[325px] lg:w-[calc(25%-18px)] rounded-3xl flex flex-col justify-between group relative overflow-hidden bg-white/95 backdrop-blur-md shadow-md hover:shadow-2xl hover:shadow-indigo-500/15 transition-all duration-400 h-full border border-slate-200/90 hover:border-indigo-400/60"
+                  className="course-card-item snap-start shrink-0 w-[285px] sm:w-[325px] lg:w-[calc(25%-18px)] rounded-3xl flex flex-col justify-between group relative overflow-hidden bg-white/95 backdrop-blur-md shadow-md hover:shadow-2xl hover:shadow-indigo-500/15 transition-all duration-400 h-[385px] sm:h-[405px] border border-slate-200/90 hover:border-indigo-400/60"
                 >
                   {/* Course Card Thumbnail Image Header */}
                   <div className="h-44 sm:h-48 w-full relative overflow-hidden bg-slate-900 shrink-0">
@@ -1675,7 +1675,7 @@ const Home = () => {
                   {/* Card Body */}
                   <div className="p-5 flex-1 flex flex-col justify-between text-left">
                     <div>
-                      <h3 className="font-black text-slate-900 text-base sm:text-lg group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug">
+                      <h3 className="font-black text-slate-900 text-base sm:text-lg group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug min-h-[48px] sm:min-h-[52px] flex items-start">
                         {cat.name}
                       </h3>
                       <div className="flex items-center justify-between text-slate-500 text-xs mt-3 font-medium">
@@ -1691,7 +1691,7 @@ const Home = () => {
 
                     <Link
                       to="/courses"
-                      className="btn-elastic pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs font-black text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer group/link"
+                      className="btn-elastic pt-3.5 mt-auto border-t border-slate-100 flex items-center justify-between text-xs font-black text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer group/link"
                     >
                       <span className="group-hover/link:underline">Explore Curriculum</span>
                       <div className="btn-icon-bounce w-7 h-7 rounded-full bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center shadow-xs transition-colors">
