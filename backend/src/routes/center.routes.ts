@@ -157,13 +157,14 @@ router.delete('/:centerId/courses/:courseId', async (req, res) => {
 });
 
 router.post('/courses', async (req, res) => {
-  const { code, name, categoryId, fee, shortDescription, duration, semesters, createdByType, createdById, is_published, is_draft } = req.body;
+  const { code, name, categoryId, fee, shortDescription, duration, semesters, createdByType, createdById, is_published, is_draft, image_url, imageUrl, eligibility } = req.body;
   try {
     const type = createdByType || 'center';
     const id = createdById || null;
-    const isPub = is_published !== undefined ? Number(is_published) : (type === 'admin' ? 0 : 1);
+    const isPub = is_published !== undefined ? Number(is_published) : (type === 'admin' ? 1 : 1);
     const isDrf = is_draft !== undefined ? Number(is_draft) : 0;
-    const insertId = await centerService.addCourse(code, name, categoryId, fee, shortDescription, duration, semesters, type, id, isPub, isDrf);
+    const img = image_url || imageUrl || '';
+    const insertId = await centerService.addCourse(code, name, categoryId, fee, shortDescription, duration, semesters, type, id, isPub, isDrf, img, eligibility);
     res.status(201).json({ 
       success: true, 
       courseId: insertId, 
@@ -177,9 +178,10 @@ router.post('/courses', async (req, res) => {
 });
 
 router.put('/courses/:id', async (req, res) => {
-  const { code, name, categoryId, fee, shortDescription, duration, semesters } = req.body;
+  const { code, name, categoryId, fee, shortDescription, duration, semesters, image_url, imageUrl, eligibility } = req.body;
   try {
-    await centerService.updateCourse(req.params.id, code, name, categoryId, fee, shortDescription, duration, semesters);
+    const img = image_url || imageUrl || undefined;
+    await centerService.updateCourse(req.params.id, code, name, categoryId, fee, shortDescription, duration, semesters, img, eligibility);
     res.status(200).json({ success: true, message: 'Course updated successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

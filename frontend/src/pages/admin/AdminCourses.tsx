@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Trash2, CheckCircle2, AlertCircle, AlertTriangle, Loader2, Check, Edit3, ShieldAlert, FileText, Building2, Users } from 'lucide-react';
+import { Plus, X, Trash2, CheckCircle2, AlertCircle, AlertTriangle, Loader2, Check, Edit3, ShieldAlert, FileText, Building2, Users, LayoutGrid, Table, Image as ImageIcon, Upload, Clock, Layers, HelpCircle, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -21,6 +21,8 @@ interface Course {
   duration?: string;
   fee?: number;
   shortDescription?: string;
+  eligibility?: string;
+  image_url?: string;
   semesters?: string | Semester[];
   questionsCount?: number;
   is_published?: number;
@@ -43,6 +45,7 @@ const AdminCourses = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -59,9 +62,30 @@ const AdminCourses = () => {
   const [durationValue, setDurationValue] = useState('3');
   const [durationType, setDurationType] = useState('Months');
   const [courseFee, setCourseFee] = useState('1500');
+  const [courseImage, setCourseImage] = useState<string>('');
+  const [eligibility, setEligibility] = useState('10th / 12th Pass');
+  const [shortDescription, setShortDescription] = useState('');
   const [semesters, setSemesters] = useState<Semester[]>([
     { num: 1, subjects: '', marks: 80, oral: 20, marks_per_question: 1, negative_marks: 0, pass_marks: 40 }
   ]);
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setFeedback({ type: 'error', text: 'Please select a valid image file (PNG, JPG, WebP).' });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setFeedback({ type: 'error', text: 'Image file size must be less than 5MB.' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setCourseImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const fetchData = async () => {
     try {
@@ -116,6 +140,9 @@ const AdminCourses = () => {
     setDurationValue('3');
     setDurationType('Months');
     setCourseFee('1500');
+    setCourseImage('');
+    setEligibility('10th / 12th Pass');
+    setShortDescription('');
     setSemesters([{ num: 1, subjects: '', marks: 80, oral: 20, marks_per_question: 1, negative_marks: 0, pass_marks: 40 }]);
     setIsModalOpen(true);
   };
@@ -129,6 +156,9 @@ const AdminCourses = () => {
     setDurationValue(durParts[0] || '3');
     setDurationType(durParts[1] || 'Months');
     setCourseFee(String(course.fee || 1500));
+    setCourseImage(course.image_url || '');
+    setEligibility(course.eligibility || '10th / 12th Pass');
+    setShortDescription(course.shortDescription || '');
 
     const parsedSems = getParsedSemesters(course);
     setSemesters(parsedSems.map(s => ({
@@ -163,7 +193,9 @@ const AdminCourses = () => {
         duration: durationStr,
         fee: Number(courseFee) || 0,
         categoryId: 'Certificate',
-        shortDescription: semesters.map(s => `Sem ${s.num}: ${s.subjects}`).join('; '),
+        shortDescription: shortDescription.trim() || semesters.map(s => `Sem ${s.num}: ${s.subjects}`).join('; '),
+        eligibility: eligibility.trim() || '10th / 12th Pass',
+        image_url: courseImage || undefined,
         semesters: semesters,
         createdByType: 'admin',
         createdById: null,
@@ -213,7 +245,9 @@ const AdminCourses = () => {
         duration: durationStr,
         fee: Number(courseFee) || 0,
         categoryId: 'Certificate',
-        shortDescription: semesters.map(s => `Sem ${s.num}: ${s.subjects}`).join('; '),
+        shortDescription: shortDescription.trim() || semesters.map(s => `Sem ${s.num}: ${s.subjects}`).join('; '),
+        eligibility: eligibility.trim() || '10th / 12th Pass',
+        image_url: courseImage || undefined,
         semesters: semesters
       };
 
@@ -549,7 +583,7 @@ const AdminCourses = () => {
         </div>
       )}
 
-      {/* Filter Tabs & Search Bar */}
+      {/* Filter Tabs & Search Bar & View Mode Toggle */}
       <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 no-scrollbar">
           <button 
@@ -594,47 +628,206 @@ const AdminCourses = () => {
           </button>
         </div>
 
-        <div className="w-full md:w-72">
-          <input 
-            type="text" 
-            placeholder="Search by course name or code..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:border-[#6b6eed] outline-none"
-          />
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          {/* View Mode Toggle: Cards vs Table */}
+          <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200 shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'cards'
+                  ? 'bg-white text-indigo-700 shadow-2xs'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
+              title="Cards View"
+            >
+              <LayoutGrid size={15} />
+              <span className="hidden sm:inline">Cards View</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-white text-indigo-700 shadow-2xs'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
+              title="Table View"
+            >
+              <Table size={15} />
+              <span className="hidden sm:inline">Table View</span>
+            </button>
+          </div>
+
+          <div className="w-full md:w-64">
+            <input 
+              type="text" 
+              placeholder="Search courses..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:border-[#6b6eed] outline-none"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Courses Table */}
-      <div className="bg-white rounded-xl shadow-xs border border-gray-200 overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[950px]">
-          <thead>
-            <tr className="bg-[#5b67f1] text-white text-xs font-bold uppercase tracking-wider">
-              <th className="py-3.5 px-4 text-center border-r border-indigo-400 w-12">#</th>
-              <th className="py-3.5 px-4 text-center border-r border-indigo-400 w-28">Code</th>
-              <th className="py-3.5 px-4 border-r border-indigo-400 w-60">Course Info</th>
-              <th className="py-3.5 px-4 border-r border-indigo-400">Semester Syllabus & Exam Criteria</th>
-              <th className="py-3.5 px-4 text-center w-40">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 text-sm text-gray-700">
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="py-12 text-center text-gray-500">
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="animate-spin text-[#6b6eed]" size={20} />
-                    <span>Loading master catalog courses...</span>
+      {/* Courses Content */}
+      {loading ? (
+        <div className="bg-white rounded-xl shadow-xs border border-gray-200 py-16 text-center text-gray-500">
+          <div className="flex items-center justify-center gap-2">
+            <Loader2 className="animate-spin text-[#6b6eed]" size={22} />
+            <span className="text-sm font-semibold">Loading master catalog courses...</span>
+          </div>
+        </div>
+      ) : filteredCourses.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-xs border border-gray-200 py-16 text-center text-gray-500 font-medium">
+          No courses found matching your criteria.
+        </div>
+      ) : viewMode === 'cards' ? (
+        /* CARDS VIEW (Default) */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCourses.map((course) => {
+            const sems = getParsedSemesters(course);
+            const isPub = course.is_published === 1;
+            const totalMarks = sems.reduce((acc, sem) => acc + (Number(sem.marks) || 80) + (Number(sem.oral) || 20), 0);
+            const imageSource = course.image_url
+              ? (course.image_url.startsWith('http') || course.image_url.startsWith('data:') ? course.image_url : `http://localhost:3000${course.image_url}`)
+              : null;
+
+            return (
+              <div 
+                key={course.id}
+                className="bg-white rounded-2xl border border-gray-200 shadow-xs hover:shadow-md transition-all overflow-hidden flex flex-col group"
+              >
+                {/* Course Image Header */}
+                <div className="relative w-full h-48 bg-slate-100 overflow-hidden border-b border-gray-100">
+                  {imageSource ? (
+                    <img 
+                      src={imageSource} 
+                      alt={course.name} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-indigo-50/50 text-indigo-400">
+                      <BookOpen size={44} className="mb-2 text-[#6b6eed] opacity-70" />
+                      <span className="text-xs font-semibold text-gray-400">No Image Uploaded</span>
+                    </div>
+                  )}
+
+                  {/* Course Code Badge */}
+                  <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded-lg text-xs font-black font-mono text-gray-800 shadow-xs border border-gray-200/80">
+                    {course.code || `CRS-${course.id}`}
                   </div>
-                </td>
+
+                  {/* Status Badge */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                    {course.is_draft === 1 && (
+                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500 text-white shadow-xs flex items-center gap-1">
+                        <FileText size={11} /> Draft
+                      </span>
+                    )}
+                    <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-xs flex items-center gap-1 ${
+                      isPub 
+                        ? 'bg-emerald-600 text-white' 
+                        : 'bg-gray-800 text-white'
+                    }`}>
+                      {isPub ? '● Published' : '○ Unpublished'}
+                    </span>
+                  </div>
+
+                  {/* Fee Overlay Badge */}
+                  <div className="absolute bottom-3 right-3 bg-[#6b6eed] text-white px-3 py-1 rounded-lg text-xs font-black shadow-xs">
+                    ₹{course.fee?.toLocaleString() || 0}
+                  </div>
+                </div>
+
+                {/* Course Body */}
+                <div className="p-5 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1 mb-1.5">
+                      {course.name}
+                    </h3>
+                    <p className="text-xs text-gray-500 line-clamp-2 mb-4 leading-relaxed">
+                      {course.shortDescription || sems.map(s => `Sem ${s.num}: ${s.subjects}`).join(' • ') || 'Comprehensive curriculum with theory, viva, and certification exam.'}
+                    </p>
+
+                    {/* Meta info tags */}
+                    <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+                      <div className="bg-slate-50 border border-slate-200 p-2 rounded-lg flex items-center gap-1.5 text-gray-700">
+                        <Clock size={13} className="text-indigo-600 shrink-0" />
+                        <span className="font-semibold truncate">{course.duration || '3 Months'}</span>
+                      </div>
+                      <div className="bg-slate-50 border border-slate-200 p-2 rounded-lg flex items-center gap-1.5 text-gray-700">
+                        <Layers size={13} className="text-indigo-600 shrink-0" />
+                        <span className="font-semibold truncate">{sems.length} Semester{sems.length > 1 ? 's' : ''} ({totalMarks} M)</span>
+                      </div>
+                    </div>
+
+                    {/* Eligibility Badge */}
+                    <div className="text-[11px] font-semibold text-gray-600 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200/80 mb-4 inline-flex items-center gap-1">
+                      <span className="text-gray-400">Eligibility:</span>
+                      <span className="text-gray-800 font-bold">{course.eligibility || '10th / 12th Pass'}</span>
+                    </div>
+                  </div>
+
+                  {/* Action Bar */}
+                  <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleTogglePublish(course.id, course.is_published)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                        isPub 
+                          ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100' 
+                          : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                      }`}
+                      title={isPub ? 'Click to unpublish' : 'Click to publish course'}
+                    >
+                      {isPub ? 'Unpublish' : 'Publish Live'}
+                    </button>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(course)}
+                        className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Edit Course Details & Exam Criteria"
+                      >
+                        <Edit3 size={13} />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCourseClick(course)}
+                        className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 p-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                        title="Delete Course"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* TABLE VIEW (Alternative) */
+        <div className="bg-white rounded-xl shadow-xs border border-gray-200 overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[950px]">
+            <thead>
+              <tr className="bg-[#5b67f1] text-white text-xs font-bold uppercase tracking-wider">
+                <th className="py-3.5 px-4 text-center border-r border-indigo-400 w-12">#</th>
+                <th className="py-3.5 px-4 text-center border-r border-indigo-400 w-28">Code</th>
+                <th className="py-3.5 px-4 border-r border-indigo-400 w-60">Course Info</th>
+                <th className="py-3.5 px-4 border-r border-indigo-400">Semester Syllabus & Exam Criteria</th>
+                <th className="py-3.5 px-4 text-center w-40">Actions</th>
               </tr>
-            ) : filteredCourses.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="py-12 text-center text-gray-500 font-medium">
-                  No courses found matching your criteria.
-                </td>
-              </tr>
-            ) : (
-              filteredCourses.map((course, index) => {
+            </thead>
+            <tbody className="divide-y divide-gray-200 text-sm text-gray-700">
+              {filteredCourses.map((course, index) => {
                 const sems = getParsedSemesters(course);
                 const isPub = course.is_published === 1;
 
@@ -760,11 +953,11 @@ const AdminCourses = () => {
                     </td>
                   </tr>
                 );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* CREATE MODAL */}
       {isModalOpen && (
@@ -773,7 +966,7 @@ const AdminCourses = () => {
             <div className="flex justify-between items-center p-5 border-b border-gray-200 bg-slate-50">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Add New Master Course</h3>
-                <p className="text-xs text-gray-500">Define course syllabus, written/oral exam marks, and negative marking.</p>
+                <p className="text-xs text-gray-500">Upload banner image, set syllabus, written/oral exam marks, and negative marking.</p>
               </div>
               <button 
                 type="button"
@@ -785,6 +978,48 @@ const AdminCourses = () => {
             </div>
             
             <form onSubmit={handleCreateCourse} className="p-6 overflow-y-auto space-y-5">
+              {/* Course Thumbnail Image Upload */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                <label className="block text-gray-700 font-bold text-sm mb-2">
+                  Course Thumbnail / Image (S3 Supported)
+                </label>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {courseImage ? (
+                    <div className="relative w-36 h-24 rounded-lg overflow-hidden border border-gray-300 shadow-xs shrink-0">
+                      <img src={courseImage} alt="Preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setCourseImage('')}
+                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 hover:bg-red-700 shadow-xs cursor-pointer"
+                        title="Remove image"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-36 h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex flex-col items-center justify-center text-gray-400 shrink-0">
+                      <ImageIcon size={26} className="mb-1 text-gray-400" />
+                      <span className="text-[10px] font-semibold">No Image</span>
+                    </div>
+                  )}
+                  <div className="flex-1 w-full text-left">
+                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl text-xs font-bold text-gray-700 shadow-2xs cursor-pointer transition-colors">
+                      <Upload size={14} className="text-[#6b6eed]" />
+                      <span>{courseImage ? 'Change Image' : 'Upload Course Image'}</span>
+                      <input 
+                        type="file" 
+                        accept="image/png,image/jpeg,image/webp,image/jpg" 
+                        className="hidden" 
+                        onChange={handleImageFileChange} 
+                      />
+                    </label>
+                    <p className="text-[11px] text-gray-500 mt-1.5">
+                      Upload PNG, JPG or WebP (Max 5MB). Automatically saved to cloud storage & public courses page.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-gray-700 font-bold text-sm mb-1.5">
                   Course Name <span className="text-red-500">*</span>
@@ -822,7 +1057,7 @@ const AdminCourses = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-gray-700 font-bold text-sm mb-1.5">Course Duration <span className="text-red-500">*</span></label>
                   <input 
@@ -846,6 +1081,29 @@ const AdminCourses = () => {
                     <option value="Years">Years</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-gray-700 font-bold text-sm mb-1.5">Eligibility</label>
+                  <input 
+                    type="text" 
+                    value={eligibility}
+                    onChange={(e) => setEligibility(e.target.value)}
+                    placeholder="e.g. 10th / 12th Pass"
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-[#6b6eed] outline-none" 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-bold text-sm mb-1.5">
+                  Short Description / Overview (Optional)
+                </label>
+                <textarea 
+                  rows={2}
+                  value={shortDescription}
+                  onChange={(e) => setShortDescription(e.target.value)}
+                  placeholder="Brief overview shown on cards and course detail page..."
+                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-[#6b6eed] outline-none" 
+                />
               </div>
 
               {renderSemesterInputs()}
@@ -908,6 +1166,52 @@ const AdminCourses = () => {
             </div>
             
             <form onSubmit={handleUpdateCourse} className="p-6 overflow-y-auto space-y-5">
+              {/* Course Thumbnail Image Upload */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                <label className="block text-gray-700 font-bold text-sm mb-2">
+                  Course Thumbnail / Image (S3 Supported)
+                </label>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {courseImage ? (
+                    <div className="relative w-36 h-24 rounded-lg overflow-hidden border border-gray-300 shadow-xs shrink-0">
+                      <img 
+                        src={courseImage.startsWith('http') || courseImage.startsWith('data:') ? courseImage : `http://localhost:3000${courseImage}`} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover" 
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCourseImage('')}
+                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 hover:bg-red-700 shadow-xs cursor-pointer"
+                        title="Remove image"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-36 h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex flex-col items-center justify-center text-gray-400 shrink-0">
+                      <ImageIcon size={26} className="mb-1 text-gray-400" />
+                      <span className="text-[10px] font-semibold">No Image</span>
+                    </div>
+                  )}
+                  <div className="flex-1 w-full text-left">
+                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl text-xs font-bold text-gray-700 shadow-2xs cursor-pointer transition-colors">
+                      <Upload size={14} className="text-[#6b6eed]" />
+                      <span>{courseImage ? 'Change Image' : 'Upload Course Image'}</span>
+                      <input 
+                        type="file" 
+                        accept="image/png,image/jpeg,image/webp,image/jpg" 
+                        className="hidden" 
+                        onChange={handleImageFileChange} 
+                      />
+                    </label>
+                    <p className="text-[11px] text-gray-500 mt-1.5">
+                      Upload PNG, JPG or WebP (Max 5MB). Automatically saved to cloud storage & public courses page.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-gray-700 font-bold text-sm mb-1.5">
                   Course Name <span className="text-red-500">*</span>
@@ -943,7 +1247,7 @@ const AdminCourses = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-gray-700 font-bold text-sm mb-1.5">Course Duration <span className="text-red-500">*</span></label>
                   <input 
@@ -967,6 +1271,29 @@ const AdminCourses = () => {
                     <option value="Years">Years</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-gray-700 font-bold text-sm mb-1.5">Eligibility</label>
+                  <input 
+                    type="text" 
+                    value={eligibility}
+                    onChange={(e) => setEligibility(e.target.value)}
+                    placeholder="e.g. 10th / 12th Pass"
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-[#6b6eed] outline-none" 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-bold text-sm mb-1.5">
+                  Short Description / Overview (Optional)
+                </label>
+                <textarea 
+                  rows={2}
+                  value={shortDescription}
+                  onChange={(e) => setShortDescription(e.target.value)}
+                  placeholder="Brief overview shown on cards and course detail page..."
+                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-[#6b6eed] outline-none" 
+                />
               </div>
 
               {renderSemesterInputs()}

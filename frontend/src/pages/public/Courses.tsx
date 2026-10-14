@@ -357,7 +357,7 @@ export const Courses = () => {
     }
   });
 
-  // Merge backend courses with rich mock syllabus data
+  // Merge backend courses with rich syllabus data
   const allCourses = useMemo(() => {
     if (dbCourses && Array.isArray(dbCourses) && dbCourses.length > 0) {
       // Enrich backend courses with fallback modules if missing
@@ -368,22 +368,44 @@ export const Courses = () => {
             c.name.toLowerCase().includes(tc.name.toLowerCase())
         );
 
+        let parsedModules: CourseModule[] | undefined = undefined;
+        if (c.semesters) {
+          try {
+            const sems = typeof c.semesters === 'string' ? JSON.parse(c.semesters) : c.semesters;
+            if (Array.isArray(sems) && sems.length > 0) {
+              parsedModules = sems.map((s: any) => ({
+                moduleNumber: `Semester ${s.num || 1}`,
+                title: s.subjects ? (s.subjects.split(',')[0] || `Semester ${s.num || 1}`) : `Semester ${s.num || 1}`,
+                duration: c.duration ? `Part of ${c.duration}` : 'Semester Duration',
+                topics: s.subjects
+                  ? s.subjects.split(',').map((subj: string) => subj.trim()).filter(Boolean)
+                  : ['Core Theory & Practical Training', 'Hands-on Lab Exercises', 'Assessment & Viva']
+              }));
+            }
+          } catch (_) {}
+        }
+
+        const rawImg = c.image_url || c.thumbnail_url;
+        const resolvedImg = rawImg 
+          ? (rawImg.startsWith('http') || rawImg.startsWith('data:') ? rawImg : `http://localhost:3000${rawImg}`)
+          : (matchingTemplate?.thumbnailUrl || COMPREHENSIVE_COURSES[index % COMPREHENSIVE_COURSES.length].thumbnailUrl);
+
         return {
           id: c.id || index + 1,
           slug: c.slug || c.code?.toLowerCase() || `course-${index + 1}`,
           code: c.code || 'EXM-CRS',
           name: c.name,
-          category: matchingTemplate?.category || 'Diploma Program',
-          categoryId: matchingTemplate?.categoryId || 'dca-adca',
+          category: matchingTemplate?.category || c.categoryId || 'Career Diploma',
+          categoryId: matchingTemplate?.categoryId || (c.categoryId ? c.categoryId.toLowerCase() : 'all'),
           duration: c.duration || matchingTemplate?.duration || '3–6 Months',
-          mode: matchingTemplate?.mode || 'Classroom & Lab',
+          mode: matchingTemplate?.mode || 'Classroom & Hands-on Lab',
           badge: matchingTemplate?.badge || (index === 0 ? 'Featured' : 'Industry Aligned'),
-          eligibility: matchingTemplate?.eligibility || '10th / 12th Pass',
-          certification: matchingTemplate?.certification || 'Recognized Diploma',
-          shortDescription: c.description || matchingTemplate?.shortDescription || 'Professional certification curriculum tailored for career readiness and practical skills.',
+          eligibility: c.eligibility || matchingTemplate?.eligibility || '10th / 12th Pass',
+          certification: matchingTemplate?.certification || 'Recognized National Certificate',
+          shortDescription: c.shortDescription || c.description || matchingTemplate?.shortDescription || 'Professional certification curriculum tailored for career readiness and practical skills.',
           fee: Number(c.fee) || matchingTemplate?.fee || 5000,
-          thumbnailUrl: c.thumbnail_url || matchingTemplate?.thumbnailUrl || COMPREHENSIVE_COURSES[index % COMPREHENSIVE_COURSES.length].thumbnailUrl,
-          modules: matchingTemplate?.modules || [
+          thumbnailUrl: resolvedImg,
+          modules: (parsedModules && parsedModules.length > 0) ? parsedModules : (matchingTemplate?.modules || [
             {
               moduleNumber: 'Module 01',
               title: 'Core Fundamentals & Theory',
@@ -402,7 +424,7 @@ export const Courses = () => {
               duration: '1 Month',
               topics: ['Live Capstone Project', 'Viva & Practical Assessment', 'Final Examination & Certification']
             }
-          ]
+          ])
         } as CourseItem;
       });
     }

@@ -16,17 +16,22 @@ export const centerService = {
     createdByType: 'admin' | 'center' = 'admin',
     createdById: number | null = null,
     isPublished: number = 0,
-    isDraft: number = 0
+    isDraft: number = 0,
+    imageUrl: string = '',
+    eligibility: string = '10th / 12th Pass'
   ) => {
     const finalCode = code && code.trim().length > 0
       ? code.trim()
       : 'CRS-' + (name ? name.substring(0, 3).toUpperCase() : 'GEN') + '-' + Math.floor(100 + Math.random() * 900);
 
     const semJson = semesters ? (typeof semesters === 'string' ? semesters : JSON.stringify(semesters)) : null;
+    const finalImg = imageUrl && imageUrl.startsWith('data:image')
+      ? saveBase64File(imageUrl, 'course', 'courses')
+      : (imageUrl || '');
 
     const [result]: any = await db.query(
-      'INSERT INTO courses (code, name, categoryId, fee, shortDescription, duration, semesters, created_by_type, created_by_id, is_published, is_draft) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [finalCode, name, categoryId || 'General', fee || 0, shortDescription || '', duration || '3 Month(s)', semJson, createdByType, createdById, isPublished, isDraft]
+      'INSERT INTO courses (code, name, categoryId, fee, shortDescription, duration, semesters, created_by_type, created_by_id, is_published, is_draft, image_url, eligibility) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [finalCode, name, categoryId || 'General', fee || 0, shortDescription || '', duration || '3 Month(s)', semJson, createdByType, createdById, isPublished, isDraft, finalImg, eligibility || '10th / 12th Pass']
     );
     return result.insertId;
   },
@@ -198,12 +203,18 @@ export const centerService = {
     fee: number,
     shortDescription: string,
     duration?: string,
-    semesters?: any
+    semesters?: any,
+    imageUrl?: string,
+    eligibility?: string
   ) => {
     const semJson = semesters ? (typeof semesters === 'string' ? semesters : JSON.stringify(semesters)) : null;
+    let finalImg = imageUrl;
+    if (imageUrl && imageUrl.startsWith('data:image')) {
+      finalImg = saveBase64File(imageUrl, 'course', 'courses');
+    }
     await db.query(
-      'UPDATE courses SET code = COALESCE(?, code), name = COALESCE(?, name), categoryId = COALESCE(?, categoryId), fee = COALESCE(?, fee), shortDescription = COALESCE(?, shortDescription), duration = COALESCE(?, duration), semesters = COALESCE(?, semesters) WHERE id = ?',
-      [code || null, name || null, categoryId || null, fee !== undefined ? fee : null, shortDescription || null, duration || null, semJson, id]
+      'UPDATE courses SET code = COALESCE(?, code), name = COALESCE(?, name), categoryId = COALESCE(?, categoryId), fee = COALESCE(?, fee), shortDescription = COALESCE(?, shortDescription), duration = COALESCE(?, duration), semesters = COALESCE(?, semesters), image_url = COALESCE(?, image_url), eligibility = COALESCE(?, eligibility) WHERE id = ?',
+      [code || null, name || null, categoryId || null, fee !== undefined ? fee : null, shortDescription || null, duration || null, semJson, finalImg || null, eligibility || null, id]
     );
   },
 

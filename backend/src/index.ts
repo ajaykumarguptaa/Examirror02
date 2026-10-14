@@ -286,6 +286,12 @@ const initDbSchema = async () => {
     try {
       await db.query(`ALTER TABLE courses ADD COLUMN is_draft TINYINT(1) DEFAULT 0`);
     } catch (_) {}
+    try {
+      await db.query(`ALTER TABLE courses ADD COLUMN image_url LONGTEXT`);
+    } catch (_) {}
+    try {
+      await db.query(`ALTER TABLE courses ADD COLUMN eligibility VARCHAR(150) DEFAULT '10th / 12th Pass'`);
+    } catch (_) {}
 
     // Ensure center_courses table exists
     await db.query(`

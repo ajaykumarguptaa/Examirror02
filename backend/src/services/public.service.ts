@@ -4,7 +4,7 @@ import { realtimeService } from './realtime.service';
 
 export const publicService = {
   getCourses: async () => {
-    const [rows] = await db.query('SELECT * FROM courses WHERE is_published = 1 AND (is_draft = 0 OR is_draft IS NULL)');
+    const [rows] = await db.query('SELECT * FROM courses WHERE is_published = 1 AND (is_draft = 0 OR is_draft IS NULL) ORDER BY id DESC');
     return rows;
   },
 

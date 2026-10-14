@@ -224,9 +224,10 @@ router.delete('/courses/:id', async (req, res) => {
 });
 
 router.put('/courses/:id', async (req, res) => {
-  const { code, name, categoryId, fee, shortDescription, duration, semesters } = req.body;
+  const { code, name, categoryId, fee, shortDescription, duration, semesters, image_url, imageUrl, eligibility } = req.body;
   try {
-    await centerService.updateCourse(req.params.id, code, name, categoryId, fee, shortDescription, duration, semesters);
+    const img = image_url || imageUrl || undefined;
+    await centerService.updateCourse(req.params.id, code, name, categoryId, fee, shortDescription, duration, semesters, img, eligibility);
     res.status(200).json({ success: true, message: 'Course updated successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
