@@ -568,7 +568,7 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* Section View Switcher (Overview vs Deep Analytics) */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
@@ -1304,7 +1304,7 @@ const AdminDashboard = () => {
       <div className="space-y-4">
         
         {/* Section Header with View Toggle & Search */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-sm">
           <div>
             <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
               <Building2 size={18} className="text-indigo-600" />
@@ -1318,35 +1318,9 @@ const AdminDashboard = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* View Mode Toggle */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-              <button
-                type="button"
-                onClick={() => setViewMode('cards')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  viewMode === 'cards' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Cards Layout"
-              >
-                <LayoutGrid size={14} />
-                <span>Cards</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  viewMode === 'table' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Table Layout"
-              >
-                <List size={14} />
-                <span>Table</span>
-              </button>
-            </div>
-
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 w-full lg:w-auto">
             {/* Search Input */}
-            <div className="relative w-full sm:w-64">
+            <div className="relative w-full sm:w-56 md:w-64">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
@@ -1357,28 +1331,59 @@ const AdminDashboard = () => {
               />
             </div>
 
-            <Link
-              to="/admin/backup-export"
-              className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-xs cursor-pointer"
-              title="Super Admin Complete Excel Backup Vault"
-            >
-              <FileSpreadsheet size={14} />
-              <span>Backup Hub</span>
-            </Link>
+            {/* Action Buttons Row */}
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              {/* View Mode Toggle */}
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('cards')}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    viewMode === 'cards' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="Cards Layout"
+                >
+                  <LayoutGrid size={14} />
+                  <span>Cards</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    viewMode === 'table' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="Table Layout"
+                >
+                  <List size={14} />
+                  <span>Table</span>
+                </button>
+              </div>
 
-            <Link
-              to="/admin/centers/create"
-              className="px-3.5 py-2 bg-[#1e1b4b] hover:bg-[#2e2b5e] text-white rounded-xl text-xs font-bold shrink-0 flex items-center gap-1 shadow-xs cursor-pointer"
-            >
-              <Plus size={14} /> New Center
-            </Link>
+              <Link
+                to="/admin/backup-export"
+                className="flex-1 sm:flex-initial px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shrink-0 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer whitespace-nowrap"
+                title="Super Admin Complete Excel Backup Vault"
+              >
+                <FileSpreadsheet size={14} />
+                <span>Backup Hub</span>
+              </Link>
 
-            <button
-              onClick={() => setIsAnnouncementModalOpen(true)}
-              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shrink-0 flex items-center gap-1 shadow-xs cursor-pointer"
-            >
-              <Megaphone size={14} /> Broadcast
-            </button>
+              <Link
+                to="/admin/centers/create"
+                className="flex-1 sm:flex-initial px-3.5 py-2 bg-[#1e1b4b] hover:bg-[#2e2b5e] text-white rounded-xl text-xs font-bold shrink-0 flex items-center justify-center gap-1 shadow-xs cursor-pointer whitespace-nowrap"
+              >
+                <Plus size={14} />
+                <span>New Center</span>
+              </Link>
+
+              <button
+                onClick={() => setIsAnnouncementModalOpen(true)}
+                className="flex-1 sm:flex-initial px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shrink-0 flex items-center justify-center gap-1 shadow-xs cursor-pointer whitespace-nowrap"
+              >
+                <Megaphone size={14} />
+                <span>Broadcast</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1458,20 +1463,20 @@ const AdminDashboard = () => {
                   </div>
 
                   {/* Actions Bar */}
-                  <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100 text-xs">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleOpenCenterDetails(c.id);
                       }}
-                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer shadow-xs shrink-0"
                     >
                       <span>Details</span>
                       <ChevronRight size={13} />
                     </button>
 
-                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1 flex-wrap shrink-0" onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
                         onClick={() => navigate('/admin/franchise-requests')}
@@ -2239,8 +2244,8 @@ const AdminDashboard = () => {
             </div>
 
             {/* Modal Bottom Actions */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => {
@@ -2249,7 +2254,7 @@ const AdminDashboard = () => {
                     setConfirmPassword('');
                     setPasswordError(null);
                   }}
-                  className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="flex-1 sm:flex-initial px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
                   title="Update / Reset Center Password"
                 >
                   <KeyRound size={14} />
@@ -2264,7 +2269,7 @@ const AdminDashboard = () => {
                     setAdjustAmount('');
                     setAdjustReason('');
                   }}
-                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="flex-1 sm:flex-initial px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
                 >
                   <CreditCard size={14} />
                   <span>Adjust Wallet Tokens</span>
@@ -2273,7 +2278,7 @@ const AdminDashboard = () => {
                 <button
                   type="button"
                   onClick={() => setDeleteCenterTarget({ id: selectedCenterDetail.center.id, name: selectedCenterDetail.center.name })}
-                  className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
+                  className="flex-1 sm:flex-initial px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
                 >
                   <Trash2 size={14} />
                   <span>Delete Center</span>
@@ -2283,7 +2288,7 @@ const AdminDashboard = () => {
               <button
                 type="button"
                 onClick={() => setSelectedCenterDetail(null)}
-                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer"
+                className="w-full sm:w-auto px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer text-center"
               >
                 Close
               </button>

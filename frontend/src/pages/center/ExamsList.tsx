@@ -606,14 +606,14 @@ const ExamsList = () => {
             Evaluate written test and viva marks against total criteria, generate marksheet (locks exam), and grant re-exam access.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-indigo-50 border border-indigo-100 px-3.5 py-1.5 rounded-lg text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+          <div className="bg-indigo-50 border border-indigo-100 px-3.5 py-1.5 rounded-lg text-xs font-bold text-indigo-900 flex items-center gap-1.5 shrink-0">
             <Coins size={14} className="text-amber-500" />
             <span>Wallet: ₹{walletBalance}</span>
           </div>
           <button 
             onClick={fetchExams}
-            className="bg-indigo-50 hover:bg-indigo-100 text-[#6b6eed] px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-indigo-200"
+            className="bg-indigo-50 hover:bg-indigo-100 text-[#6b6eed] px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-indigo-200 shrink-0"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             <span>Refresh List</span>
@@ -1257,12 +1257,12 @@ const ExamsList = () => {
             </label>
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-2 border-t border-gray-100">
               <button 
                 type="button" 
                 onClick={() => setGenerateWarningModalOpen(false)}
                 disabled={isGeneratingMarksheet}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer text-center"
               >
                 Cancel
               </button>
@@ -1270,7 +1270,7 @@ const ExamsList = () => {
                 type="button" 
                 disabled={!confirmMarksheetLock || (publishDirectlyToStudent && !confirmDuesCleared) || isGeneratingMarksheet}
                 onClick={handleExecuteGenerateMarksheet}
-                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md flex items-center gap-2 transition-all cursor-pointer"
+                className="w-full sm:w-auto justify-center bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap"
               >
                 {isGeneratingMarksheet ? (
                   <>
@@ -1445,7 +1445,7 @@ const ExamsList = () => {
             )}
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-100">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-2 border-t border-gray-100">
               <button 
                 type="button" 
                 onClick={() => {
@@ -1453,7 +1453,7 @@ const ExamsList = () => {
                   setPublishToggleTarget(null);
                 }}
                 disabled={isTogglingPublish}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer text-center"
               >
                 Cancel
               </button>
@@ -1464,7 +1464,7 @@ const ExamsList = () => {
                   (publishToggleTarget.action === 'publish' ? (!confirmDuesClearedToggle || !confirmPublishAction) : !confirmPublishAction)
                 }
                 onClick={handleExecuteTogglePublish}
-                className={`px-5 py-2.5 rounded-xl text-xs font-bold shadow-md flex items-center gap-2 transition-all cursor-pointer text-white disabled:bg-gray-300 disabled:cursor-not-allowed ${
+                className={`w-full sm:w-auto justify-center px-5 py-2.5 rounded-xl text-xs font-bold shadow-md flex items-center gap-2 transition-all cursor-pointer text-white disabled:bg-gray-300 disabled:cursor-not-allowed whitespace-nowrap ${
                   publishToggleTarget.action === 'publish'
                     ? 'bg-emerald-600 hover:bg-emerald-700'
                     : 'bg-amber-600 hover:bg-amber-700'
@@ -1620,12 +1620,12 @@ const ExamsList = () => {
               </span>
             </label>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-2">
               <button 
                 type="button" 
                 onClick={() => setResetModalOpen(false)}
                 disabled={isResetting}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer text-center"
               >
                 Cancel
               </button>
@@ -1637,7 +1637,7 @@ const ExamsList = () => {
                   ((selectedResetTarget.semester.reattempts || 0) >= 2 && walletBalance < 100)
                 }
                 onClick={handleExecuteReset}
-                className="bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md flex items-center gap-2 transition-all cursor-pointer"
+                className="w-full sm:w-auto justify-center bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap"
               >
                 {isResetting ? (
                   <>

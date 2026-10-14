@@ -197,11 +197,11 @@ const AdminStudents = () => {
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 w-full md:w-auto">
           <select
             value={selectedCenter}
             onChange={(e) => setSelectedCenter(e.target.value)}
-            className="px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-600 cursor-pointer"
+            className="w-full sm:w-auto px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-600 cursor-pointer"
           >
             <option value="all">All Study Centers ({uniqueCenters.length})</option>
             {uniqueCenters.map(center => (
@@ -212,7 +212,7 @@ const AdminStudents = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-600 cursor-pointer"
+            className="w-full sm:w-auto px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-600 cursor-pointer"
           >
             <option value="all">All Academic Status</option>
             <option value="pursuing">Currently Pursuing</option>

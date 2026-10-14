@@ -719,15 +719,15 @@ const StudentsList = () => {
         <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <h1 className="text-xl font-bold text-[#1e293b]">Student List</h1>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {/* Center Director E-Sign & Stamp Upload Button */}
             <button
               type="button"
               onClick={() => setIsSignModalOpen(true)}
-              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold px-3.5 py-2 rounded-md flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold px-3 py-2 rounded-md flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer flex-1 sm:flex-initial whitespace-nowrap"
               title="Upload Center Director E-Signature & Rubber Seal"
             >
-              <PenTool size={14} className="text-indigo-600" /> Director E-Sign & Stamp
+              <PenTool size={14} className="text-indigo-600 shrink-0" /> <span className="whitespace-nowrap">Director E-Sign & Stamp</span>
             </button>
 
             {/* Print N ID Cards Button */}
@@ -741,9 +741,9 @@ const StudentsList = () => {
                 }
                 setModalType('batch_idcards');
               }}
-              className="bg-[#5b67f1] hover:bg-indigo-600 text-white text-xs font-semibold px-3.5 py-2 rounded-md flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+              className="bg-[#5b67f1] hover:bg-indigo-600 text-white text-xs font-semibold px-3 py-2 rounded-md flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer flex-1 sm:flex-initial whitespace-nowrap"
             >
-              <Printer size={14} /> Print {selectedStudentIds.length} ID Cards
+              <Printer size={14} className="shrink-0" /> <span className="whitespace-nowrap">Print {selectedStudentIds.length} ID Cards</span>
             </button>
 
             {/* Batch Print Certificates Button */}
@@ -757,18 +757,18 @@ const StudentsList = () => {
                 }
                 setModalType('batch_certificates');
               }}
-              className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3.5 py-2 rounded-md flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+              className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-2 rounded-md flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer flex-1 sm:flex-initial whitespace-nowrap"
             >
-              <Printer size={14} /> Batch Print Certificates ({selectedStudentIds.length})
+              <Printer size={14} className="shrink-0" /> <span className="whitespace-nowrap">Batch Print Certs ({selectedStudentIds.length})</span>
             </button>
 
             {/* Export Students Button */}
             <button
               type="button"
               onClick={handleExportStudents}
-              className="bg-[#8b5cf6] hover:bg-purple-600 text-white text-xs font-semibold px-3.5 py-2 rounded-md flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+              className="bg-[#8b5cf6] hover:bg-purple-600 text-white text-xs font-semibold px-3 py-2 rounded-md flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer flex-1 sm:flex-initial whitespace-nowrap"
             >
-              <Download size={14} /> Export Students
+              <Download size={14} className="shrink-0" /> <span className="whitespace-nowrap">Export Students</span>
             </button>
           </div>
         </div>
@@ -799,8 +799,8 @@ const StudentsList = () => {
           </div>
 
           {/* Search box */}
-          <div className="flex items-center gap-2 text-xs text-gray-700 w-full sm:w-auto justify-end">
-            <span>Search:</span>
+          <div className="flex items-center gap-2 text-xs text-gray-700 w-full sm:w-auto justify-start sm:justify-end">
+            <span className="shrink-0 font-medium">Search:</span>
             <input
               type="text"
               value={searchTerm}
@@ -808,7 +808,7 @@ const StudentsList = () => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="border border-gray-300 rounded px-3 py-1 text-xs outline-none focus:border-[#5b67f1] w-full sm:w-56"
+              className="border border-gray-300 rounded px-3 py-1.5 text-xs outline-none focus:border-[#5b67f1] w-full sm:w-56"
               placeholder="Filter by name, phone, roll..."
             />
           </div>

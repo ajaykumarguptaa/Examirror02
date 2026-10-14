@@ -544,25 +544,25 @@ const StudentDashboard = () => {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         {isCompleted ? (
                           isMarksheetHeld ? (
                             <button
                               type="button"
                               onClick={() => alert(`Your official marksheet is currently held.\n\nReason: ${exam.hold_reason || 'Course fee or center dues pending clearance.'}\n\nPlease contact your study center administration to clear dues and download your marksheet.`)}
-                              className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                              className="w-full sm:w-auto justify-center px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
                               title="Marksheet held pending dues clearance"
                             >
-                              <LockIcon size={13} className="text-amber-600" />
+                              <LockIcon size={13} className="text-amber-600 shrink-0" />
                               <span>Marksheet Held</span>
                             </button>
                           ) : (
                             <button
                               type="button"
                               onClick={() => setShowMarksheetModal(true)}
-                              className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                              className="w-full sm:w-auto justify-center px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
                             >
-                              <FileText size={13} className="text-emerald-600" />
+                              <FileText size={13} className="text-emerald-600 shrink-0" />
                               <span>Marksheet</span>
                             </button>
                           )
@@ -570,9 +570,9 @@ const StudentDashboard = () => {
                           <button 
                             type="button"
                             onClick={() => navigate(`/student/exam/${exam.id}`)}
-                            className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
+                            className="w-full sm:w-auto justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs whitespace-nowrap"
                           >
-                            <PlayCircle size={14} /> {isReExam ? 'Give Re-Exam' : 'Start Exam'}
+                            <PlayCircle size={14} className="shrink-0" /> {isReExam ? 'Give Re-Exam' : 'Start Exam'}
                           </button>
                         )}
                       </div>

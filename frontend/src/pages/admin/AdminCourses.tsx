@@ -551,10 +551,10 @@ const AdminCourses = () => {
 
       {/* Filter Tabs & Search Bar */}
       <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
+        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 no-scrollbar">
           <button 
             onClick={() => setFilterType('all')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               filterType === 'all' 
                 ? 'bg-[#6b6eed] text-white shadow-xs' 
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -564,7 +564,7 @@ const AdminCourses = () => {
           </button>
           <button 
             onClick={() => setFilterType('published')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               filterType === 'published' 
                 ? 'bg-[#6b6eed] text-white shadow-xs' 
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -574,7 +574,7 @@ const AdminCourses = () => {
           </button>
           <button 
             onClick={() => setFilterType('drafts')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               filterType === 'drafts' 
                 ? 'bg-amber-600 text-white shadow-xs' 
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -584,7 +584,7 @@ const AdminCourses = () => {
           </button>
           <button 
             onClick={() => setFilterType('unpublished')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               filterType === 'unpublished' 
                 ? 'bg-[#6b6eed] text-white shadow-xs' 
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
