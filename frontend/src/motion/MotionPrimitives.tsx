@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useInView, type HTMLMotionProps } from 'framer-motion';
+import gsap from 'gsap';
 import { motionTokens } from './motionTokens';
 import {
   fadeInVariant,
@@ -245,8 +246,9 @@ export const StaggerItem: React.FC<BaseMotionProps> = ({
 };
 
 /**
- * 8. High Performance RAF-based NumberCounter
- * Supports currency, prefixes, suffixes, decimals, formatting, and reactive InView trigger.
+ * 8. High Performance GSAP-Powered NumberCounter
+ * Ultra-smooth 120Hz direct DOM text updates with zero React re-render overhead.
+ * Supports adaptive duration, custom eases, currency prefixes, suffixes, and decimals.
  */
 interface NumberCounterProps {
   value: number | string;
@@ -261,13 +263,16 @@ export const NumberCounter: React.FC<NumberCounterProps> = ({
   value,
   prefix,
   suffix,
-  durationMs = 1400,
+  durationMs = 1200,
   decimals = 0,
   className = '',
 }) => {
   const prefersReduced = useReducedMotion();
   const elementRef = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(elementRef, { once: true, margin: '0px 0px -20px 0px' });
+  const textRef = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(elementRef, { once: true, margin: '0px 0px -30px 0px' });
+  const hasAnimatedRef = useRef(false);
+  const currentValRef = useRef(0);
 
   const rawStr = String(value ?? '');
   const prefixMatch = rawStr.match(/^[^\d.-]+/);
@@ -279,60 +284,70 @@ export const NumberCounter: React.FC<NumberCounterProps> = ({
   const cleanNumberStr = rawStr.replace(/^[^\d.-]+/, '').replace(/[^\d.-]+$/, '').replace(/,/g, '');
   const numericTarget = typeof value === 'number' ? value : (parseFloat(cleanNumberStr) || 0);
 
-  const [displayValue, setDisplayValue] = useState<number>(() => (prefersReduced ? numericTarget : 0));
-  const currentValRef = useRef<number>(prefersReduced ? numericTarget : 0);
+  const formatNum = (num: number) => {
+    return decimals > 0
+      ? num.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+      : Math.round(num).toLocaleString('en-IN');
+  };
 
   useEffect(() => {
+    if (!textRef.current) return;
+
     if (prefersReduced) {
-      setDisplayValue(numericTarget);
+      textRef.current.textContent = `${finalPrefix}${formatNum(numericTarget)}${finalSuffix}`;
       currentValRef.current = numericTarget;
       return;
     }
 
-    if (!isInView && numericTarget > 0) return;
+    if (!isInView && numericTarget > 0 && !hasAnimatedRef.current) return;
 
-    const startVal = currentValRef.current;
-    const endVal = numericTarget;
+    const startVal = hasAnimatedRef.current ? currentValRef.current : 0;
+    hasAnimatedRef.current = true;
 
-    let startTime: number | null = null;
-    let animationFrameId: number;
+    // Adaptive duration for natural, super smooth rolling:
+    // Small numbers (<= 15) count swiftly in 0.7s so individual digits don't stutter/linger
+    // Medium numbers (<= 100): 0.9s
+    // Large numbers (> 100): 1.25s with luxurious deceleration
+    let targetDuration = durationMs / 1000;
+    if (numericTarget <= 15) {
+      targetDuration = 0.7;
+    } else if (numericTarget <= 100) {
+      targetDuration = 0.9;
+    } else {
+      targetDuration = Math.min(targetDuration, 1.3);
+    }
 
-    const animate = (currentTime: number) => {
-      if (!startTime) startTime = currentTime;
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / durationMs, 1);
-
-      // Natural ease-out cubic curve: fast start, organic deceleration
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      const current = startVal + (endVal - startVal) * easeProgress;
-
-      currentValRef.current = current;
-      setDisplayValue(current);
-
-      if (progress < 1) {
-        animationFrameId = requestAnimationFrame(animate);
-      } else {
-        currentValRef.current = endVal;
-        setDisplayValue(endVal);
+    const counterObj = { val: startVal };
+    const tween = gsap.to(counterObj, {
+      val: numericTarget,
+      duration: targetDuration,
+      ease: numericTarget <= 20 ? 'power2.out' : 'power3.out',
+      onUpdate: () => {
+        currentValRef.current = counterObj.val;
+        if (textRef.current) {
+          textRef.current.textContent = `${finalPrefix}${formatNum(counterObj.val)}${finalSuffix}`;
+        }
+      },
+      onComplete: () => {
+        currentValRef.current = numericTarget;
+        if (textRef.current) {
+          textRef.current.textContent = `${finalPrefix}${formatNum(numericTarget)}${finalSuffix}`;
+        }
       }
-    };
-
-    animationFrameId = requestAnimationFrame(animate);
+    });
 
     return () => {
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      tween.kill();
     };
-  }, [isInView, numericTarget, durationMs, prefersReduced]);
-
-  const formattedNumber = decimals > 0
-    ? displayValue.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
-    : Math.round(displayValue).toLocaleString('en-IN');
+  }, [isInView, numericTarget, durationMs, finalPrefix, finalSuffix, decimals, prefersReduced]);
 
   return (
     <span ref={elementRef} className={`font-mono inline-block transform-gpu ${className}`}>
-      {finalPrefix}
-      {formattedNumber}
-      {finalSuffix}
+      <span ref={textRef}>
+        {finalPrefix}
+        {prefersReduced ? formatNum(numericTarget) : (numericTarget === 0 ? '0' : '0')}
+        {finalSuffix}
+      </span>
     </span>
   );
 };
