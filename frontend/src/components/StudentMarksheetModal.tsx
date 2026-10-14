@@ -618,12 +618,12 @@ export const StudentMarksheetModal = ({
             <div className="absolute inset-3.5 border border-amber-500/30 pointer-events-none rounded-lg" />
 
             {/* Dynamic Official Examirror & Center Watermark in background */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden watermark-center opacity-[0.045]">
-              <div className="flex flex-col items-center justify-center text-center transform scale-105">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden watermark-center opacity-[0.085]">
+              <div className="flex flex-col items-center justify-center text-center transform scale-110">
                 <img 
-                  src="/assets/favicon.png" 
-                  alt="Examirror Watermark" 
-                  className="w-44 h-44 sm:w-52 sm:h-52 object-contain grayscale mb-1 select-none" 
+                  src="/Blue Circular Tech Emblem Logo.png?v=2" 
+                  alt="Examirror Official Watermark" 
+                  className="w-56 h-56 sm:w-64 sm:h-64 object-contain grayscale mb-1 select-none" 
                 />
                 <div className="font-serif font-black tracking-[0.25em] uppercase text-2xl sm:text-3xl text-slate-900 leading-tight">
                   EXAMIRROR
@@ -715,7 +715,7 @@ export const StudentMarksheetModal = ({
               </div>
 
               {/* CANDIDATE & COURSE CREDENTIALS GRID */}
-              <div className="grid grid-cols-12 gap-3 text-xs bg-slate-50/90 p-3.5 rounded-xl border border-slate-200 relative">
+              <div className="grid grid-cols-12 gap-3 text-xs bg-slate-50/60 backdrop-blur-[0.5px] p-3.5 rounded-xl border border-slate-200 relative">
                 
                 {/* Left 9 Cols: Student Details */}
                 <div className="col-span-9 grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
@@ -762,7 +762,7 @@ export const StudentMarksheetModal = ({
                     </span>
                   </div>
 
-                  <div className="col-span-2 flex flex-col pt-1 bg-blue-50/70 p-2.5 rounded-lg border border-blue-200/80">
+                  <div className="col-span-2 flex flex-col pt-1 bg-blue-50/50 p-2.5 rounded-lg border border-blue-200/80">
                     <span className="text-[9px] font-extrabold uppercase tracking-wider text-blue-900 flex items-center gap-1">
                       <BookOpen size={11} className="text-blue-700" />
                       Enrolled Course / Trade Program
@@ -831,7 +831,7 @@ export const StudentMarksheetModal = ({
                       </tr>
                     ) : (
                       calculatedRows.map((r, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/80 font-medium text-[11px]">
+                        <tr key={idx} className="hover:bg-slate-50/70 font-medium text-[11px] bg-white/40">
                           <td className="border border-slate-300 p-2 text-slate-900">
                             <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
                               <span>{r.semester}</span>
