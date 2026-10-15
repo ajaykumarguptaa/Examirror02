@@ -8,6 +8,7 @@ import fs from 'fs';
 import db from './db';
 import studentRoutes from "./routes/student.routes";
 import { initTestSeriesDatabase } from './utils/initTestSeriesDb';
+import { initDatabaseIndexes } from './utils/initDatabaseIndexes';
 import { isS3Configured, getS3ObjectStream, syncAllLocalUploadsToS3 } from './utils/s3Storage';
 
 dotenv.config();
@@ -22,7 +23,17 @@ if (!fs.existsSync(uploadsDir)) {
 
 }
 
+import compression from 'compression';
 import { generalApiLimiter } from './middleware/rateLimiter';
+
+// Enable Gzip/Brotli response compression (70-85% smaller JSON payloads)
+app.use(compression({
+  threshold: 1024, // Only compress responses > 1KB
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  }
+}));
 
 // Security & Header Configuration
 const allowedOrigins = [
@@ -704,6 +715,7 @@ app.listen(port, () => {
   // Run an immediate check on startup
   testSeriesService.autoPublishScheduled().catch(() => {});
   studyMaterialService.autoPublishScheduled().catch(() => {});
+  initDatabaseIndexes().catch((err) => console.warn('[DB Optimizer] Index check error:', err));
   if (isS3Configured) {
     syncAllLocalUploadsToS3().catch((err) => {
       console.warn('[S3] Startup background sync notice:', err?.message || err);

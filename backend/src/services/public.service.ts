@@ -1,10 +1,14 @@
 import db from '../db';
 import { saveBase64File } from '../utils/fileStorage';
 import { realtimeService } from './realtime.service';
+import { memoryCache } from '../utils/memoryCache';
 
 export const publicService = {
   getCourses: async () => {
+    const cached = memoryCache.get('public:courses');
+    if (cached) return cached;
     const [rows] = await db.query('SELECT * FROM courses WHERE is_published = 1 AND (is_draft = 0 OR is_draft IS NULL) ORDER BY id DESC');
+    memoryCache.set('public:courses', rows, 180); // 3 minutes TTL
     return rows;
   },
 
@@ -14,6 +18,9 @@ export const publicService = {
   },
 
   getPublicStats: async () => {
+    const cached = memoryCache.get('public:stats');
+    if (cached) return cached;
+
     const [centersCount]: any = await db.query('SELECT COUNT(*) as count FROM centers');
     const [studentsCount]: any = await db.query('SELECT COUNT(*) as count FROM students');
     const [coursesCount]: any = await db.query('SELECT COUNT(*) as count FROM courses WHERE is_published = 1 AND (is_draft = 0 OR is_draft IS NULL)');
@@ -42,7 +49,7 @@ export const publicService = {
     const passedExams = Number(passStats[0]?.passed) || 0;
     const successRate = totalExams > 0 ? `${Math.round((passedExams / totalExams) * 100)}%` : '98%';
 
-    return {
+    const statsResult = {
       centersCount: rawCenters,
       studentsCount: rawStudents,
       coursesCount: rawCourses,
@@ -50,6 +57,9 @@ export const publicService = {
       successRate,
       recentCenters: recentCenters || []
     };
+
+    memoryCache.set('public:stats', statsResult, 120); // 2 minutes TTL
+    return statsResult;
   },
 
 
@@ -99,11 +109,18 @@ export const publicService = {
   },
 
   getSettings: async (key: string) => {
+    const cacheKey = `settings:${key}`;
+    const cached = memoryCache.get(cacheKey);
+    if (cached !== null) return cached;
+
     const [rows]: any = await db.query('SELECT value FROM settings WHERE key_name = ? LIMIT 1', [key]);
     if (rows.length === 0) return null;
     try {
-      return JSON.parse(rows[0].value);
+      const parsed = JSON.parse(rows[0].value);
+      memoryCache.set(cacheKey, parsed, 300); // 5 minutes TTL
+      return parsed;
     } catch {
+      memoryCache.set(cacheKey, rows[0].value, 300);
       return rows[0].value; // fallback
     }
   },
@@ -138,6 +155,9 @@ export const publicService = {
       'INSERT INTO settings (key_name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?',
       [key, jsonString, jsonString]
     );
+
+    // Update in-memory cache instantly
+    memoryCache.set(`settings:${key}`, processedData, 300);
     return processedData;
   },
 
