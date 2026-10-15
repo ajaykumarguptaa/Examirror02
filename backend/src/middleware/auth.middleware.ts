@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import db from '../db';
 
 export interface AuthenticatedUser {
   id?: number | string;
@@ -9,6 +10,7 @@ export interface AuthenticatedUser {
   username?: string;
   email?: string;
   role: 'superadmin' | 'admin' | 'center' | 'student';
+  tokenVersion?: number;
 }
 
 declare global {
@@ -55,7 +57,7 @@ export const verifyAdmin = (req: Request, res: Response, next: NextFunction) => 
 /**
  * Middleware ensuring either authorized Center (matching own centerId) or SuperAdmin
  */
-export const verifyCenterOrAdmin = (req: Request, res: Response, next: NextFunction) => {
+export const verifyCenterOrAdmin = async (req: Request, res: Response, next: NextFunction) => {
   const token = extractToken(req);
   if (!token) {
     return res.status(401).json({ success: false, message: 'Authentication required. Missing token.' });
@@ -72,6 +74,26 @@ export const verifyCenterOrAdmin = (req: Request, res: Response, next: NextFunct
 
     // Center can only manage its own center data (IDOR Protection)
     if (decoded.role === 'center') {
+      // Instant Suspension & Token Version Validation against DB
+      try {
+        const [centerRows]: any = await db.query(
+          'SELECT id, status, token_version FROM centers WHERE id = ?',
+          [decoded.id]
+        );
+        if (!centerRows || centerRows.length === 0) {
+          return res.status(401).json({ success: false, message: 'Center account not found.' });
+        }
+        const center = centerRows[0];
+        if (center.status === 'suspended' || center.status === 'blocked' || center.status === 'inactive') {
+          return res.status(403).json({ success: false, message: 'Your study center account has been suspended by administration. Please contact support.' });
+        }
+        if (decoded.tokenVersion !== undefined && center.token_version !== undefined && decoded.tokenVersion !== center.token_version) {
+          return res.status(401).json({ success: false, message: 'Session invalidated due to password change or security update. Please log in again.' });
+        }
+      } catch (dbErr: any) {
+        console.warn('[AuthMiddleware] DB validation notice:', dbErr?.message);
+      }
+
       let requestedCenterId = req.params?.centerId || req.body?.centerId || req.query?.centerId;
 
       if (!requestedCenterId) {

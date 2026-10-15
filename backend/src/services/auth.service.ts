@@ -21,6 +21,10 @@ export const authService = {
       throw new Error('Invalid credentials. No study center found matching this Code or Email.');
     }
 
+    if (center.status === 'suspended' || center.status === 'blocked' || center.status === 'inactive') {
+      throw new Error('Your study center account has been suspended by administration. Please contact support.');
+    }
+
     let isMatch = false;
     const storedHash = String(center.password_hash || '');
 
@@ -43,7 +47,13 @@ export const authService = {
     }
 
     const token = jwt.sign(
-      { id: center.id, centerCode: center.center_code, email: center.email, role: 'center' },
+      { 
+        id: center.id, 
+        centerCode: center.center_code, 
+        email: center.email, 
+        role: 'center',
+        tokenVersion: center.token_version || 1
+      },
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '7d' }
     );

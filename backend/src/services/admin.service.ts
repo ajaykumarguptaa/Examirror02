@@ -2,6 +2,7 @@ import db from '../db';
 import { notificationService } from './notification.service';
 import { realtimeService } from './realtime.service';
 import bcrypt from 'bcrypt';
+import { logAudit } from '../utils/auditLogger';
 import fs from 'fs';
 import path from 'path';
 import { saveBase64File } from '../utils/fileStorage';
@@ -13,10 +14,19 @@ export const adminService = {
     }
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(newPassword, salt);
-    const [result]: any = await db.query('UPDATE centers SET password_hash = ? WHERE id = ?', [passwordHash, centerId]);
+    const [result]: any = await db.query(
+      'UPDATE centers SET password_hash = ?, token_version = COALESCE(token_version, 1) + 1 WHERE id = ?', 
+      [passwordHash, centerId]
+    );
     if (result.affectedRows === 0) {
       throw new Error('Center not found');
     }
+    logAudit({
+      userType: 'admin',
+      action: 'CENTER_PASSWORD_RESET',
+      entityType: 'center',
+      entityId: centerId
+    });
     return { success: true };
   },
   getStats: async () => {
@@ -223,6 +233,14 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
     );
     realtimeService.emitToAdmin('wallet_updated', { requestId: request.id, status: 'approved' });
 
+    logAudit({
+      userType: 'admin',
+      action: 'WALLET_APPROVED',
+      entityType: 'wallet_request',
+      entityId: request.id,
+      details: { centerId: request.centerId, amount: totalToCredit, utr: request.utr_number, bonus }
+    });
+
     return { success: true, totalCredited: totalToCredit, bonusTokens: bonus, baseAmount };
   },
 
@@ -249,6 +267,14 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
       { requestId, reason }
     );
     realtimeService.emitToAdmin('wallet_updated', { requestId, status: 'rejected' });
+
+    logAudit({
+      userType: 'admin',
+      action: 'WALLET_REJECTED',
+      entityType: 'wallet_request',
+      entityId: requestId,
+      details: { centerId: request.centerId, reason, utr: request.utr_number }
+    });
 
     return { success: true };
   },

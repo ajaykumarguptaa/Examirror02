@@ -163,6 +163,11 @@ export const publicService = {
 
 
   verifyStudent: async (identifier: string) => {
+    const cleanId = String(identifier || '').trim().toLowerCase();
+    const cacheKey = `verify:student:${cleanId}`;
+    const cached = memoryCache.get(cacheKey);
+    if (cached) return cached;
+
     const [rows]: any = await db.query(`
       SELECT s.id, s.firstName, s.lastName, s.email, s.photo_url, s.enrollment_no, s.roll_no,
              s.student_type, s.academic_status, s.duration, s.dob, s.gender, s.father_name,
@@ -179,6 +184,7 @@ export const publicService = {
     `, [identifier, identifier, identifier, identifier]);
     if (!rows[0]) return null;
 
+    let result = rows[0];
     try {
       const [marks]: any = await db.query(`
         SELECT id, semester, written_marks, viva_marks, status, is_marksheet_generated, DATE_FORMAT(exam_date, '%Y-%m-%d') as exam_date
@@ -186,13 +192,21 @@ export const publicService = {
         WHERE studentId = ?
         ORDER BY id DESC
       `, [rows[0].id]);
-      return { ...rows[0], marks: marks || [] };
+      result = { ...rows[0], marks: marks || [] };
     } catch {
-      return rows[0];
+      result = rows[0];
     }
+
+    memoryCache.set(cacheKey, result, 600); // 10 minutes TTL
+    return result;
   },
 
   verifyCertificate: async (identifier: string) => {
+    const cleanId = String(identifier || '').trim().toLowerCase();
+    const cacheKey = `verify:cert:${cleanId}`;
+    const cached = memoryCache.get(cacheKey);
+    if (cached) return cached;
+
     const [rows]: any = await db.query(`
       SELECT s.id, s.firstName, s.lastName, s.email, s.photo_url, s.enrollment_no, s.roll_no,
              s.student_type, s.academic_status, s.duration, s.dob, s.gender, s.father_name,
@@ -208,6 +222,7 @@ export const publicService = {
     `, [identifier, identifier, identifier, identifier]);
     if (!rows[0]) return null;
 
+    let result: any = null;
     try {
       const [marks]: any = await db.query(`
         SELECT id, semester, written_marks, viva_marks, status, is_marksheet_generated, DATE_FORMAT(exam_date, '%Y-%m-%d') as exam_date
@@ -215,24 +230,36 @@ export const publicService = {
         WHERE studentId = ?
         ORDER BY id DESC
       `, [rows[0].id]);
-      return {
+      result = {
         ...rows[0],
         marks: marks || [],
         is_certified: rows[0].certificate_status === 'issued' || Boolean(rows[0].certificate_number) || (marks && marks.some((m: any) => m.is_marksheet_generated === 1))
       };
     } catch {
-      return { ...rows[0], marks: [], is_certified: true };
+      result = { ...rows[0], marks: [], is_certified: true };
     }
+
+    memoryCache.set(cacheKey, result, 600); // 10 minutes TTL
+    return result;
   },
 
   verifyCenter: async (identifier: string) => {
+    const cleanId = String(identifier || '').trim().toLowerCase();
+    const cacheKey = `verify:center:${cleanId}`;
+    const cached = memoryCache.get(cacheKey);
+    if (cached) return cached;
+
     const [rows]: any = await db.query(`
       SELECT id, name, center_code, city, state, address, phone, email, status, created_at
       FROM centers
       WHERE center_code = ? OR CAST(id AS CHAR) = ? OR name LIKE ?
       LIMIT 1
     `, [identifier, identifier, `%${identifier}%`]);
-    return rows[0] || null;
+    const result = rows[0] || null;
+    if (result) {
+      memoryCache.set(cacheKey, result, 600);
+    }
+    return result;
   },
 
   submitFranchiseApplication: async (data: any) => {

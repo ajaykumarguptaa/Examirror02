@@ -8,6 +8,7 @@ import { exportService } from '../services/export.service';
 import { backupDatabaseToS3 } from '../utils/dbBackup';
 import { notificationService } from '../services/notification.service';
 import { realtimeService } from '../services/realtime.service';
+import { getAuditLogs, logAudit } from '../utils/auditLogger';
 
 import { verifyAdmin } from '../middleware/auth.middleware';
 import { authRateLimiter } from '../middleware/rateLimiter';
@@ -183,6 +184,20 @@ router.post('/centers/:id/password', async (req, res) => {
   try {
     const result = await adminService.updateCenterPassword(req.params.id, newPassword);
     res.status(200).json({ success: true, message: 'Center password updated successfully', ...result });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+router.put('/centers/:id/status', async (req, res) => {
+  const { status } = req.body;
+  try {
+    const cleanStatus = ['active', 'suspended', 'blocked', 'inactive'].includes(status) ? status : 'active';
+    await db.query(
+      'UPDATE centers SET status = ?, token_version = COALESCE(token_version, 1) + 1 WHERE id = ?', 
+      [cleanStatus, req.params.id]
+    );
+    res.status(200).json({ success: true, message: `Center status updated to ${cleanStatus} and all active sessions terminated.` });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -754,6 +769,25 @@ router.post('/training-videos/batch', async (req, res) => {
     res.status(200).json({ success: true, message: 'All training videos published successfully!', data });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/audit-logs
+ * Tamper-proof activity and security trail for Super Admin
+ */
+router.get('/audit-logs', verifyAdmin, async (req, res) => {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 25;
+    const action = req.query.action as string;
+    const userType = req.query.userType as string;
+    const search = req.query.search as string;
+
+    const data = await getAuditLogs({ page, limit, action, userType, search });
+    res.status(200).json({ success: true, ...data });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
