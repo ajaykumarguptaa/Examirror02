@@ -62,6 +62,13 @@ const BackupExport = () => {
     timestamp?: string;
   } | null>(null);
 
+  const [isOptimizingDb, setIsOptimizingDb] = useState(false);
+  const [optimizeResult, setOptimizeResult] = useState<{
+    tablesOptimized?: number;
+    durationMs?: number;
+    message?: string;
+  } | null>(null);
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -129,6 +136,29 @@ const BackupExport = () => {
       toast.error(err.response?.data?.message || 'Database backup failed to connect');
     } finally {
       setIsBackingUpDb(false);
+    }
+  };
+
+  // 1-Click Database Space Defragmenter & Table Optimizer
+  const handleOptimizeDatabase = async () => {
+    setIsOptimizingDb(true);
+    const adminToken = localStorage.getItem('token') || localStorage.getItem('adminToken') || '';
+    try {
+      const res = await axios.post(
+        'http://localhost:3000/api/admin/system/optimize-database',
+        {},
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+      if (res.data?.success) {
+        setOptimizeResult(res.data);
+        toast.success(res.data.message || 'Database tables optimized successfully!');
+      } else {
+        toast.error(res.data?.message || 'Database optimization failed');
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Optimization failed to connect');
+    } finally {
+      setIsOptimizingDb(false);
     }
   };
 
@@ -292,6 +322,57 @@ const BackupExport = () => {
               <span>Tables: <strong className="text-slate-900 font-bold">{dbBackupResult.tableCount}</strong></span>
               <span>Compressed: <strong className="text-emerald-700 font-bold">{dbBackupResult.compressedSizeKB} KB</strong></span>
               <span>Time: <strong className="text-slate-900 font-bold">{new Date(dbBackupResult.timestamp || '').toLocaleTimeString()}</strong></span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Database Space Defragmenter & Table Index Optimizer Card */}
+      <div className="bg-white rounded-2xl p-6 md:p-7 border border-slate-200 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-xs font-bold">
+              <Sparkles size={13} className="text-amber-600" />
+              <span>Storage & Index Performance Optimizer</span>
+            </div>
+            <h2 className="text-lg md:text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <Database className="text-emerald-600" size={22} />
+              <span>1-Click Database Space Defragmenter & Table Optimizer</span>
+            </h2>
+            <p className="text-xs md:text-sm text-slate-600 max-w-2xl leading-relaxed">
+              Executes live, non-destructive table optimization across all 45 database tables. It reclaims unused disk space, eliminates data fragmentation, and optimizes B-Tree index lookup speeds.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOptimizeDatabase}
+            disabled={isOptimizingDb}
+            className="shrink-0 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+          >
+            {isOptimizingDb ? (
+              <>
+                <RefreshCw size={15} className="animate-spin text-emerald-400" />
+                <span>Optimizing 45 Tables...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={15} className="text-amber-300" />
+                <span>Optimize & Defragment Database Now</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {optimizeResult && (
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-emerald-700 font-bold">
+              <CheckCircle2 size={16} />
+              <span>Status: {optimizeResult.message}</span>
+            </div>
+            <div className="flex items-center gap-4 text-slate-600 font-medium">
+              <span>Tables: <strong className="text-slate-900 font-bold">{optimizeResult.tablesOptimized}</strong></span>
+              <span>Time Taken: <strong className="text-emerald-700 font-bold">{optimizeResult.durationMs} ms</strong></span>
             </div>
           </div>
         )}

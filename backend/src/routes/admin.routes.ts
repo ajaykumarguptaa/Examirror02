@@ -11,6 +11,7 @@ import { realtimeService } from '../services/realtime.service';
 import { getAuditLogs, logAudit } from '../utils/auditLogger';
 import { hybridCache } from '../utils/redisCache';
 import { runHousekeepingMaintenance } from '../utils/housekeeper';
+import { getSystemTelemetry, optimizeDatabaseTables } from '../utils/systemTelemetry';
 
 import { verifyAdmin } from '../middleware/auth.middleware';
 import { authRateLimiter } from '../middleware/rateLimiter';
@@ -848,6 +849,32 @@ router.post('/maintenance/housekeeping', verifyAdmin, async (req, res) => {
       message: `Housekeeping complete: ${result.purgedNotifications} notifications purged, ${result.cleanedTempFiles} temp files removed.`,
       result
     });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /api/admin/system/telemetry
+ * Real-time server health, RAM, MySQL pool, ping latency & cron telemetry
+ */
+router.get('/system/telemetry', verifyAdmin, async (req, res) => {
+  try {
+    const telemetry = await getSystemTelemetry();
+    res.status(200).json({ success: true, data: telemetry });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/system/optimize-database
+ * 1-Click Database Space Defragmenter & Table Index Optimizer
+ */
+router.post('/system/optimize-database', verifyAdmin, async (req, res) => {
+  try {
+    const result = await optimizeDatabaseTables((req as any).user, req);
+    res.status(200).json(result);
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
