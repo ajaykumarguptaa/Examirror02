@@ -116,19 +116,23 @@ const RechargeWallet = () => {
   useEffect(() => {
     fetchWalletData();
 
-    // Real-time polling every 3 seconds
-    const interval = setInterval(() => {
-      fetchWalletData(true);
-    }, 3000);
-
-    // Event listener for global events (admissions, cancellations, recharges)
+    // Event listener for SSE realtime events (wallet approved, admissions, deductions)
     const handleUpdate = () => fetchWalletData(true);
     window.addEventListener('center-stats-updated', handleUpdate);
+    window.addEventListener('wallet-updated', handleUpdate);
     window.addEventListener('focus', handleUpdate);
+
+    // Relaxed safety fallback (every 60s instead of 3s)
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchWalletData(true);
+      }
+    }, 60000);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('center-stats-updated', handleUpdate);
+      window.removeEventListener('wallet-updated', handleUpdate);
       window.removeEventListener('focus', handleUpdate);
     };
   }, []);

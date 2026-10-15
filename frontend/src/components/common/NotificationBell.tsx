@@ -93,12 +93,12 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userType, userId })
   useEffect(() => {
     fetchNotifications();
     
-    // Real-time near-instant polling (every 4 seconds) as backup
+    // Fallback heartbeat (every 60s) while SSE push events deliver instant 0.01s updates
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchNotifications();
       }
-    }, 4000); 
+    }, 60000); 
     
     // Immediate reactive sync on realtime SSE push events without waiting for poll
     const handleRealtimeUpdate = () => {

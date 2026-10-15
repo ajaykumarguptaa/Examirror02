@@ -9,6 +9,7 @@ import db from './db';
 import studentRoutes from "./routes/student.routes";
 import { initTestSeriesDatabase } from './utils/initTestSeriesDb';
 import { initDatabaseIndexes } from './utils/initDatabaseIndexes';
+import { backupDatabaseToS3 } from './utils/dbBackup';
 import { isS3Configured, getS3ObjectStream, syncAllLocalUploadsToS3 } from './utils/s3Storage';
 
 dotenv.config();
@@ -746,6 +747,36 @@ app.listen(port, () => {
     };
 
     scheduleNightlyS3Sync();
+
+    // Schedule automated Nightly MySQL Database backup to S3 at 02:30 AM every day
+    const scheduleNightlyDbBackup = () => {
+      const now = new Date();
+      const next230AM = new Date();
+      next230AM.setHours(2, 30, 0, 0);
+      if (now >= next230AM) {
+        next230AM.setDate(next230AM.getDate() + 1);
+      }
+      const delayMs = next230AM.getTime() - now.getTime();
+      const hoursUntil = (delayMs / 3600000).toFixed(2);
+      console.log(`[DB Backup Cron] ⏰ Next automated MySQL database backup to S3 scheduled at 02:30 AM (in ~${hoursUntil} hours)`);
+
+      setTimeout(async () => {
+        try {
+          console.log('[DB Backup Cron] 🚀 02:30 AM reached! Executing automated MySQL database backup to AWS S3...');
+          const result = await backupDatabaseToS3();
+          if (result.success) {
+            console.log(`[DB Backup Cron] ✔ Database backed up to S3: ${result.s3Key} (${result.compressedSizeKB} KB, ${result.tableCount} tables)`);
+          } else {
+            console.error(`[DB Backup Cron] ❌ Backup failed:`, result.error);
+          }
+        } catch (dbErr: any) {
+          console.error('[DB Backup Cron] ❌ Error:', dbErr?.message || dbErr);
+        }
+        scheduleNightlyDbBackup();
+      }, delayMs);
+    };
+
+    scheduleNightlyDbBackup();
   }
 });
 

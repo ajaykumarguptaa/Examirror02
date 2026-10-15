@@ -20,9 +20,12 @@ import {
   Clock,
   HardDriveDownload,
   FileCheck2,
-  ExternalLink
+  ExternalLink,
+  Cloud,
+  Check
 } from 'lucide-react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 interface CenterSummary {
   id: number;
@@ -51,7 +54,13 @@ const BackupExport = () => {
   const [selectedCenterIds, setSelectedCenterIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [batchDownloading, setBatchDownloading] = useState(false);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isBackingUpDb, setIsBackingUpDb] = useState(false);
+  const [dbBackupResult, setDbBackupResult] = useState<{
+    s3Key?: string;
+    compressedSizeKB?: number;
+    tableCount?: number;
+    timestamp?: string;
+  } | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -64,7 +73,7 @@ const BackupExport = () => {
       if (statsRes.data?.success) setStats(statsRes.data.data);
       if (centersRes.data?.success) setCenters(centersRes.data.data);
     } catch (err: any) {
-      setToast({ type: 'error', text: 'Failed to load backup stats: ' + err.message });
+      toast.error('Failed to load backup stats: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -73,13 +82,6 @@ const BackupExport = () => {
   useEffect(() => {
     fetchData();
   }, []);
-
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [toast]);
 
   // Master system backup download
   const handleDownloadMaster = async () => {
@@ -99,11 +101,34 @@ const BackupExport = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      setToast({ type: 'success', text: 'Complete Master System Backup (.xlsx) downloaded successfully!' });
+      toast.success('Complete Master System Backup (.xlsx) downloaded successfully!');
     } catch (err: any) {
-      setToast({ type: 'error', text: 'Error generating master backup: ' + err.message });
+      toast.error('Error generating master backup: ' + err.message);
     } finally {
       setDownloadingMaster(false);
+    }
+  };
+
+  // On-demand MySQL Database Backup to AWS S3
+  const handleBackupDatabaseS3 = async () => {
+    setIsBackingUpDb(true);
+    const adminToken = localStorage.getItem('token') || localStorage.getItem('adminToken') || '';
+    try {
+      const res = await axios.post(
+        'http://localhost:3000/api/admin/backup/database-s3',
+        {},
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+      if (res.data?.success) {
+        setDbBackupResult(res.data.data);
+        toast.success(res.data.message || 'Database backed up to AWS S3 successfully!');
+      } else {
+        toast.error(res.data?.message || 'Database backup failed');
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Database backup failed to connect');
+    } finally {
+      setIsBackingUpDb(false);
     }
   };
 
@@ -125,9 +150,9 @@ const BackupExport = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      setToast({ type: 'success', text: `Center backup for ${centerName} (${centerCode}) downloaded!` });
+      toast.success(`Center backup for ${centerName} (${centerCode}) downloaded!`);
     } catch (err: any) {
-      setToast({ type: 'error', text: 'Error downloading center backup: ' + err.message });
+      toast.error('Error downloading center backup: ' + err.message);
     } finally {
       setDownloadingCenterId(null);
     }
@@ -164,10 +189,7 @@ const BackupExport = () => {
       }
     }
 
-    setToast({
-      type: 'success',
-      text: `Batch export completed! Downloaded ${successCount} center Excel backups.`
-    });
+    toast.success(`Batch export completed! Downloaded ${successCount} center Excel backups.`);
     setBatchDownloading(false);
   };
 
@@ -194,19 +216,6 @@ const BackupExport = () => {
 
   return (
     <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
-      {/* Toast Notification */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl border text-sm font-bold animate-in slide-in-from-bottom-5 duration-300 ${
-            toast.type === 'success'
-              ? 'bg-emerald-950 border-emerald-500 text-emerald-100 shadow-emerald-950/40'
-              : 'bg-rose-950 border-rose-500 text-rose-100 shadow-rose-950/40'
-          }`}
-        >
-          {toast.type === 'success' ? <CheckCircle2 className="text-emerald-400" size={18} /> : <AlertCircle className="text-rose-400" size={18} />}
-          <span>{toast.text}</span>
-        </div>
-      )}
 
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#1e1b4b] p-5 sm:p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden border border-indigo-900">
@@ -233,6 +242,57 @@ const BackupExport = () => {
             <span>Refresh Stats</span>
           </button>
         </div>
+      </div>
+
+      {/* Cloud Disaster Recovery: AWS S3 Database Backup Card */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 md:p-8 text-white border border-indigo-500/30 shadow-2xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-[11px] font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span>Automated Disaster Recovery Active</span>
+            </div>
+            <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              <Cloud className="text-indigo-400" size={24} />
+              <span>Automated MySQL Database Backup to AWS S3</span>
+            </h2>
+            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+              Every night at <strong>02:30 AM</strong>, an automated script dumps all 44 database tables, compresses with GZIP, and stores it in your secure cloud bucket (<code className="text-amber-300 bg-white/10 px-1 py-0.5 rounded">examirror-student-storage-2026/backups/</code>).
+            </p>
+          </div>
+
+          <button
+            onClick={handleBackupDatabaseS3}
+            disabled={isBackingUpDb}
+            className="shrink-0 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-2xl shadow-lg shadow-emerald-900/40 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+          >
+            {isBackingUpDb ? (
+              <>
+                <RefreshCw size={16} className="animate-spin" />
+                <span>Dumping & Uploading to S3...</span>
+              </>
+            ) : (
+              <>
+                <Database size={16} />
+                <span>Backup Database to S3 Now</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {dbBackupResult && (
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-emerald-300 font-semibold">
+              <CheckCircle2 size={16} />
+              <span>Last Backup: {dbBackupResult.s3Key}</span>
+            </div>
+            <div className="flex items-center gap-4 text-slate-300">
+              <span>Tables: <strong className="text-white">{dbBackupResult.tableCount}</strong></span>
+              <span>Compressed: <strong className="text-emerald-400">{dbBackupResult.compressedSizeKB} KB</strong></span>
+              <span>Time: <strong className="text-white">{new Date(dbBackupResult.timestamp || '').toLocaleTimeString()}</strong></span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Hero 1-Click Master System Backup Card */}

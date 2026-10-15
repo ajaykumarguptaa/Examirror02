@@ -28,8 +28,16 @@ import {
   ArrowRight,
   BarChart2,
   CheckCircle,
-  HelpCircle as QuestionIcon
+  HelpCircle as QuestionIcon,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { 
+  saveExamOfflineState, 
+  loadExamOfflineState, 
+  clearExamOfflineState 
+} from '../../../utils/examOfflineStorage';
 
 interface Question {
   id: number;
@@ -70,8 +78,27 @@ const StudentExamPortal = () => {
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [showTabWarning, setShowTabWarning] = useState(false);
   const [paletteFilter, setPaletteFilter] = useState<'all' | 'answered' | 'review' | 'unanswered'>('all');
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Network connectivity monitor
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success('Internet connection restored! Auto-sync active.', { id: 'exam-network-status' });
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.error('Offline mode active: Answers are safely saved locally.', { id: 'exam-network-status', duration: 5000 });
+    };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Parse course semester scoring config
   const getSemesterConfig = () => {
@@ -138,16 +165,22 @@ const StudentExamPortal = () => {
           setExam(fetchedExam);
           setQuestions(fetchedQs);
 
-          // Restore cached answers from localStorage if any
-          const cachedAnswersKey = `exam_${examId}_answers`;
-          const savedAnswers = localStorage.getItem(cachedAnswersKey);
-          if (savedAnswers) {
-            try { setAnswers(JSON.parse(savedAnswers)); } catch (_) {}
-          }
+          // Restore cached answers & progress from dual IndexedDB + LocalStorage
+          try {
+            const cached = await loadExamOfflineState(examId || '');
+            if (cached?.answers && Object.keys(cached.answers).length > 0) {
+              setAnswers(cached.answers);
+              if (cached.markedForReview) setMarkedForReview(cached.markedForReview);
+              if (cached.timeLeft && cached.timeLeft > 0) setTimeLeft(cached.timeLeft);
+              if (cached.currentQuestionIdx !== undefined && cached.currentQuestionIdx >= 0) {
+                setCurrentQuestionIdx(cached.currentQuestionIdx);
+              }
+            }
+          } catch (_) {}
 
           // Calculate time: 1.5 minutes per question or default 60 min
           const allocatedSecs = Math.max(fetchedQs.length * 90, 600);
-          setTimeLeft(allocatedSecs);
+          setTimeLeft(prev => (prev && prev > 0 ? prev : allocatedSecs));
           setTotalInitialTime(allocatedSecs);
         }
       } catch (err: any) {
@@ -160,12 +193,19 @@ const StudentExamPortal = () => {
     fetchExamData();
   }, [examId, navigate]);
 
-  // Save answers to local storage on change
+  // Dual IndexedDB + LocalStorage offline auto-save on every answer or state change
   useEffect(() => {
     if (examId && Object.keys(answers).length > 0) {
-      localStorage.setItem(`exam_${examId}_answers`, JSON.stringify(answers));
+      saveExamOfflineState({
+        examId: String(examId),
+        answers,
+        markedForReview,
+        timeLeft,
+        currentQuestionIdx,
+        updatedAt: Date.now()
+      });
     }
-  }, [answers, examId]);
+  }, [answers, markedForReview, timeLeft, currentQuestionIdx, examId]);
 
   // Timer Tick
   useEffect(() => {
@@ -253,6 +293,15 @@ const StudentExamPortal = () => {
 
   const executeSubmitExam = async () => {
     if (isSubmitting) return;
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      toast.error('Internet disconnected! All your responses are safely stored in your device. Please reconnect before final submission.', { 
+        id: 'offline-submit-warn',
+        duration: 6000 
+      });
+      return;
+    }
+
     const token = localStorage.getItem('studentToken');
     
     setIsSubmitting(true);
@@ -261,7 +310,7 @@ const StudentExamPortal = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
-        localStorage.removeItem(`exam_${examId}_answers`);
+        await clearExamOfflineState(examId || '');
         setShowSubmitModal(false);
         setSubmitResult(res.data.data);
       }
@@ -356,6 +405,14 @@ const StudentExamPortal = () => {
         />
       </div>
 
+      {/* OFFLINE BANNER */}
+      {!isOnline && (
+        <div className="fixed top-1.5 left-0 right-0 z-50 bg-amber-500 text-slate-950 font-bold px-4 py-2 text-xs flex items-center justify-center gap-2 shadow-md animate-in slide-in-from-top duration-200">
+          <WifiOff size={16} className="text-slate-900 shrink-0" />
+          <span>Offline Resilience Active: Internet connection lost. All answers are safely auto-saved on this device. You can keep answering normally.</span>
+        </div>
+      )}
+
       {/* TAB SWITCH WARNING TOAST */}
       {showTabWarning && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-amber-500 animate-in fade-in slide-in-from-top duration-300 max-w-lg">
@@ -390,12 +447,24 @@ const StudentExamPortal = () => {
                   {exam?.semester}
                 </span>
               </div>
-              <div className="flex items-center gap-3 text-xs text-slate-500 font-medium mt-0.5">
+              <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 font-medium mt-0.5 flex-wrap">
                 <span>Roll: <strong className="text-slate-800">#{exam?.studentId}</strong></span>
                 <span className="hidden sm:inline">•</span>
                 <span className="hidden sm:inline text-emerald-600 font-semibold flex items-center gap-1">
                   <ShieldCheck size={13} /> Active Proctored Session
                 </span>
+                <span className="hidden sm:inline">•</span>
+                {isOnline ? (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <Wifi size={11} /> Auto-Saved
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-bold animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                    <WifiOff size={11} /> Offline Mode
+                  </span>
+                )}
               </div>
             </div>
           </div>

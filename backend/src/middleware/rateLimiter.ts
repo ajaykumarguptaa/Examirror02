@@ -178,12 +178,13 @@ export const generalApiLimiter = createTokenBucketLimiter({
  * Successful logins (< 400) are refunded, so genuine users are never blocked.
  */
 export const authRateLimiter = createTokenBucketLimiter({
-  capacity: 10,
-  refillRate: 0.2,
-  skipSuccessfulRequests: true,
+  capacity: 5,
+  refillRate: 5 / (15 * 60), // 5 tokens refilled over 15 minutes (0.0055 tokens/sec)
+  skipSuccessfulRequests: true, // Only failed attempts (4xx/5xx) consume tokens
+  ttlMs: 20 * 60 * 1000,
   message: {
     success: false,
-    message: 'Too many authentication attempts. Please try again after a few seconds.'
+    message: 'Too many failed login attempts. For security reasons, your IP has been temporarily restricted. Please try again after 15 minutes.'
   }
 });
 

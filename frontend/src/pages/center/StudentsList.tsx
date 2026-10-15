@@ -37,8 +37,11 @@ import {
   Save,
   Lock,
   ShieldAlert,
-  PenTool
+  PenTool,
+  Archive,
+  Loader2
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import axios from 'axios';
 import { QRCodeSVG } from 'qrcode.react';
 import JsBarcode from 'jsbarcode';
@@ -143,6 +146,7 @@ const StudentsList = () => {
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
   const [showAdvancedEditConfirm, setShowAdvancedEditConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDownloadingBulkZip, setIsDownloadingBulkZip] = useState(false);
 
   // No Screenshot & Certificate Security Warning Modal State
   const [certWarningState, setCertWarningState] = useState<{
@@ -359,6 +363,46 @@ const StudentsList = () => {
     document.body.removeChild(link);
 
     setFeedback({ type: 'success', text: `Exported ${students.length} student records successfully!` });
+  };
+
+  // Server-Side Bulk Marksheets & Certificates ZIP Download Engine
+  const handleBulkDownloadZip = async () => {
+    try {
+      const idsToDownload = selectedStudentIds.length > 0 
+        ? selectedStudentIds 
+        : filteredStudents.map(s => s.id);
+
+      if (idsToDownload.length === 0) {
+        toast.error('No students available to download.');
+        return;
+      }
+
+      setIsDownloadingBulkZip(true);
+      toast.loading(`Server is packaging ${idsToDownload.length} Certificates & Marksheets into ZIP...`, { id: 'bulk-zip' });
+
+      const response = await axios.post(
+        'http://localhost:3000/api/certificates/bulk-download-zip',
+        { studentIds: idsToDownload, type: 'both' },
+        { responseType: 'blob' }
+      );
+
+      const blob = new Blob([response.data], { type: 'application/zip' });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `Examirror_Batch_Docs_${Date.now()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      toast.success(`ZIP downloaded! (${idsToDownload.length} students)`, { id: 'bulk-zip' });
+    } catch (err: any) {
+      console.error('Bulk ZIP download error:', err);
+      toast.error('Failed to download bulk ZIP archive.', { id: 'bulk-zip' });
+    } finally {
+      setIsDownloadingBulkZip(false);
+    }
   };
 
   // Open Modals
@@ -760,6 +804,27 @@ const StudentsList = () => {
               className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-2 rounded-md flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer flex-1 sm:flex-initial whitespace-nowrap"
             >
               <Printer size={14} className="shrink-0" /> <span className="whitespace-nowrap">Batch Print Certs ({selectedStudentIds.length})</span>
+            </button>
+
+            {/* Server-Side Bulk ZIP Download (0% browser RAM usage) */}
+            <button
+              type="button"
+              disabled={isDownloadingBulkZip}
+              onClick={handleBulkDownloadZip}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold px-3 py-2 rounded-md flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer flex-1 sm:flex-initial whitespace-nowrap"
+              title="Fast Server-Side ZIP download of all certificates and marksheets without freezing browser RAM"
+            >
+              {isDownloadingBulkZip ? (
+                <>
+                  <Loader2 size={14} className="animate-spin shrink-0" />
+                  <span className="whitespace-nowrap">Packaging ZIP...</span>
+                </>
+              ) : (
+                <>
+                  <Archive size={14} className="shrink-0" />
+                  <span className="whitespace-nowrap">Bulk ZIP ({selectedStudentIds.length > 0 ? selectedStudentIds.length : 'All'})</span>
+                </>
+              )}
             </button>
 
             {/* Export Students Button */}

@@ -65,8 +65,22 @@ const ContactQueries = () => {
 
   useEffect(() => {
     fetchQueries();
-    const interval = setInterval(fetchQueries, 8000);
-    return () => clearInterval(interval);
+
+    const handleSync = () => fetchQueries();
+    window.addEventListener('contact-updated', handleSync);
+    window.addEventListener('focus', handleSync);
+
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchQueries();
+      }
+    }, 60000);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('contact-updated', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
   }, []);
 
   const handleUpdateStatus = async (id: number, newStatus: string, notes?: string) => {

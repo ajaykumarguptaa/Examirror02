@@ -117,8 +117,8 @@ const AdminLayout = () => {
     };
 
     checkPendingRequests();
-    const interval = setInterval(checkPendingRequests, 4000);
-
+    
+    // Realtime SSE Event listeners - instant 0.01s sync when data changes
     const handleRealtimeSync = () => {
       checkPendingRequests();
     };
@@ -127,6 +127,14 @@ const AdminLayout = () => {
     window.addEventListener('contact-updated', handleRealtimeSync);
     window.addEventListener('certificate-updated', handleRealtimeSync);
     window.addEventListener('realtime-notification', handleRealtimeSync);
+    window.addEventListener('focus', handleRealtimeSync);
+
+    // Relaxed safety heartbeat (every 60s instead of 4s) only when tab is active
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        checkPendingRequests();
+      }
+    }, 60000);
 
     return () => {
       isMounted = false;
@@ -136,6 +144,7 @@ const AdminLayout = () => {
       window.removeEventListener('contact-updated', handleRealtimeSync);
       window.removeEventListener('certificate-updated', handleRealtimeSync);
       window.removeEventListener('realtime-notification', handleRealtimeSync);
+      window.removeEventListener('focus', handleRealtimeSync);
     };
   }, []);
 

@@ -96,17 +96,23 @@ const WalletRequests = () => {
 
   useEffect(() => {
     fetchRequests();
-    // Live auto sync
-    const interval = setInterval(() => {
-      fetchRequests(true);
-    }, 4000);
 
+    // Instant SSE sync when wallet request created/modified
     const handleWalletSync = () => fetchRequests(true);
     window.addEventListener('wallet-updated', handleWalletSync);
+    window.addEventListener('focus', handleWalletSync);
+
+    // Relaxed safety fallback (every 60s instead of 4s)
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchRequests(true);
+      }
+    }, 60000);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('wallet-updated', handleWalletSync);
+      window.removeEventListener('focus', handleWalletSync);
     };
   }, [filterStatus]);
 

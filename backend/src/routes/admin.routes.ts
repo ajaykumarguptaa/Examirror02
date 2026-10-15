@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt';
 import { adminService } from '../services/admin.service';
 import { centerService } from '../services/center.service';
 import { exportService } from '../services/export.service';
+import { backupDatabaseToS3 } from '../utils/dbBackup';
 import { notificationService } from '../services/notification.service';
 import { realtimeService } from '../services/realtime.service';
 
@@ -452,6 +453,26 @@ router.get('/export/center/:id', async (req, res) => {
   } catch (error: any) {
     console.error('Center export error:', error);
     res.status(500).json({ success: false, message: 'Failed to generate center Excel backup: ' + error.message });
+  }
+});
+
+/**
+ * On-Demand MySQL Database Backup to AWS S3 (Disaster Recovery)
+ */
+router.post('/backup/database-s3', verifyAdmin, async (_req, res) => {
+  try {
+    const result = await backupDatabaseToS3();
+    if (!result.success) {
+      return res.status(500).json({ success: false, message: result.error || 'Database backup failed' });
+    }
+    res.status(200).json({
+      success: true,
+      message: `Database backed up to AWS S3! (${result.compressedSizeKB} KB, ${result.tableCount} tables)`,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error('Database backup error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Database backup error' });
   }
 });
 
