@@ -3,7 +3,6 @@ import { notificationService } from './notification.service';
 import { realtimeService } from './realtime.service';
 import { saveBase64File } from '../utils/fileStorage';
 import { logAudit } from '../utils/auditLogger';
-import { sendStudentAdmissionAlert, sendStudentCertificateAlert } from '../utils/studentAlertEngine';
 
 export const centerService = {
   // --- COURSES ---
@@ -401,15 +400,6 @@ export const centerService = {
       details: { studentName: `${data.firstName} ${data.lastName}`, enrollmentNo, rollNo, courseId: data.courseId }
     });
 
-    sendStudentAdmissionAlert({
-      phone: data.phone,
-      studentName: `${data.firstName} ${data.lastName}`,
-      enrollmentNo,
-      rollNo,
-      studentId,
-      centerId: data.centerId
-    }).catch(err => console.warn('[StudentAlert] Admission alert error:', err));
-
     const [cntRows]: any = await db.query('SELECT wallet_balance FROM centers WHERE id = ?', [data.centerId]);
     const walletBalance = Number(cntRows && cntRows[0] ? cntRows[0].wallet_balance : 0);
 
@@ -755,12 +745,6 @@ export const centerService = {
       entityId: actualStudentId,
       details: { certificateNumber: certNumber, charged: deduction, isInstant }
     });
-
-    sendStudentCertificateAlert({
-      studentId: actualStudentId,
-      certificateNumber: certNumber,
-      centerId
-    }).catch(err => console.warn('[StudentAlert] Certificate alert error:', err));
 
     const [updatedCenter]: any = await db.query('SELECT wallet_balance FROM centers WHERE id = ?', [centerId]);
     return {
