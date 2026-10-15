@@ -175,6 +175,7 @@ router.put('/centers/:id/password', async (req, res) => {
   const { newPassword } = req.body;
   try {
     const result = await adminService.updateCenterPassword(req.params.id, newPassword);
+    await logAudit({ userType: 'admin', userName: (req as any).user?.username || 'Super Admin', action: 'CENTER_PASSWORD_RESET', entityType: 'center', entityId: req.params.id }, req);
     res.status(200).json({ success: true, message: 'Center password updated successfully', ...result });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -185,6 +186,7 @@ router.post('/centers/:id/password', async (req, res) => {
   const { newPassword } = req.body;
   try {
     const result = await adminService.updateCenterPassword(req.params.id, newPassword);
+    await logAudit({ userType: 'admin', userName: (req as any).user?.username || 'Super Admin', action: 'CENTER_PASSWORD_RESET', entityType: 'center', entityId: req.params.id }, req);
     res.status(200).json({ success: true, message: 'Center password updated successfully', ...result });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -199,6 +201,7 @@ router.put('/centers/:id/status', async (req, res) => {
       'UPDATE centers SET status = ?, token_version = COALESCE(token_version, 1) + 1 WHERE id = ?', 
       [cleanStatus, req.params.id]
     );
+    await logAudit({ userType: 'admin', userName: (req as any).user?.username || 'Super Admin', action: cleanStatus === 'active' ? 'CENTER_ACTIVATED' : 'CENTER_SUSPENDED', entityType: 'center', entityId: req.params.id, details: { newStatus: cleanStatus } }, req);
     res.status(200).json({ success: true, message: `Center status updated to ${cleanStatus} and all active sessions terminated.` });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -356,6 +359,14 @@ router.post('/wallet-requests/:id/approve', async (req, res) => {
   const { bonusTokens, verifiedAmount } = req.body;
   try {
     const result = await adminService.approveWalletRequest(req.params.id, bonusTokens, verifiedAmount);
+    await logAudit({
+      userType: 'admin',
+      userName: (req as any).user?.username || 'Super Admin',
+      action: 'WALLET_APPROVED',
+      entityType: 'wallet_request',
+      entityId: req.params.id,
+      details: { verifiedAmount, bonusTokens }
+    }, req);
     res.status(200).json({ success: true, message: 'Wallet request approved and tokens credited successfully', result });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -366,6 +377,14 @@ router.post('/wallet-requests/:id/reject', async (req, res) => {
   const { reason } = req.body;
   try {
     const result = await adminService.rejectWalletRequest(req.params.id, reason);
+    await logAudit({
+      userType: 'admin',
+      userName: (req as any).user?.username || 'Super Admin',
+      action: 'WALLET_REJECTED',
+      entityType: 'wallet_request',
+      entityId: req.params.id,
+      details: { reason }
+    }, req);
     res.status(200).json({ success: true, message: 'Wallet request rejected', result });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
