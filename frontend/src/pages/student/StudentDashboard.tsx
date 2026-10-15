@@ -15,6 +15,7 @@ import { AntiPiracyStudyMaterialModal } from '../../components/AntiPiracyStudyMa
 import { StudyMaterialPaymentModal } from '../../components/StudyMaterialPaymentModal';
 import { FadeUp, StaggerContainer, StaggerItem } from '../../motion';
 import { getAssetUrl } from '../../utils/axiosSetup';
+import toast from 'react-hot-toast';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -164,6 +165,34 @@ const StudentDashboard = () => {
               >
                 <CreditCard size={14} className="text-slate-500" />
                 <span>ID Card</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem('studentToken');
+                    const toastId = toast.loading('Generating official Admit Card PDF...');
+                    const res = await axios.get('http://localhost:3000/api/student/admit-card', {
+                      headers: { Authorization: `Bearer ${token}` },
+                      responseType: 'blob'
+                    });
+                    const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', `Admit_Card_${student?.roll_no || student?.id}.pdf`);
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    toast.success('Admit Card downloaded successfully!', { id: toastId });
+                  } catch (err: any) {
+                    toast.error('Failed to download Admit Card. Please try again.');
+                  }
+                }}
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95"
+              >
+                <FileText size={14} className="text-indigo-600" />
+                <span>Admit Card</span>
               </button>
 
               <button 

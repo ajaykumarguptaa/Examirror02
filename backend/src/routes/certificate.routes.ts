@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import db from '../db';
 import { uploadBufferToS3, isS3Configured, syncAllLocalUploadsToS3 } from '../utils/s3Storage';
-import { generateCertificatePdfBuffer, generateMarksheetPdfBuffer } from '../utils/pdfEngine';
+import { generateCertificatePdfBuffer, generateMarksheetPdfBuffer, generateAdmitCardPdfBuffer } from '../utils/pdfEngine';
 const archiver = require('archiver');
 
 const router = Router();
@@ -264,6 +264,50 @@ router.post('/bulk-download-zip', async (req, res) => {
     if (!res.headersSent) {
       res.status(500).json({ success: false, message: err.message || 'Failed to create bulk zip archive' });
     }
+  }
+});
+
+/**
+ * GET /api/certificate/admit-card/:studentId
+ * Allows Center or Admin to download official student Admit Card PDF
+ */
+router.get('/admit-card/:studentId', async (req, res) => {
+  try {
+    const studentId = req.params.studentId;
+    const [rows]: any = await db.query(`
+      SELECT s.id, s.firstName, s.lastName, s.father_name, s.roll_no, s.enrollment_no, s.photo_url,
+             c.name as course_name, cntr.name as center_name, cntr.center_code, cntr.address as center_address
+      FROM students s
+      LEFT JOIN courses c ON s.courseId = c.id
+      LEFT JOIN centers cntr ON s.centerId = cntr.id
+      WHERE s.id = ? OR s.roll_no = ?
+      LIMIT 1
+    `, [studentId, studentId]);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Student record not found' });
+    }
+
+    const st = rows[0];
+    const pdfBuf = await generateAdmitCardPdfBuffer({
+      id: st.id,
+      name: `${st.firstName || ''} ${st.lastName || ''}`.trim() || 'Student',
+      father_name: st.father_name,
+      roll_no: st.roll_no,
+      enrollment_no: st.enrollment_no,
+      course_name: st.course_name,
+      photo_url: st.photo_url,
+      center_name: st.center_name,
+      center_code: st.center_code,
+      center_address: st.center_address
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="admit-card-${st.roll_no || st.id}.pdf"`);
+    res.setHeader('Content-Length', pdfBuf.length);
+    res.send(pdfBuf);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

@@ -18,7 +18,9 @@ import {
   Bell,
   User,
   ChevronDown,
-  PenTool, X
+  PenTool, X,
+  IndianRupee,
+  AlertTriangle
 } from 'lucide-react';
 import SEO from '../components/SEO';
 import { CenterSignatureUploadModal } from '../components/CenterSignatureUploadModal';
@@ -293,6 +295,23 @@ const CenterLayout = () => {
               <PenTool size={14} className="text-indigo-600" />
               <span>E-Sign & Stamp</span>
             </button>
+
+            {/* Quick Wallet Pill with Low Balance Warning */}
+            <div
+              onClick={() => navigate('/center/wallet')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs ${
+                Number(stats.walletBalance || 0) < 150
+                  ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+              }`}
+              title="Click to recharge wallet"
+            >
+              <IndianRupee size={13} className={Number(stats.walletBalance || 0) < 150 ? 'text-amber-600' : 'text-slate-500'} />
+              <span>₹{Number(stats.walletBalance || 0).toLocaleString()}</span>
+              {Number(stats.walletBalance || 0) < 150 && (
+                <span className="text-[10px] font-extrabold uppercase px-1 rounded bg-amber-200 text-amber-900">Low</span>
+              )}
+            </div>
 
             {/* User Dropdown */}
             <div className="relative" ref={userMenuRef}>

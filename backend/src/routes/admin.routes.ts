@@ -10,6 +10,7 @@ import { notificationService } from '../services/notification.service';
 import { realtimeService } from '../services/realtime.service';
 import { getAuditLogs, logAudit } from '../utils/auditLogger';
 import { hybridCache } from '../utils/redisCache';
+import { runHousekeepingMaintenance } from '../utils/housekeeper';
 
 import { verifyAdmin } from '../middleware/auth.middleware';
 import { authRateLimiter } from '../middleware/rateLimiter';
@@ -811,6 +812,23 @@ router.post('/cache-flush', verifyAdmin, async (req, res) => {
   try {
     await hybridCache.flush();
     res.status(200).json({ success: true, message: 'All distributed and local cache stores flushed successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/maintenance/housekeeping
+ * Executes database housekeeping: purges 90-day read notifications & temp files
+ */
+router.post('/maintenance/housekeeping', verifyAdmin, async (req, res) => {
+  try {
+    const result = await runHousekeepingMaintenance();
+    res.status(200).json({
+      success: result.success,
+      message: `Housekeeping complete: ${result.purgedNotifications} notifications purged, ${result.cleanedTempFiles} temp files removed.`,
+      result
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }

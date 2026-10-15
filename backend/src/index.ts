@@ -12,6 +12,7 @@ import { initDatabaseIndexes } from './utils/initDatabaseIndexes';
 import { backupDatabaseToS3 } from './utils/dbBackup';
 import { isS3Configured, getS3ObjectStream, syncAllLocalUploadsToS3 } from './utils/s3Storage';
 import { hybridCache } from './utils/redisCache';
+import { runHousekeepingMaintenance } from './utils/housekeeper';
 
 dotenv.config();
 
@@ -720,7 +721,9 @@ app.use("/api/v1", publicRoutes);
 
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/certificates", certificateRoutes);
+app.use("/api/certificate", certificateRoutes);
 app.use("/api/v1/certificates", certificateRoutes);
+app.use("/api/v1/certificate", certificateRoutes);
 
 // Catch-all 404 handler for unmatched API routes
 app.use(['/api', '/api/v1'], (req, res) => {
@@ -825,5 +828,31 @@ app.listen(port, () => {
 
     scheduleNightlyDbBackup();
   }
+
+  // Schedule automated Weekly Housekeeping & Notification Purge at 03:00 AM every Sunday
+  const scheduleWeeklyHousekeeping = () => {
+    const now = new Date();
+    const nextSunday3AM = new Date();
+    const daysUntilSunday = (7 - now.getDay()) % 7;
+    nextSunday3AM.setDate(now.getDate() + (daysUntilSunday === 0 && now.getHours() >= 3 ? 7 : daysUntilSunday));
+    nextSunday3AM.setHours(3, 0, 0, 0);
+
+    const delayMs = nextSunday3AM.getTime() - now.getTime();
+    const daysUntil = (delayMs / (1000 * 60 * 60 * 24)).toFixed(1);
+    console.log(`[Housekeeper Cron] ⏰ Next automated weekly cleanup scheduled for Sunday 03:00 AM (in ~${daysUntil} days)`);
+
+    setTimeout(async () => {
+      try {
+        console.log('[Housekeeper Cron] 🚀 Executing automated weekly database cleanup & housekeeping...');
+        const res = await runHousekeepingMaintenance();
+        console.log(`[Housekeeper Cron] ✔ Completed! Purged ${res.purgedNotifications} read notifications, removed ${res.cleanedTempFiles} temp files.`);
+      } catch (err: any) {
+        console.error('[Housekeeper Cron] ❌ Error:', err?.message || err);
+      }
+      scheduleWeeklyHousekeeping();
+    }, delayMs);
+  };
+
+  scheduleWeeklyHousekeeping();
 });
 

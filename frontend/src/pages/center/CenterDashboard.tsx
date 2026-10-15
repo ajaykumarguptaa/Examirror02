@@ -393,6 +393,33 @@ const CenterDashboard = () => {
         )}
       </FadeUp>
 
+      {/* Proactive Low Wallet Balance Warning Banner */}
+      {Number(stats.walletBalance) < 150 && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-amber-900">
+                Low Wallet Balance Warning: ₹{Number(stats.walletBalance || 0).toFixed(2)} Remaining
+              </h3>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Your center balance is below the recommended ₹150 threshold. Recharge now to avoid interruption in Student Enrollments, Instant Certificates, and Examination services.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/center/wallet')}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm shrink-0 cursor-pointer"
+          >
+            <IndianRupee size={14} />
+            Quick Recharge Wallet
+          </button>
+        </div>
+      )}
+
       {/* Stats Cards Row with Stagger & NumberCounter */}
       <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Students Card */}

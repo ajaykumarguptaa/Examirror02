@@ -340,3 +340,171 @@ export async function generateMarksheetPdfBuffer(student: StudentPdfRecord): Pro
     }
   });
 }
+
+export interface StudentAdmitCardRecord {
+  id: number;
+  roll_no?: string;
+  enrollment_no?: string;
+  name: string;
+  father_name?: string;
+  course_name?: string;
+  photo_url?: string;
+  center_name?: string;
+  center_code?: string;
+  center_address?: string;
+  exam_date?: string;
+  exam_time?: string;
+}
+
+/**
+ * Generates an official Admit Card / Hall Ticket PDF Buffer entirely on the server.
+ */
+export async function generateAdmitCardPdfBuffer(student: StudentAdmitCardRecord): Promise<Buffer> {
+  const verifyUrl = `https://examirror.com/verify/student/${student.roll_no || student.enrollment_no || student.id}`;
+
+  let qrBuffer: Buffer | null = null;
+  try {
+    qrBuffer = await QRCode.toBuffer(verifyUrl, {
+      width: 140,
+      margin: 1,
+      color: { dark: '#0c2340', light: '#ffffff' }
+    });
+  } catch (_) {}
+
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        layout: 'portrait',
+        margin: 36
+      });
+
+      const buffers: Buffer[] = [];
+      doc.on('data', (chunk) => buffers.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', (err) => reject(err));
+
+      const width = doc.page.width;
+      const height = doc.page.height;
+
+      // Outer Decorative Border
+      doc.rect(20, 20, width - 40, height - 40)
+        .lineWidth(2)
+        .strokeColor('#0c2340')
+        .stroke();
+
+      // Top Organization Header
+      doc.fontSize(9)
+        .font('Helvetica-Bold')
+        .fillColor('#b45309')
+        .text('EXAMIRROR SKILL DEVELOPMENT & EXAMINATION BOARD', 0, 42, { align: 'center' });
+
+      doc.fontSize(18)
+        .font('Helvetica-Bold')
+        .fillColor('#0c2340')
+        .text('EXAMINATION ADMIT CARD / HALL TICKET', 0, 58, { align: 'center' });
+
+      doc.fontSize(8.5)
+        .font('Helvetica')
+        .fillColor('#64748b')
+        .text('Annual / Semester Autonomous Evaluation Examination — Session 2026', 0, 80, { align: 'center' });
+
+      // Student Identity Box
+      const startY = 105;
+      const boxWidth = width - 80;
+      doc.rect(40, startY, boxWidth, 115).fillAndStroke('#f8fafc', '#cbd5e1');
+
+      doc.fontSize(9.5).font('Helvetica-Bold').fillColor('#334155');
+      doc.text('Candidate Name:', 55, startY + 14);
+      doc.font('Helvetica-Bold').fillColor('#0c2340').text((student.name || 'Candidate').toUpperCase(), 160, startY + 14);
+
+      doc.font('Helvetica-Bold').fillColor('#334155').text("Father's Name:", 55, startY + 34);
+      doc.font('Helvetica').fillColor('#1e293b').text(student.father_name || 'N/A', 160, startY + 34);
+
+      doc.font('Helvetica-Bold').fillColor('#334155').text('Roll Number:', 55, startY + 54);
+      doc.font('Helvetica-Bold').fillColor('#047857').text(student.roll_no || String(student.id), 160, startY + 54);
+
+      doc.font('Helvetica-Bold').fillColor('#334155').text('Enrollment No:', 55, startY + 74);
+      doc.font('Helvetica').fillColor('#1e293b').text(student.enrollment_no || 'N/A', 160, startY + 74);
+
+      doc.font('Helvetica-Bold').fillColor('#334155').text('Course Enrolled:', 55, startY + 94);
+      doc.font('Helvetica-Bold').fillColor('#0c2340').text(student.course_name || 'Certificate Course', 160, startY + 94);
+
+      // Photo Frame
+      const photoX = width - 135;
+      const photoY = startY + 12;
+      doc.rect(photoX, photoY, 75, 90).fillAndStroke('#ffffff', '#94a3b8');
+      doc.fontSize(7).font('Helvetica').fillColor('#94a3b8')
+        .text('AFFIX PASSPORT PHOTO', photoX, photoY + 38, { width: 75, align: 'center' });
+
+      // Exam Schedule & Center Details Box
+      const scheduleY = startY + 128;
+      doc.rect(40, scheduleY, boxWidth, 105).fillAndStroke('#eff6ff', '#bfdbfe');
+
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e40af');
+      doc.text('EXAMINATION VENUE & SCHEDULE', 55, scheduleY + 12);
+
+      const examDate = student.exam_date || 'As scheduled by Center';
+      const examTime = student.exam_time || '10:00 AM – 01:00 PM (Shift 1)';
+
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('#334155').text('Exam Date & Timing:', 55, scheduleY + 34);
+      doc.font('Helvetica-Bold').fillColor('#0f172a').text(`${examDate}  |  ${examTime}`, 180, scheduleY + 34);
+
+      doc.font('Helvetica-Bold').fillColor('#334155').text('Examination Center:', 55, scheduleY + 54);
+      doc.font('Helvetica').fillColor('#0f172a').text(`${student.center_name || 'Authorized Study Center'} (${student.center_code || 'EXAMIRROR'})`, 180, scheduleY + 54);
+
+      doc.font('Helvetica-Bold').fillColor('#334155').text('Center Address:', 55, scheduleY + 74);
+      doc.font('Helvetica').fillColor('#475569').text(student.center_address || 'Main Road, Center Campus', 180, scheduleY + 74, { width: 280 });
+
+      // Important Candidate Instructions
+      const instY = scheduleY + 118;
+      doc.rect(40, instY, boxWidth, 175).fillAndStroke('#ffffff', '#e2e8f0');
+
+      doc.fontSize(9.5).font('Helvetica-Bold').fillColor('#0c2340');
+      doc.text('MANDATORY INSTRUCTIONS FOR CANDIDATE', 55, instY + 12);
+
+      const instructions = [
+        '1. The candidate must carry this printed Admit Card and a valid Govt. Photo ID proof (Aadhaar / Voter ID / Passport) to the examination hall.',
+        '2. Candidate should report at the examination center at least 30 minutes before the scheduled exam start time.',
+        '3. Possession of mobile phones, smartwatches, calculators, or any unauthorized material inside the examination hall is strictly prohibited.',
+        '4. Verification QR code printed below must remain clean and unscratched for scanning by the invigilator.',
+        '5. Impersonation or using unfair means (UFM) will lead to immediate cancellation of candidature and legal action.'
+      ];
+
+      let itemY = instY + 32;
+      instructions.forEach((inst) => {
+        doc.fontSize(8).font('Helvetica').fillColor('#334155').text(inst, 55, itemY, { width: boxWidth - 30 });
+        itemY += 26;
+      });
+
+      // Verification QR and Signatures Footer
+      const footerY = instY + 195;
+
+      if (qrBuffer) {
+        doc.rect(48, footerY, 64, 64).fillAndStroke('#ffffff', '#cbd5e1');
+        doc.image(qrBuffer, 50, footerY + 2, { width: 60, height: 60 });
+        doc.fontSize(6).font('Helvetica-Bold').fillColor('#0c2340').text('SCAN TO VERIFY', 42, footerY + 68, { width: 76, align: 'center' });
+      }
+
+      // Candidate Signature Box
+      const sig1X = width / 2 - 80;
+      doc.moveTo(sig1X, footerY + 50).lineTo(sig1X + 130, footerY + 50).lineWidth(1).strokeColor('#cbd5e1').stroke();
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e293b').text('Candidate Signature', sig1X, footerY + 55, { width: 130, align: 'center' });
+      doc.fontSize(7).font('Helvetica').fillColor('#94a3b8').text('(In presence of Invigilator)', sig1X, footerY + 65, { width: 130, align: 'center' });
+
+      // Controller Signature Box
+      const sig2X = width - 170;
+      doc.moveTo(sig2X, footerY + 50).lineTo(sig2X + 130, footerY + 50).lineWidth(1).strokeColor('#cbd5e1').stroke();
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#0c2340').text('Controller of Examinations', sig2X, footerY + 55, { width: 130, align: 'center' });
+      doc.fontSize(7).font('Helvetica').fillColor('#64748b').text('EXAMIRROR BOARD', sig2X, footerY + 65, { width: 130, align: 'center' });
+
+      // Watermark footer note
+      doc.fontSize(7.5).font('Helvetica').fillColor('#94a3b8')
+        .text(`Online Verification Link: ${verifyUrl}`, 0, height - 32, { align: 'center' });
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}

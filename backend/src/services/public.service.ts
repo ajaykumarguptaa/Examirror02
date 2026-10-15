@@ -197,6 +197,17 @@ export const publicService = {
       result = rows[0];
     }
 
+    // Privacy Masking (Anti-Scraping Data Protection)
+    if (result.email && result.email.includes('@')) {
+      const [u, d] = result.email.split('@');
+      result.email = `${u.slice(0, 2)}****@${d}`;
+    }
+    if (result.phone && result.phone.length >= 6) {
+      result.phone = `${result.phone.slice(0, 2)}******${result.phone.slice(-2)}`;
+    }
+    if (result.address) result.address = 'Protected for Privacy';
+    if (result.id_number) result.id_number = 'XXXX-XXXX';
+
     await memoryCache.set(cacheKey, result, 600); // 10 minutes TTL
     return result;
   },
@@ -237,6 +248,12 @@ export const publicService = {
       };
     } catch {
       result = { ...rows[0], marks: [], is_certified: true };
+    }
+
+    // Privacy Masking (Anti-Scraping Data Protection)
+    if (result.email && result.email.includes('@')) {
+      const [u, d] = result.email.split('@');
+      result.email = `${u.slice(0, 2)}****@${d}`;
     }
 
     await memoryCache.set(cacheKey, result, 600); // 10 minutes TTL

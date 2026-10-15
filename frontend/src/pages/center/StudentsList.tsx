@@ -1093,6 +1093,33 @@ const StudentsList = () => {
                               <CreditCard size={12} /> ID Card
                             </button>
 
+                            {/* Admit Card Button (Cyan) */}
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const toastId = toast.loading('Generating Admit Card PDF...');
+                                  const res = await axios.get(`http://localhost:3000/api/certificate/admit-card/${student.id}`, {
+                                    responseType: 'blob'
+                                  });
+                                  const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+                                  const link = document.createElement('a');
+                                  link.href = url;
+                                  link.setAttribute('download', `Admit_Card_${student.roll_no || student.id}.pdf`);
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  link.remove();
+                                  toast.success('Admit Card downloaded successfully!', { id: toastId });
+                                } catch (_) {
+                                  toast.error('Failed to download Admit Card.');
+                                }
+                              }}
+                              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-1 px-2 rounded text-xs flex items-center justify-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                              title="Download Official Admit Card PDF"
+                            >
+                              <FileText size={12} /> Admit Card
+                            </button>
+
                             {/* Certificate Button (Purple) */}
                             <button
                               type="button"

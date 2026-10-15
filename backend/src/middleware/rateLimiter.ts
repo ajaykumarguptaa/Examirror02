@@ -194,11 +194,11 @@ export const authRateLimiter = createTokenBucketLimiter({
  * Refill Rate: 2 tokens/sec (120 verifications per minute sustained)
  */
 export const publicVerifyLimiter = createTokenBucketLimiter({
-  capacity: 40,
-  refillRate: 2,
+  capacity: 25, // Max burst of 25 verifications
+  refillRate: 0.5, // 1 token every 2 seconds (30 reqs/min) to thwart automated scraping
   message: {
     success: false,
-    message: 'Public verification rate limit exceeded. Please wait a moment before trying again.'
+    message: 'Too many verification attempts from your IP. Please wait a moment before trying again.'
   }
 });
 

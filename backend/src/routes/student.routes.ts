@@ -1,6 +1,7 @@
 import express from 'express';
 import db from '../db';
 import jwt from 'jsonwebtoken';
+import { generateAdmitCardPdfBuffer } from '../utils/pdfEngine';
 
 const router = express.Router();
 
@@ -513,4 +514,50 @@ router.post('/exams/:examId/submit', authenticateToken, async (req: any, res: an
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+/**
+ * GET /api/student/admit-card
+ * Allows authenticated student to download their official Admit Card PDF
+ */
+router.get('/admit-card', authenticateToken, async (req: any, res: any) => {
+  try {
+    const studentId = req.user.studentId || req.user.id;
+    const [rows]: any = await db.query(`
+      SELECT s.id, s.firstName, s.lastName, s.father_name, s.roll_no, s.enrollment_no, s.photo_url,
+             c.name as course_name, cntr.name as center_name, cntr.center_code, cntr.address as center_address
+      FROM students s
+      LEFT JOIN courses c ON s.courseId = c.id
+      LEFT JOIN centers cntr ON s.centerId = cntr.id
+      WHERE s.id = ?
+      LIMIT 1
+    `, [studentId]);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Student record not found' });
+    }
+
+    const st = rows[0];
+    const pdfBuf = await generateAdmitCardPdfBuffer({
+      id: st.id,
+      name: `${st.firstName || ''} ${st.lastName || ''}`.trim() || 'Student',
+      father_name: st.father_name,
+      roll_no: st.roll_no,
+      enrollment_no: st.enrollment_no,
+      course_name: st.course_name,
+      photo_url: st.photo_url,
+      center_name: st.center_name,
+      center_code: st.center_code,
+      center_address: st.center_address
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="admit-card-${st.roll_no || st.id}.pdf"`);
+    res.setHeader('Content-Length', pdfBuf.length);
+    res.send(pdfBuf);
+  } catch (error: any) {
+    console.error('Admit card generation error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;
