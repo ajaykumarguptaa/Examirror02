@@ -13,6 +13,7 @@ import {
   FolderPlus
 } from 'lucide-react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import DeleteConfirmCaptchaModal from '../../../components/DeleteConfirmCaptchaModal';
 
 export const DEFAULT_GALLERY_SETTINGS = {
@@ -47,7 +48,6 @@ const GalleryCustomizer = () => {
   const [photos, setPhotos] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Add Photo Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -93,15 +93,14 @@ const GalleryCustomizer = () => {
     e.preventDefault();
     try {
       setSaving(true);
-      setToast(null);
       const res = await axios.put('http://localhost:3000/api/v1/settings/gallery', { data: headerData });
       if (res.data?.success) {
-        setToast({ type: 'success', text: 'Gallery page titles & categories saved successfully!' });
+        toast.success('Gallery page titles & categories saved successfully!');
       } else {
-        setToast({ type: 'error', text: 'Failed to update gallery settings.' });
+        toast.error('Failed to update gallery settings.');
       }
     } catch (err: any) {
-      setToast({ type: 'error', text: err.response?.data?.message || 'Server error while saving.' });
+      toast.error(err.response?.data?.message || 'Server error while saving.');
     } finally {
       setSaving(false);
     }
@@ -110,7 +109,7 @@ const GalleryCustomizer = () => {
   const handleAddPhotoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newImageUrl) {
-      setToast({ type: 'error', text: 'Please enter a valid image URL or upload photo' });
+      toast.error('Please enter a valid image URL or upload photo');
       return;
     }
 
@@ -122,14 +121,14 @@ const GalleryCustomizer = () => {
       });
 
       if (res.data?.success) {
-        setToast({ type: 'success', text: 'Photo added to public gallery successfully!' });
+        toast.success('Photo added to public gallery successfully!');
         setIsAddModalOpen(false);
         setNewImageUrl('');
         setNewCaption('');
         fetchGalleryData();
       }
     } catch (err: any) {
-      setToast({ type: 'error', text: err.response?.data?.message || 'Failed to add photo.' });
+      toast.error(err.response?.data?.message || 'Failed to add photo.');
     } finally {
       setSubmittingPhoto(false);
     }
@@ -144,12 +143,12 @@ const GalleryCustomizer = () => {
       setIsDeletingPhoto(true);
       const res = await axios.delete(`http://localhost:3000/api/admin/gallery/${deletePhotoTarget.id}`);
       if (res.data?.success) {
-        setToast({ type: 'success', text: 'Photo removed from gallery' });
+        toast.success('Photo removed from gallery');
         setPhotos(prev => prev.filter(p => p.id !== deletePhotoTarget.id));
         setDeletePhotoTarget(null);
       }
     } catch (err: any) {
-      setToast({ type: 'error', text: 'Failed to delete photo' });
+      toast.error('Failed to delete photo');
     } finally {
       setIsDeletingPhoto(false);
     }
@@ -158,19 +157,6 @@ const GalleryCustomizer = () => {
   return (
     <div className="space-y-6 text-xs text-slate-800 font-sans">
 
-      {/* Toast Alert */}
-      {toast && (
-        <div className={`p-4 rounded-xl flex items-center justify-between border shadow-sm ${toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'
-          }`}>
-          <div className="flex items-center gap-2 font-medium text-sm">
-            {toast.type === 'success' ? <CheckCircle2 size={18} className="text-emerald-600" /> : <AlertCircle size={18} className="text-rose-600" />}
-            <span>{toast.text}</span>
-          </div>
-          <button onClick={() => setToast(null)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
-            <X size={16} />
-          </button>
-        </div>
-      )}
 
       {/* 1. Header & Text Customization */}
       <form onSubmit={handleSaveHeader} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">

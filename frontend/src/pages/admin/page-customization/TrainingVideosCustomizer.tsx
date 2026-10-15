@@ -21,6 +21,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 export interface TrainingVideoData {
   id?: number | string;
@@ -52,7 +53,6 @@ export const TrainingVideosCustomizer: React.FC = () => {
   const [videos, setVideos] = useState<TrainingVideoData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [previewVideo, setPreviewVideo] = useState<TrainingVideoData | null>(null);
 
   // Fetch current videos
@@ -69,7 +69,7 @@ export const TrainingVideosCustomizer: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Error fetching admin training videos:', err);
-      setStatusMessage({ type: 'error', text: 'Failed to load training videos from database' });
+      toast.error('Failed to load training videos from database');
     } finally {
       setIsLoading(false);
     }
@@ -180,23 +180,19 @@ export const TrainingVideosCustomizer: React.FC = () => {
   // Save All Changes to Database
   const handleSaveAll = async () => {
     setIsSaving(true);
-    setStatusMessage(null);
     try {
       const res = await axios.post('/api/admin/training-videos/batch', { videos });
       if (res.data.success) {
-        setStatusMessage({ type: 'success', text: 'All training videos published successfully to Center Portal!' });
+        toast.success('All training videos published successfully to Center Portal!');
         fetchVideos();
       } else {
-        setStatusMessage({ type: 'error', text: res.data.message || 'Failed to save videos' });
+        toast.error(res.data.message || 'Failed to save videos');
       }
     } catch (err: any) {
       console.error('Save error:', err);
-      setStatusMessage({ type: 'error', text: err.response?.data?.message || err.message || 'Server error saving videos' });
+      toast.error(err.response?.data?.message || err.message || 'Server error saving videos');
     } finally {
       setIsSaving(false);
-      setTimeout(() => {
-        setStatusMessage(null);
-      }, 5000);
     }
   };
 
@@ -242,24 +238,6 @@ export const TrainingVideosCustomizer: React.FC = () => {
         </div>
       </div>
 
-      {/* Status Feedback Toast */}
-      {statusMessage && (
-        <div
-          className={`p-4 rounded-xl border text-xs font-semibold flex items-center justify-between ${
-            statusMessage.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-              : 'bg-rose-50 text-rose-800 border-rose-200'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {statusMessage.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-            <span>{statusMessage.text}</span>
-          </div>
-          <button onClick={() => setStatusMessage(null)} className="text-xs hover:underline cursor-pointer">
-            Dismiss
-          </button>
-        </div>
-      )}
 
       {/* Main Grid: Live YouTube Player on Left, Video Link Editor on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

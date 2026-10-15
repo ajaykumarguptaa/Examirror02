@@ -54,6 +54,7 @@ import {
   Cloud
 } from 'lucide-react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
 
@@ -522,7 +523,6 @@ const HomePageCustomizer = () => {
   const [data, setData] = useState(DEFAULT_HOME_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Customizer Tabs & Device View State
   const [activeSection, setActiveSection] = useState<'colors' | 'topbar' | 'hero' | 'stats' | 'features' | 'verification' | 'courses' | 'centers' | 'enquiry' | 'cta' | 'footer'>('colors');
@@ -557,7 +557,7 @@ const HomePageCustomizer = () => {
             }
           }
         }));
-        setToast({ type: 'success', text: 'Logo uploaded successfully!' });
+        toast.success('Logo uploaded successfully!');
       }
     } catch (err) {
       // Fallback: convert to base64
@@ -578,7 +578,7 @@ const HomePageCustomizer = () => {
               }
             }
           }));
-          setToast({ type: 'success', text: 'Logo loaded!' });
+          toast.success('Logo loaded!');
         }
       };
       reader.readAsDataURL(file);
@@ -669,16 +669,15 @@ const HomePageCustomizer = () => {
     if (e) e.preventDefault();
     try {
       setSaving(true);
-      setToast(null);
       const res = await axios.put('http://localhost:3000/api/v1/settings/home', { data });
       if (res.data?.success) {
-        setToast({ type: 'success', text: 'All Home page colors, cards and components saved and published live!' });
+        toast.success('All Home page colors, cards and components saved and published live!');
         setPreviewKey(k => k + 1);
       } else {
-        setToast({ type: 'error', text: 'Failed to update home settings.' });
+        toast.error('Failed to update home settings.');
       }
     } catch (err: any) {
-      setToast({ type: 'error', text: err.response?.data?.message || 'Server error while saving.' });
+      toast.error(err.response?.data?.message || 'Server error while saving.');
     } finally {
       setSaving(false);
     }
@@ -687,7 +686,7 @@ const HomePageCustomizer = () => {
   const handleResetToDefault = () => {
     if (window.confirm('Reset all Home page fields and color styling to factory defaults?')) {
       setData(DEFAULT_HOME_SETTINGS);
-      setToast({ type: 'success', text: 'Reset to default presets. Click "Save & Publish Live" to apply.' });
+      toast.success('Reset to default presets. Click "Save & Publish Live" to apply.');
     }
   };
 
@@ -696,7 +695,7 @@ const HomePageCustomizer = () => {
       ...data,
       theme: { ...data.theme, ...paletteTheme }
     });
-    setToast({ type: 'success', text: 'Preset color palette applied! Click Save to publish.' });
+    toast.success('Preset color palette applied! Click Save to publish.');
   };
 
   // Card Handlers
@@ -916,17 +915,6 @@ const HomePageCustomizer = () => {
         </div>
       </div>
 
-      {/* Toast Alert */}
-      {toast && (
-        <div className={`p-3.5 rounded-xl flex items-center justify-between border shadow-sm transition-all ${toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'
-          }`}>
-          <div className="flex items-center gap-2 font-bold text-xs">
-            {toast.type === 'success' ? <CheckCircle2 size={16} className="text-emerald-600 shrink-0" /> : <AlertCircle size={16} className="text-rose-600 shrink-0" />}
-            <span>{toast.text}</span>
-          </div>
-          <button onClick={() => setToast(null)} className="text-slate-400 hover:text-slate-700 cursor-pointer text-xs font-bold">Dismiss</button>
-        </div>
-      )}
 
       {/* SIDE-BY-SIDE SPLIT WORKSPACE */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">

@@ -53,12 +53,55 @@ import TestSeriesManagement from './pages/admin/TestSeriesManagement';
 import StudentTestSeries from './pages/student/StudentTestSeries';
 import ScrollToTop from './components/ScrollToTop';
 import { ToastContainer } from './components/ui/Toast';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
     <>
       <ScrollToTop />
       <ToastContainer />
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        gutter={10}
+        toastOptions={{
+          duration: 3500,
+          style: {
+            background: '#0f172a',
+            color: '#f8fafc',
+            padding: '12px 18px',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: '600',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.25)',
+          },
+          success: {
+            duration: 3500,
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#ffffff',
+            },
+            style: {
+              background: '#064e3b',
+              border: '1px solid #059669',
+              color: '#ecfdf5',
+            },
+          },
+          error: {
+            duration: 4500,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#ffffff',
+            },
+            style: {
+              background: '#4c0519',
+              border: '1px solid #e11d48',
+              color: '#fff1f2',
+            },
+          },
+        }}
+      />
       <Routes>
         {/* Public Routes */}
       <Route path="/" element={<PublicLayout />}>

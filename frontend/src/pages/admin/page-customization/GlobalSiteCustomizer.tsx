@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, CheckCircle2, AlertCircle, Globe, ShieldCheck, Sparkles, Building2 } from 'lucide-react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 export const DEFAULT_GLOBAL_SETTINGS = {
   brand: {
@@ -24,7 +25,6 @@ const GlobalSiteCustomizer = () => {
   const [data, setData] = useState(DEFAULT_GLOBAL_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchSettings = async () => {
     try {
@@ -54,15 +54,14 @@ const GlobalSiteCustomizer = () => {
     e.preventDefault();
     try {
       setSaving(true);
-      setToast(null);
       const res = await axios.put('http://localhost:3000/api/v1/settings/global', { data });
       if (res.data?.success) {
-        setToast({ type: 'success', text: 'Global branding and header/footer settings saved!' });
+        toast.success('Global branding and header/footer settings saved!');
       } else {
-        setToast({ type: 'error', text: 'Failed to update settings.' });
+        toast.error('Failed to update settings.');
       }
     } catch (err: any) {
-      setToast({ type: 'error', text: err.response?.data?.message || 'Server error while saving.' });
+      toast.error(err.response?.data?.message || 'Server error while saving.');
     } finally {
       setSaving(false);
     }
@@ -71,16 +70,6 @@ const GlobalSiteCustomizer = () => {
   return (
     <form onSubmit={handleSave} className="space-y-6 text-xs text-slate-800">
 
-      {/* Toast Alert */}
-      {toast && (
-        <div className={`p-4 rounded-xl flex items-center justify-between border shadow-sm ${toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'
-          }`}>
-          <div className="flex items-center gap-2 font-medium text-sm">
-            {toast.type === 'success' ? <CheckCircle2 size={18} className="text-emerald-600" /> : <AlertCircle size={18} className="text-rose-600" />}
-            <span>{toast.text}</span>
-          </div>
-        </div>
-      )}
 
       {/* 1. Brand Identity */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
