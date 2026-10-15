@@ -214,6 +214,11 @@ const AdminLayout = () => {
       icon: FileSpreadsheet
     },
     {
+      to: '/admin/audit-logs',
+      label: 'Security & Audit Logs',
+      icon: ShieldCheck
+    },
+    {
       to: '/admin/settings/home',
       label: 'Page Customization',
       icon: Globe

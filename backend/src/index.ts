@@ -11,6 +11,7 @@ import { initTestSeriesDatabase } from './utils/initTestSeriesDb';
 import { initDatabaseIndexes } from './utils/initDatabaseIndexes';
 import { backupDatabaseToS3 } from './utils/dbBackup';
 import { isS3Configured, getS3ObjectStream, syncAllLocalUploadsToS3 } from './utils/s3Storage';
+import { hybridCache } from './utils/redisCache';
 
 dotenv.config();
 
@@ -117,8 +118,54 @@ app.use('/uploads', async (req, res, next) => {
 });
 
 // Basic route
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Backend is running without Prisma!' });
+// Comprehensive System Health & Uptime Diagnostics Endpoint
+app.get('/api/health', async (req, res) => {
+  const startTime = Date.now();
+  let dbStatus = 'healthy';
+  let dbLatencyMs = 0;
+  let dbError: string | null = null;
+
+  try {
+    const dbPingStart = Date.now();
+    await db.query('SELECT 1');
+    dbLatencyMs = Date.now() - dbPingStart;
+  } catch (err: any) {
+    dbStatus = 'unhealthy';
+    dbError = err.message;
+  }
+
+  const mem = process.memoryUsage();
+  const uptimeSec = Math.floor(process.uptime());
+  const hours = Math.floor(uptimeSec / 3600);
+  const minutes = Math.floor((uptimeSec % 3600) / 60);
+  const seconds = uptimeSec % 60;
+  const humanUptime = `${hours}h ${minutes}m ${seconds}s`;
+
+  const isHealthy = dbStatus === 'healthy';
+  const statusCode = isHealthy ? 200 : 503;
+
+  res.status(statusCode).json({
+    status: isHealthy ? 'healthy' : 'degraded',
+    timestamp: new Date().toISOString(),
+    totalLatencyMs: Date.now() - startTime,
+    database: {
+      status: dbStatus,
+      latencyMs: dbLatencyMs,
+      ...(dbError ? { error: dbError } : {})
+    },
+    cache: hybridCache.getHealth(),
+    server: {
+      uptime: humanUptime,
+      uptimeSeconds: uptimeSec,
+      memory: {
+        heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024 * 100) / 100,
+        heapTotalMB: Math.round(mem.heapTotal / 1024 / 1024 * 100) / 100,
+        rssMB: Math.round(mem.rss / 1024 / 1024 * 100) / 100
+      },
+      nodeVersion: process.version,
+      platform: process.platform
+    }
+  });
 });
 
 // Safe Database Schema Bootstrap

@@ -50,6 +50,7 @@ const ContactQueries = lazy(() => import('./pages/admin/ContactQueries'));
 const TestPricingSettings = lazy(() => import('./pages/admin/TestPricingSettings'));
 const TestSeriesManagement = lazy(() => import('./pages/admin/TestSeriesManagement'));
 const AdminCourses = lazy(() => import('./pages/admin/AdminCourses'));
+const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'));
 
 // Student Portal Pages (Code-Split)
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
@@ -182,6 +183,7 @@ function App() {
           <Route path="categories" element={<AdminCategories />} />
           <Route path="test-pricing" element={<TestPricingSettings />} />
           <Route path="backup-export" element={<BackupExport />} />
+          <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="settings/home" element={<HomeSettings />} />
         </Route>
 

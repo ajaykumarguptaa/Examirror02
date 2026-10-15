@@ -590,16 +590,17 @@ export const centerService = {
         const centerId = student[0].centerId;
         const [center]: any = await db.query('SELECT wallet_balance FROM centers WHERE id = ?', [centerId]);
         if (center && center.length > 0) {
-          const currentBalance = Number(center[0].wallet_balance) || 0;
-          if (currentBalance >= 50) {
-            await db.query('UPDATE centers SET wallet_balance = wallet_balance - 50 WHERE id = ?', [centerId]);
-            await db.query(`
-              INSERT INTO wallet_transactions (centerId, amount, type, description) 
-              VALUES (?, ?, 'deduction', 'Advanced Edit Fee for student ID: ?')
-            `, [centerId, 50, id]);
-          } else {
+          const [debitResult]: any = await db.query(
+            'UPDATE centers SET wallet_balance = wallet_balance - 50 WHERE id = ? AND wallet_balance >= 50', 
+            [centerId]
+          );
+          if (debitResult.affectedRows === 0) {
             throw new Error('Insufficient wallet balance for Advanced Edit (50 tokens required).');
           }
+          await db.query(`
+            INSERT INTO wallet_transactions (centerId, amount, type, description) 
+            VALUES (?, ?, 'deduction', ?)
+          `, [centerId, 50, `Advanced Edit Fee for student ID: ${id}`]);
         }
       }
     }
@@ -712,8 +713,14 @@ export const centerService = {
         throw new Error(`Insufficient wallet balance for ${certType}. Required: ₹${deduction}, Available: ₹${balance}. Please recharge your center wallet.`);
       }
 
-      // Deduct from center wallet balance
-      await db.query('UPDATE centers SET wallet_balance = wallet_balance - ? WHERE id = ?', [deduction, centerId]);
+      // Atomic Conditional Debit to eliminate race-conditions & negative balance
+      const [debitResult]: any = await db.query(
+        'UPDATE centers SET wallet_balance = wallet_balance - ? WHERE id = ? AND wallet_balance >= ?',
+        [deduction, centerId, deduction]
+      );
+      if (debitResult.affectedRows === 0) {
+        throw new Error(`Transaction aborted: Insufficient wallet balance or concurrent request detected. Required: ₹${deduction}.`);
+      }
 
       // Generate Txn UID & Description
       const txnUid = `EXAMTXN${Date.now()}${Math.floor(100 + Math.random() * 900)}`;
@@ -1693,7 +1700,13 @@ export const centerService = {
         throw new Error('Insufficient wallet balance. 50 tokens required to change the exam date.');
       }
 
-      await db.query('UPDATE centers SET wallet_balance = wallet_balance - 50 WHERE id = ?', [centerId]);
+      const [debitResult]: any = await db.query(
+        'UPDATE centers SET wallet_balance = wallet_balance - 50 WHERE id = ? AND wallet_balance >= 50',
+        [centerId]
+      );
+      if (debitResult.affectedRows === 0) {
+        throw new Error('Transaction aborted: Insufficient wallet balance or concurrent request detected (50 tokens required).');
+      }
       await db.query(
         'INSERT INTO wallet_transactions (centerId, amount, type, description) VALUES (?, ?, ?, ?)',
         [centerId, 50, 'debit', `Exam Date Change Fee for student ID: ${studentId}`]
@@ -1956,8 +1969,14 @@ export const centerService = {
           throw new Error(`Insufficient wallet balance. 100 tokens required for Re-Exam reset (First 2 resets were free). Your balance: ${balance} tokens.`);
         }
 
-        // Deduct 100 tokens
-        await db.query('UPDATE centers SET wallet_balance = wallet_balance - 100 WHERE id = ?', [effectiveCenterId]);
+        // Deduct 100 tokens atomically
+        const [debitResult]: any = await db.query(
+          'UPDATE centers SET wallet_balance = wallet_balance - 100 WHERE id = ? AND wallet_balance >= 100',
+          [effectiveCenterId]
+        );
+        if (debitResult.affectedRows === 0) {
+          throw new Error('Transaction aborted: Insufficient wallet balance or concurrent request detected (100 tokens required).');
+        }
         await db.query(
           'INSERT INTO wallet_transactions (centerId, amount, type, description) VALUES (?, ?, ?, ?)',
           [

@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import QRCode from 'qrcode';
 
 export interface StudentPdfRecord {
   id: number;
@@ -22,9 +23,23 @@ export interface StudentPdfRecord {
 
 /**
  * Generates an official Certificate PDF Buffer entirely on the server.
- * Uses high-resolution vector lines and typography for print-ready quality.
+ * Uses high-resolution vector lines, typography, and tamper-proof verification QR code.
  */
-export function generateCertificatePdfBuffer(student: StudentPdfRecord): Promise<Buffer> {
+export async function generateCertificatePdfBuffer(student: StudentPdfRecord): Promise<Buffer> {
+  const certNumber = student.certificate_number || `EXAM-${student.id}-2026`;
+  const verifyUrl = `https://examirror.com/verify/certificate/${certNumber}`;
+
+  let qrBuffer: Buffer | null = null;
+  try {
+    qrBuffer = await QRCode.toBuffer(verifyUrl, {
+      width: 140,
+      margin: 1,
+      color: { dark: '#0c2340', light: '#ffffff' }
+    });
+  } catch (qrErr: any) {
+    console.warn('[PdfEngine] Failed to generate certificate QR:', qrErr?.message);
+  }
+
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({
@@ -98,62 +113,53 @@ export function generateCertificatePdfBuffer(student: StudentPdfRecord): Promise
       // Student Father & Enrollment Details
       const fatherText = student.father_name ? `Son/Daughter of Shri ${student.father_name}` : '';
       const rollText = `Roll No: ${student.roll_no || student.id}   |   Enrollment No: ${student.enrollment_no || 'N/A'}`;
-
-      if (fatherText) {
-        doc.fontSize(11)
-          .font('Helvetica')
-          .fillColor('#334155')
-          .text(fatherText, 0, 226, { align: 'center' });
-      }
-
       doc.fontSize(10)
-        .font('Helvetica-Bold')
-        .fillColor('#475569')
-        .text(rollText, 0, 246, { align: 'center' });
-
-      // Course text
-      doc.fontSize(12)
         .font('Helvetica')
-        .fillColor('#1e293b')
-        .text('has successfully completed the prescribed curriculum and examination for the certification of', 0, 275, { align: 'center' });
+        .fillColor('#334155')
+        .text(`${fatherText ? fatherText + '   —   ' : ''}${rollText}`, 0, 225, { align: 'center' });
 
-      doc.fontSize(18)
+      // Completion Body Text
+      doc.fontSize(11)
+        .font('Helvetica')
+        .fillColor('#475569')
+        .text('has successfully completed the prescribed course of study and examination for', 0, 255, { align: 'center' });
+
+      // Course Name
+      doc.fontSize(19)
         .font('Helvetica-Bold')
-        .fillColor('#1e1b4b')
-        .text(student.course_name || 'Vocational Training & Skill Certification', 0, 300, { align: 'center' });
+        .fillColor('#0c2340')
+        .text((student.course_name || 'CERTIFICATE IN INFORMATION TECHNOLOGY').toUpperCase(), 0, 280, { align: 'center' });
 
-      // Center and Performance
-      const centerInfo = student.center_name 
-        ? `Authorized Study Center: ${student.center_name} (${student.center_code || 'EXAMIRROR'})`
-        : `Authorized Examination Center (${student.center_code || 'EXAMIRROR'})`;
-
+      // Center Details
+      const centerInfo = `Conducted at: ${student.center_name || 'Authorized Study Center'} (${student.center_code || 'EXAMIRROR'})`;
       doc.fontSize(10)
         .font('Helvetica')
         .fillColor('#64748b')
-        .text(centerInfo, 0, 335, { align: 'center' });
+        .text(centerInfo, 0, 315, { align: 'center' });
 
       const gradeText = student.grade ? `Grade: ${student.grade}` : 'Performance: Satisfactory';
       const scoreText = student.percentage ? `Score: ${student.percentage}%` : '';
-      const certNoText = `Certificate Sl. No: ${student.certificate_number || `EXAM-${student.id}-2026`}`;
+      const certNoText = `Certificate Sl. No: ${certNumber}`;
 
       doc.fontSize(11)
         .font('Helvetica-Bold')
         .fillColor('#047857')
-        .text(`${gradeText}   ${scoreText ? '|   ' + scoreText : ''}   |   ${certNoText}`, 0, 360, { align: 'center' });
+        .text(`${gradeText}   ${scoreText ? '|   ' + scoreText : ''}   |   ${certNoText}`, 0, 345, { align: 'center' });
 
-      // Verification note
-      doc.fontSize(8)
-        .font('Helvetica')
-        .fillColor('#94a3b8')
-        .text(`Online Verification: https://examirror.com/verify/certificate/${student.certificate_number || student.roll_no || student.id}`, 0, 420, { align: 'center' });
-
-      // Footer Signatures
+      // Footer Section
       const bottomY = height - 90;
+
+      // Anti-Counterfeit Verification QR Code (Bottom Left)
+      if (qrBuffer) {
+        doc.rect(48, bottomY - 60, 56, 56).fillAndStroke('#ffffff', '#cbd5e1');
+        doc.image(qrBuffer, 50, bottomY - 58, { width: 52, height: 52 });
+        doc.fontSize(6).font('Helvetica-Bold').fillColor('#0c2340').text('SCAN TO VERIFY', 42, bottomY - 2, { width: 68, align: 'center' });
+      }
 
       // Issue Date
       const issueDate = student.issue_date || new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-      doc.fontSize(9).font('Helvetica-Bold').fillColor('#334155').text(`Issue Date: ${issueDate}`, 50, bottomY);
-      doc.fontSize(8).font('Helvetica').fillColor('#64748b').text('New Delhi, India', 50, bottomY + 14);
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('#334155').text(`Issue Date: ${issueDate}`, 120, bottomY);
+      doc.fontSize(8).font('Helvetica').fillColor('#64748b').text('New Delhi, India', 120, bottomY + 14);
 
       // Signatory 1
       doc.moveTo(width / 2 - 80, bottomY + 5)
@@ -172,6 +178,12 @@ export function generateCertificatePdfBuffer(student: StudentPdfRecord): Promise
       doc.fontSize(9).font('Helvetica-Bold').fillColor('#0c2340').text('Controller of Examinations', width - 230, bottomY + 12, { width: 180, align: 'center' });
       doc.fontSize(7.5).font('Helvetica').fillColor('#64748b').text('EXAMIRROR ACADEMIC COUNCIL', width - 230, bottomY + 24, { width: 180, align: 'center' });
 
+      // Online Verification Link Note
+      doc.fontSize(7.5)
+        .font('Helvetica')
+        .fillColor('#94a3b8')
+        .text(`Verify authentic record online at: ${verifyUrl}`, 0, height - 32, { align: 'center' });
+
       doc.end();
     } catch (err) {
       reject(err);
@@ -181,8 +193,23 @@ export function generateCertificatePdfBuffer(student: StudentPdfRecord): Promise
 
 /**
  * Generates an official Marksheet PDF Buffer entirely on the server.
+ * Uses high-resolution vector layout with embedded anti-counterfeit QR code.
  */
-export function generateMarksheetPdfBuffer(student: StudentPdfRecord): Promise<Buffer> {
+export async function generateMarksheetPdfBuffer(student: StudentPdfRecord): Promise<Buffer> {
+  const certNumber = student.certificate_number || student.roll_no || String(student.id);
+  const verifyUrl = `https://examirror.com/verify/certificate/${certNumber}`;
+
+  let qrBuffer: Buffer | null = null;
+  try {
+    qrBuffer = await QRCode.toBuffer(verifyUrl, {
+      width: 140,
+      margin: 1,
+      color: { dark: '#0c2340', light: '#ffffff' }
+    });
+  } catch (qrErr: any) {
+    console.warn('[PdfEngine] Failed to generate marksheet QR:', qrErr?.message);
+  }
+
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({
@@ -287,16 +314,25 @@ export function generateMarksheetPdfBuffer(student: StudentPdfRecord): Promise<B
       doc.text('80', 350, rowY + 9, { width: 80, align: 'center' });
       doc.fillColor('#047857').text(String(totalObtained), 440, rowY + 9, { width: 90, align: 'center' });
 
-      // Performance Summary
+      // Performance Summary Box + Anti-Counterfeit QR Code
       const summaryY = rowY + 45;
-      doc.rect(40, summaryY, width - 80, 50).fillAndStroke('#f0fdf4', '#86efac');
+      const summaryBoxWidth = qrBuffer ? width - 150 : width - 80;
+      doc.rect(40, summaryY, summaryBoxWidth, 54).fillAndStroke('#f0fdf4', '#86efac');
       doc.fontSize(10).font('Helvetica-Bold').fillColor('#14532d');
-      doc.text(`Percentage: ${student.percentage || '78.5'}%   |   Grade: ${student.grade || 'A'}   |   Result: PASSED`, 0, summaryY + 18, { align: 'center' });
+      doc.text(`Percentage: ${student.percentage || '78.5'}%   |   Grade: ${student.grade || 'A'}   |   Result: PASSED`, 45, summaryY + 20, { width: summaryBoxWidth, align: 'center' });
+
+      if (qrBuffer) {
+        doc.rect(width - 100, summaryY, 54, 54).fillAndStroke('#ffffff', '#cbd5e1');
+        doc.image(qrBuffer, width - 98, summaryY + 2, { width: 50, height: 50 });
+        doc.fontSize(6).font('Helvetica-Bold').fillColor('#0c2340').text('SCAN TO VERIFY', width - 100, summaryY + 57, { width: 54, align: 'center' });
+      }
 
       // Footer
       const bottomY = doc.page.height - 80;
       doc.fontSize(8).font('Helvetica').fillColor('#64748b')
         .text('This is a computer generated official statement of marks issued by Examirror.', 0, bottomY, { align: 'center' });
+      doc.fontSize(7.5).font('Helvetica').fillColor('#94a3b8')
+        .text(`Online Authentication & Verification URL: ${verifyUrl}`, 0, bottomY + 15, { align: 'center' });
 
       doc.end();
     } catch (err) {
