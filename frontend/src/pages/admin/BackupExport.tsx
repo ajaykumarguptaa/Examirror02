@@ -217,63 +217,65 @@ const BackupExport = () => {
   return (
     <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
 
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#1e1b4b] p-5 sm:p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden border border-indigo-900">
-        <div className="space-y-2 relative z-10">
-          <div className="inline-flex items-center gap-2 bg-indigo-800/60 border border-indigo-400/30 px-3 py-1 rounded-full text-xs font-semibold text-amber-300 uppercase tracking-wider">
-            <Database size={13} />
+      {/* Header Banner - Clean Light Modern */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-200/80 px-3 py-1 rounded-full text-xs font-bold text-indigo-700 uppercase tracking-wider">
+            <Database size={13} className="text-indigo-600" />
             <span>Super Admin Central Backup Vault</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
             Data Backup & Center-Wise Excel Export
           </h1>
-          <p className="text-indigo-200 text-xs md:text-sm max-w-2xl font-normal leading-relaxed">
+          <p className="text-slate-600 text-xs md:text-sm max-w-2xl font-normal leading-relaxed">
             Export comprehensive multi-sheet Microsoft Excel (.xlsx) workbooks containing center directories, student registries, and individual dedicated sheets for every study center.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 relative z-10">
+        <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={fetchData}
             disabled={loading}
-            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer border border-white/10"
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-slate-200"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={loading ? 'animate-spin text-slate-600' : 'text-slate-600'} />
             <span>Refresh Stats</span>
           </button>
         </div>
       </div>
 
-      {/* Cloud Disaster Recovery: AWS S3 Database Backup Card */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 md:p-8 text-white border border-indigo-500/30 shadow-2xl space-y-4">
+      {/* Cloud Disaster Recovery: AWS S3 Database Backup Card - Clean Light Solid Card */}
+      <div className="bg-white rounded-2xl p-6 md:p-7 border border-slate-200 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-[11px] font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
               <span>Automated Disaster Recovery Active</span>
             </div>
-            <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              <Cloud className="text-indigo-400" size={24} />
+            <h2 className="text-lg md:text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <Cloud className="text-indigo-600" size={22} />
               <span>Automated MySQL Database Backup to AWS S3</span>
             </h2>
-            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-              Every night at <strong>02:30 AM</strong>, an automated script dumps all 44 database tables, compresses with GZIP, and stores it in your secure cloud bucket (<code className="text-amber-300 bg-white/10 px-1 py-0.5 rounded">examirror-student-storage-2026/backups/</code>).
+            <p className="text-xs md:text-sm text-slate-600 max-w-2xl leading-relaxed">
+              Every night at <strong className="text-slate-900">02:30 AM</strong>, an automated script dumps all 44 database tables, compresses with GZIP, and stores it in your secure cloud bucket (<code className="text-indigo-900 bg-indigo-50 border border-indigo-200/80 font-mono px-1.5 py-0.5 rounded text-[11px]">examirror-student-storage-2026/backups/</code>).
             </p>
           </div>
 
           <button
+            type="button"
             onClick={handleBackupDatabaseS3}
             disabled={isBackingUpDb}
-            className="shrink-0 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-2xl shadow-lg shadow-emerald-900/40 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+            className="shrink-0 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
           >
             {isBackingUpDb ? (
               <>
-                <RefreshCw size={16} className="animate-spin" />
+                <RefreshCw size={15} className="animate-spin" />
                 <span>Dumping & Uploading to S3...</span>
               </>
             ) : (
               <>
-                <Database size={16} />
+                <Database size={15} />
                 <span>Backup Database to S3 Now</span>
               </>
             )}
@@ -281,15 +283,15 @@ const BackupExport = () => {
         </div>
 
         {dbBackupResult && (
-          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 text-emerald-300 font-semibold">
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-emerald-700 font-bold">
               <CheckCircle2 size={16} />
               <span>Last Backup: {dbBackupResult.s3Key}</span>
             </div>
-            <div className="flex items-center gap-4 text-slate-300">
-              <span>Tables: <strong className="text-white">{dbBackupResult.tableCount}</strong></span>
-              <span>Compressed: <strong className="text-emerald-400">{dbBackupResult.compressedSizeKB} KB</strong></span>
-              <span>Time: <strong className="text-white">{new Date(dbBackupResult.timestamp || '').toLocaleTimeString()}</strong></span>
+            <div className="flex items-center gap-4 text-slate-600 font-medium">
+              <span>Tables: <strong className="text-slate-900 font-bold">{dbBackupResult.tableCount}</strong></span>
+              <span>Compressed: <strong className="text-emerald-700 font-bold">{dbBackupResult.compressedSizeKB} KB</strong></span>
+              <span>Time: <strong className="text-slate-900 font-bold">{new Date(dbBackupResult.timestamp || '').toLocaleTimeString()}</strong></span>
             </div>
           </div>
         )}

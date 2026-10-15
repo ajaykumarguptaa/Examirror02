@@ -55,6 +55,7 @@ export const AuditLogs = () => {
   // Cache stats state
   const [cacheHealth, setCacheHealth] = useState<{ status: string; l1Entries: number; l2RedisActive: boolean } | null>(null);
   const [isFlushingCache, setIsFlushingCache] = useState(false);
+  const [showFlushModal, setShowFlushModal] = useState(false);
 
   const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
   const authHeaders = { Authorization: `Bearer ${token}` };
@@ -93,8 +94,12 @@ export const AuditLogs = () => {
     } catch (_) {}
   };
 
-  const handleFlushCache = async () => {
-    if (!window.confirm('Are you sure you want to purge all memory and Redis caches?')) return;
+  const handleFlushCache = () => {
+    setShowFlushModal(true);
+  };
+
+  const executeFlushCache = async () => {
+    setShowFlushModal(false);
     setIsFlushingCache(true);
     try {
       const res = await axios.post('http://localhost:3000/api/admin/cache-flush', {}, { headers: authHeaders });
@@ -502,9 +507,49 @@ export const AuditLogs = () => {
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setActiveModalLog(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer border border-slate-200"
               >
                 Close Inspector
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modern Light Confirmation Modal for Cache Flush (Replaces native browser prompt) */}
+      {showFlushModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40">
+          <div className="bg-white rounded-2xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3.5 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Purge Memory & Redis Caches?</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Performance & Cache Invalidation</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-200 mb-5">
+              Are you sure you want to purge all memory and Redis caches? All cached settings, courses and statistics will be invalidated, and fresh data will be queried directly from MySQL.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowFlushModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all cursor-pointer border border-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={executeFlushCache}
+                disabled={isFlushingCache}
+                className="px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Yes, Purge Caches</span>
               </button>
             </div>
           </div>
