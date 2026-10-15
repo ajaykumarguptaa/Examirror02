@@ -529,53 +529,11 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
 
   // --- FRANCHISE REQUESTS ---
   getFranchiseRequests: async (status?: string) => {
-    // Ensure table exists
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS franchise_applications (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        center_head_first_name VARCHAR(100) NOT NULL,
-        center_head_middle_name VARCHAR(100),
-        center_head_last_name VARCHAR(100) NOT NULL,
-        father_first_name VARCHAR(100) NOT NULL,
-        father_middle_name VARCHAR(100),
-        father_last_name VARCHAR(100) NOT NULL,
-        phone VARCHAR(20) NOT NULL,
-        email VARCHAR(150) NOT NULL,
-        aadhar_number VARCHAR(30) NOT NULL,
-        pan_number VARCHAR(30),
-        dob VARCHAR(20),
-        gender VARCHAR(20),
-        marital_status VARCHAR(20),
-        qualification VARCHAR(100) DEFAULT 'Graduate',
-        center_name VARCHAR(200) NOT NULL,
-        address_line1 VARCHAR(255) NOT NULL,
-        address_line2 VARCHAR(255),
-        city VARCHAR(100) NOT NULL,
-        district VARCHAR(100) NOT NULL,
-        state VARCHAR(100) NOT NULL,
-        pincode VARCHAR(20) NOT NULL,
-        photo_url LONGTEXT,
-        signature_url LONGTEXT,
-        marksheet_url LONGTEXT,
-        aadhar_front_url LONGTEXT,
-        aadhar_back_url LONGTEXT,
-        center_photos_url LONGTEXT,
-        status VARCHAR(30) DEFAULT 'Pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    try {
-      await db.query(`ALTER TABLE franchise_applications ADD COLUMN qualification VARCHAR(100) DEFAULT 'Graduate'`);
-    } catch (_) {}
-
-    // Auto-sync all study centers from centers table into franchise_applications
-    await adminService.syncCentersToFranchiseApplications();
-
     let query = 'SELECT * FROM franchise_applications';
     const params: any[] = [];
     if (status && status !== 'all') {
       query += ' WHERE status = ?';
+      params.push(status);
     }
     query += ' ORDER BY created_at DESC';
 

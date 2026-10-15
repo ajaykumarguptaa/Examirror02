@@ -9,8 +9,12 @@ const pool = mysql.createPool({
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'e2',
-  connectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || 10,
-  connectTimeout: Number(process.env.DB_CONNECT_TIMEOUT) || 10000,
+  waitForConnections: true,
+  connectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || 25,
+  queueLimit: 0,
+  connectTimeout: Number(process.env.DB_CONNECT_TIMEOUT) || 15000,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000,
 });
 
 // Test the connection
