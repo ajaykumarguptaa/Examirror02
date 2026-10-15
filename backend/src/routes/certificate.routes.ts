@@ -57,8 +57,14 @@ router.post('/save-to-s3', async (req, res) => {
     if (isS3Configured) {
       try {
         s3Url = await uploadBufferToS3(s3Key, buffer, mimeType);
+        if (s3Url && fs.existsSync(localFilePath)) {
+          try {
+            fs.unlinkSync(localFilePath);
+            console.log(`[S3-First] Certificate uploaded directly to S3. Purged local copy: ${s3Key}`);
+          } catch (_) {}
+        }
       } catch (s3Err: any) {
-        console.error(`[S3] Error uploading certificate to s3://${s3Key}:`, s3Err?.message || s3Err);
+        console.error(`[S3 Fallback] S3 upload failed; certificate retained safely on local server disk: ${localFilePath}`, s3Err?.message || s3Err);
       }
     }
 

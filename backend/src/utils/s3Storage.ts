@@ -151,22 +151,26 @@ export const getS3ObjectStream = async (
 };
 
 /**
- * Synchronizes all existing local files in ./uploads to S3 in the background
+ * Synchronizes local fallback uploads to AWS S3 and auto-purges local copies once verified in S3
  */
-export const syncAllLocalUploadsToS3 = async (uploadsBaseDir?: string): Promise<{ total: number; uploaded: number; errors: number }> => {
+export const syncAllLocalUploadsToS3 = async (
+  uploadsBaseDir?: string,
+  autoDeleteLocal: boolean = true
+): Promise<{ total: number; uploaded: number; purged: number; errors: number }> => {
   if (!s3Client || !isS3Configured) {
     console.log('[S3] Sync skipped: S3 is not configured in .env');
-    return { total: 0, uploaded: 0, errors: 0 };
+    return { total: 0, uploaded: 0, purged: 0, errors: 0 };
   }
 
   const baseDir = uploadsBaseDir || path.join(process.cwd(), 'uploads');
   if (!fs.existsSync(baseDir)) {
-    return { total: 0, uploaded: 0, errors: 0 };
+    return { total: 0, uploaded: 0, purged: 0, errors: 0 };
   }
 
-  console.log(`[S3] Starting sync of local uploads to s3://${bucket}...`);
+  console.log(`[S3] Starting sync & auto-purge of local uploads to s3://${bucket}...`);
   let total = 0;
   let uploaded = 0;
+  let purged = 0;
   let errors = 0;
 
   const traverseAndUpload = async (dir: string) => {
@@ -177,16 +181,35 @@ export const syncAllLocalUploadsToS3 = async (uploadsBaseDir?: string): Promise<
       if (entry.isDirectory()) {
         await traverseAndUpload(fullPath);
       } else if (entry.isFile()) {
+        if (entry.name === '.gitkeep') continue;
         total++;
         // Construct S3 key matching relative path under baseDir
         const relativePath = path.relative(path.join(process.cwd()), fullPath).replace(/\\/g, '/');
-        // e.g. "uploads/branding/examirror-logo.png"
         try {
           const exists = await objectExistsOnS3(relativePath);
           if (!exists) {
             const res = await uploadLocalFileToS3(fullPath, relativePath);
-            if (res) uploaded++;
-            else errors++;
+            if (res) {
+              uploaded++;
+              if (autoDeleteLocal) {
+                try {
+                  fs.unlinkSync(fullPath);
+                  purged++;
+                  console.log(`[S3-Purge] Uploaded & removed local copy: ${relativePath}`);
+                } catch (_) {}
+              }
+            } else {
+              errors++;
+            }
+          } else {
+            // Already safe on S3 - clean redundant local copy to keep server disk at 0 MB
+            if (autoDeleteLocal) {
+              try {
+                fs.unlinkSync(fullPath);
+                purged++;
+                console.log(`[S3-Purge] Purged redundant local file: ${relativePath}`);
+              } catch (_) {}
+            }
           }
         } catch (e) {
           errors++;
@@ -197,10 +220,10 @@ export const syncAllLocalUploadsToS3 = async (uploadsBaseDir?: string): Promise<
 
   try {
     await traverseAndUpload(baseDir);
-    console.log(`[S3] Sync completed! Found: ${total}, Uploaded: ${uploaded}, Errors: ${errors}`);
+    console.log(`[S3] Sync & Purge finished! Found: ${total}, Uploaded: ${uploaded}, Purged from server disk: ${purged}, Errors: ${errors}`);
   } catch (err: any) {
     console.error('[S3] Sync failed with error:', err.message || err);
   }
 
-  return { total, uploaded, errors };
+  return { total, uploaded, purged, errors };
 };

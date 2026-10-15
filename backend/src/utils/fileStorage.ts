@@ -73,16 +73,25 @@ export const saveBase64File = (
 
   try {
     const buffer = Buffer.from(base64Data, 'base64');
+    
+    // Write temporary fallback to disk
     fs.writeFileSync(filePath, buffer);
 
-    // Concurrently upload to S3 bucket
-    uploadBufferToS3(s3Key, buffer, mimeType).catch((s3Err) => {
-      console.warn(`[S3] Background upload notice for ${s3Key}:`, s3Err?.message || s3Err);
+    // Direct S3 Upload with Auto-Delete once confirmed on S3
+    uploadBufferToS3(s3Key, buffer, mimeType).then((s3Url) => {
+      if (s3Url && fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+          console.log(`[S3-First] Confirmed in S3. Purged local copy: ${s3Key}`);
+        } catch (_) {}
+      }
+    }).catch((s3Err) => {
+      console.warn(`[S3 Fallback] S3 upload failed; retained safely on local server disk: ${filePath}`, s3Err?.message || s3Err);
     });
 
     return `/uploads/${safeFolder}/${filename}`;
   } catch (err) {
-    console.error(`Failed to write file ${filename} to disk:`, err);
+    console.error(`Failed to process base64 file ${filename}:`, err);
     return '';
   }
 };

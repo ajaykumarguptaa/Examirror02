@@ -60,6 +60,12 @@ router.post('/upload', (req, res, next) => {
       const url = `/uploads/branding/${req.file.filename}`;
       const s3Key = `uploads/branding/${req.file.filename}`;
       const s3Url = await uploadLocalFileToS3(req.file.path, s3Key);
+      if (s3Url && fs.existsSync(req.file.path)) {
+        try {
+          fs.unlinkSync(req.file.path);
+          console.log(`[S3-First] File uploaded directly to S3. Purged local copy: ${s3Key}`);
+        } catch (_) {}
+      }
       return res.status(200).json({ 
         success: true, 
         url, 

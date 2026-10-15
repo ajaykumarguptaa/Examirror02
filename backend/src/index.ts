@@ -94,25 +94,9 @@ app.use('/uploads', async (req, res, next) => {
     if (s3Obj.contentLength) {
       res.setHeader('Content-Length', s3Obj.contentLength);
     }
-    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
 
-    // Cache locally in background so subsequent requests are served immediately
-    const localCachedPath = path.join(uploadsDir, relativeSubpath);
-    const localSubDir = path.dirname(localCachedPath);
-    if (!fs.existsSync(localSubDir)) {
-      fs.mkdirSync(localSubDir, { recursive: true });
-    }
-
-    const chunks: Buffer[] = [];
-    s3Obj.stream.on('data', (chunk) => {
-      chunks.push(Buffer.from(chunk));
-    });
-    s3Obj.stream.on('end', () => {
-      try {
-        fs.writeFileSync(localCachedPath, Buffer.concat(chunks));
-      } catch (_) {}
-    });
-
+    // Direct stream from S3 without saving to local server disk (Zero-disk footprint)
     s3Obj.stream.pipe(res);
   } catch (err: any) {
     console.error(`[S3] Error streaming ${s3Key} from S3:`, err?.message || err);
