@@ -5,10 +5,10 @@ import { memoryCache } from '../utils/memoryCache';
 
 export const publicService = {
   getCourses: async () => {
-    const cached = memoryCache.get('public:courses');
+    const cached = await memoryCache.get('public:courses');
     if (cached) return cached;
     const [rows] = await db.query('SELECT * FROM courses WHERE is_published = 1 AND (is_draft = 0 OR is_draft IS NULL) ORDER BY id DESC');
-    memoryCache.set('public:courses', rows, 180); // 3 minutes TTL
+    await memoryCache.set('public:courses', rows, 180); // 3 minutes TTL
     return rows;
   },
 
@@ -18,7 +18,7 @@ export const publicService = {
   },
 
   getPublicStats: async () => {
-    const cached = memoryCache.get('public:stats');
+    const cached = await memoryCache.get('public:stats');
     if (cached) return cached;
 
     const [centersCount]: any = await db.query('SELECT COUNT(*) as count FROM centers');
@@ -58,7 +58,7 @@ export const publicService = {
       recentCenters: recentCenters || []
     };
 
-    memoryCache.set('public:stats', statsResult, 120); // 2 minutes TTL
+    await memoryCache.set('public:stats', statsResult, 120); // 2 minutes TTL
     return statsResult;
   },
 
@@ -110,17 +110,17 @@ export const publicService = {
 
   getSettings: async (key: string) => {
     const cacheKey = `settings:${key}`;
-    const cached = memoryCache.get(cacheKey);
+    const cached = await memoryCache.get(cacheKey);
     if (cached !== null) return cached;
 
     const [rows]: any = await db.query('SELECT value FROM settings WHERE key_name = ? LIMIT 1', [key]);
     if (rows.length === 0) return null;
     try {
       const parsed = JSON.parse(rows[0].value);
-      memoryCache.set(cacheKey, parsed, 300); // 5 minutes TTL
+      await memoryCache.set(cacheKey, parsed, 300); // 5 minutes TTL
       return parsed;
     } catch {
-      memoryCache.set(cacheKey, rows[0].value, 300);
+      await memoryCache.set(cacheKey, rows[0].value, 300);
       return rows[0].value; // fallback
     }
   },
@@ -157,7 +157,7 @@ export const publicService = {
     );
 
     // Update in-memory cache instantly
-    memoryCache.set(`settings:${key}`, processedData, 300);
+    await memoryCache.set(`settings:${key}`, processedData, 300);
     return processedData;
   },
 
@@ -165,7 +165,7 @@ export const publicService = {
   verifyStudent: async (identifier: string) => {
     const cleanId = String(identifier || '').trim().toLowerCase();
     const cacheKey = `verify:student:${cleanId}`;
-    const cached = memoryCache.get(cacheKey);
+    const cached = await memoryCache.get(cacheKey);
     if (cached) return cached;
 
     const [rows]: any = await db.query(`
@@ -197,14 +197,14 @@ export const publicService = {
       result = rows[0];
     }
 
-    memoryCache.set(cacheKey, result, 600); // 10 minutes TTL
+    await memoryCache.set(cacheKey, result, 600); // 10 minutes TTL
     return result;
   },
 
   verifyCertificate: async (identifier: string) => {
     const cleanId = String(identifier || '').trim().toLowerCase();
     const cacheKey = `verify:cert:${cleanId}`;
-    const cached = memoryCache.get(cacheKey);
+    const cached = await memoryCache.get(cacheKey);
     if (cached) return cached;
 
     const [rows]: any = await db.query(`
@@ -239,14 +239,14 @@ export const publicService = {
       result = { ...rows[0], marks: [], is_certified: true };
     }
 
-    memoryCache.set(cacheKey, result, 600); // 10 minutes TTL
+    await memoryCache.set(cacheKey, result, 600); // 10 minutes TTL
     return result;
   },
 
   verifyCenter: async (identifier: string) => {
     const cleanId = String(identifier || '').trim().toLowerCase();
     const cacheKey = `verify:center:${cleanId}`;
-    const cached = memoryCache.get(cacheKey);
+    const cached = await memoryCache.get(cacheKey);
     if (cached) return cached;
 
     const [rows]: any = await db.query(`
@@ -257,7 +257,7 @@ export const publicService = {
     `, [identifier, identifier, `%${identifier}%`]);
     const result = rows[0] || null;
     if (result) {
-      memoryCache.set(cacheKey, result, 600);
+      await memoryCache.set(cacheKey, result, 600);
     }
     return result;
   },

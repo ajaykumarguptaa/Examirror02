@@ -9,6 +9,7 @@ import { backupDatabaseToS3 } from '../utils/dbBackup';
 import { notificationService } from '../services/notification.service';
 import { realtimeService } from '../services/realtime.service';
 import { getAuditLogs, logAudit } from '../utils/auditLogger';
+import { hybridCache } from '../utils/redisCache';
 
 import { verifyAdmin } from '../middleware/auth.middleware';
 import { authRateLimiter } from '../middleware/rateLimiter';
@@ -788,6 +789,30 @@ router.get('/audit-logs', verifyAdmin, async (req, res) => {
     res.status(200).json({ success: true, ...data });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/cache-stats
+ * Diagnostics on L1 Memory and L2 Redis Cache
+ */
+router.get('/cache-stats', verifyAdmin, (req, res) => {
+  res.status(200).json({
+    success: true,
+    cache: hybridCache.getHealth()
+  });
+});
+
+/**
+ * POST /api/admin/cache-flush
+ * Instantly purges all L1 in-memory and L2 Redis cached data
+ */
+router.post('/cache-flush', verifyAdmin, async (req, res) => {
+  try {
+    await hybridCache.flush();
+    res.status(200).json({ success: true, message: 'All distributed and local cache stores flushed successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
