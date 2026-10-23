@@ -405,6 +405,8 @@ const handleStudentAvailable = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+router.get('/', handleStudentAvailable);
+router.get('/public', handleStudentAvailable);
 router.get('/student/available', handleStudentAvailable);
 router.get('/student/test-series/available', handleStudentAvailable);
 router.get('/public/featured', handleStudentAvailable);
