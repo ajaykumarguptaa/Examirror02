@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SEO from '../../components/SEO';
+import { useDebounce } from '../../hooks/useDebounce';
+import { LazyImage } from '../../components/ui/LazyImage';
 
 interface StudyNote {
   id: number;
@@ -35,6 +37,7 @@ export default function StudyMaterialLibrary() {
   const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 250);
   const [sortBy, setSortBy] = useState<'featured' | 'views' | 'free'>('featured');
   const [loading, setLoading] = useState(true);
 
@@ -113,9 +116,9 @@ export default function StudyMaterialLibrary() {
       result = result.filter(n => (n.category || '').toLowerCase() === selectedCategory.toLowerCase());
     }
 
-    // Search Filter
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase().trim();
+    // Debounced Search Filter
+    if (debouncedSearchTerm.trim()) {
+      const q = debouncedSearchTerm.toLowerCase().trim();
       result = result.filter(n =>
         (n.title || '').toLowerCase().includes(q) ||
         (n.category || '').toLowerCase().includes(q) ||
@@ -131,7 +134,7 @@ export default function StudyMaterialLibrary() {
     }
 
     return result;
-  }, [notes, selectedCategory, searchTerm, sortBy]);
+  }, [notes, selectedCategory, debouncedSearchTerm, sortBy]);
 
   return (
     <div className="flex flex-col w-full bg-slate-50 min-h-screen">
@@ -152,27 +155,43 @@ export default function StudyMaterialLibrary() {
         ]}
       />
 
-      {/* Unified Header Banner matching Courses, Centers & Gallery */}
-      <section className="bg-slate-900 text-white py-14 sm:py-16 text-center relative overflow-hidden border-b border-slate-800">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-1.5 bg-blue-500/10 border border-blue-400/20 text-blue-300 px-3.5 py-1 rounded-full text-xs font-semibold">
-            <Sparkles size={13} className="text-amber-400" />
+      {/* Unified Compact Header Banner with Apple Text Reveal Animation */}
+      <section className="bg-slate-950 text-white py-4 sm:py-5 text-center relative overflow-hidden border-b border-slate-800/80">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-500/15 via-transparent to-transparent" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 space-y-1.5">
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="inline-flex items-center gap-1.5 bg-blue-500/10 border border-blue-400/20 text-blue-300 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
+          >
+            <Sparkles size={12} className="text-amber-400" />
             <span>Interactive Learning & Digital Reference Library</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight"
+          >
             Digital Study Library & E-Notes
-          </h1>
-          <p className="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className="text-slate-300 text-xs sm:text-[13px] max-w-2xl mx-auto leading-normal"
+          >
             Access our curated collection of interactive study notes, chapter summaries, and secure reference guides designed for all computer and skill development programs.
-          </p>
+          </motion.p>
         </div>
       </section>
 
       {/* Main Full-Width Container */}
       <section className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-grow">
 
-        {/* Search, Filter & Sort Toolbar */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200 mb-8 space-y-4">
+        {/* Search, Filter & Sort Toolbar with Apple Glassmorphism */}
+        <div className="apple-glass-card p-4 sm:p-5 rounded-3xl border border-slate-200/80 mb-8 space-y-4">
           <div className="flex flex-col lg:flex-row gap-3.5 justify-between items-stretch lg:items-center">
 
             {/* Search Input */}
@@ -269,26 +288,27 @@ export default function StudyMaterialLibrary() {
               return (
                 <motion.div
                   key={note.id || index}
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: index * 0.05 }}
-                  className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-all flex flex-col group overflow-hidden"
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: index * 0.04 }}
+                  className="apple-card bg-white rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-xl transition-all flex flex-col group overflow-hidden"
                 >
                   {/* Card Thumbnail Banner */}
                   {note.thumbnail_url ? (
                     <div className="relative w-full h-44 overflow-hidden bg-slate-100">
-                      <img
+                      <LazyImage
                         src={note.thumbnail_url}
                         alt={note.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        wrapperClassName="w-full h-full"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
-                      <span className={`absolute top-3 right-3 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md shadow-xs border ${
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent pointer-events-none" />
+                      <span className={`absolute top-3 right-3 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md shadow-xs border pointer-events-none z-10 ${
                         isFree ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-amber-500 text-slate-950 border-amber-400'
                       }`}>
                         {isFree ? 'FREE ACCESS' : `₹${note.price}`}
                       </span>
-                      <span className="absolute bottom-3 left-3 text-[10px] font-bold text-white bg-slate-900/80 backdrop-blur-xs px-2.5 py-0.5 rounded-md">
+                      <span className="absolute bottom-3 left-3 text-[10px] font-bold text-white bg-slate-900/80 backdrop-blur-xs px-2.5 py-0.5 rounded-md pointer-events-none z-10">
                         {note.category || 'General'}
                       </span>
                     </div>
@@ -361,7 +381,7 @@ export default function StudyMaterialLibrary() {
                       <Layers size={13} /> Module Note
                     </span>
                     <Link
-                      to={`/notes/${note.id}`}
+                      to={window.location.pathname.startsWith('/student') ? `/student/notes/${note.id}` : `/notes/${note.id}`}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 bg-white hover:bg-blue-50 px-3.5 py-1.5 rounded-xl border border-slate-200 hover:border-blue-200 transition-all shadow-2xs group-hover:bg-blue-600 group-hover:text-white"
                     >
                       <span>Read Note</span>

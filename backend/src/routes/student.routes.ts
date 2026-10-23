@@ -2,10 +2,268 @@ import express from 'express';
 import db from '../db';
 import jwt from 'jsonwebtoken';
 import { generateAdmitCardPdfBuffer } from '../utils/pdfEngine';
+import { sendStudentRegistrationOtpEmail } from '../utils/emailService';
 
 const router = express.Router();
 
 import { authRateLimiter } from '../middleware/rateLimiter';
+
+/**
+ * 1. Send OTP for Direct Student Registration (Brevo SMTP Relay)
+ */
+router.post('/send-registration-otp', authRateLimiter, async (req, res) => {
+  try {
+    const { email, firstName, lastName, phone } = req.body;
+
+    if (!firstName || typeof firstName !== 'string' || !/^[a-zA-Z\s'-]{2,50}$/.test(firstName.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid first name (minimum 2 letters, no special characters).'
+      });
+    }
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanLastName = typeof lastName === 'string' && lastName.trim() ? lastName.trim() : undefined;
+    const cleanPhone = phone ? phone.toString().trim().replace(/\D/g, '') : undefined;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid email address format.' });
+    }
+
+    // Check if email already registered
+    const [existing]: any = await db.query('SELECT id FROM students WHERE email = ?', [cleanEmail]);
+    if (existing && existing.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'An account with this email already exists. Please log in directly.'
+      });
+    }
+
+    // If mobile number passed, validate and check uniqueness
+    if (cleanPhone) {
+      if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.'
+        });
+      }
+      const [phoneExists]: any = await db.query('SELECT id FROM students WHERE phone = ?', [cleanPhone]);
+      if (phoneExists && phoneExists.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'This mobile number is already registered to an account. Please log in.'
+        });
+      }
+    }
+
+    // Rate limiting: 45-second cooldown per email (prevents timer drift blocking)
+    const [recent]: any = await db.query(
+      'SELECT id FROM student_email_otps WHERE email = ? AND purpose = "STUDENT_REGISTRATION" AND created_at > DATE_SUB(NOW(), INTERVAL 45 SECOND)',
+      [cleanEmail]
+    );
+    if (recent && recent.length > 0) {
+      return res.status(429).json({
+        success: false,
+        message: 'A verification code was just sent. Please wait a few seconds before requesting another.'
+      });
+    }
+
+    // Generate 6-digit OTP code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Invalidate any old unused OTPs for this email
+    await db.query(
+      'UPDATE student_email_otps SET is_used = 1 WHERE email = ? AND purpose = "STUDENT_REGISTRATION" AND is_used = 0',
+      [cleanEmail]
+    );
+
+    // Save new OTP with 10-minute validity
+    await db.query(`
+      INSERT INTO student_email_otps (email, otp_code, purpose, expires_at)
+      VALUES (?, ?, 'STUDENT_REGISTRATION', DATE_ADD(NOW(), INTERVAL 10 MINUTE))
+    `, [cleanEmail, otpCode]);
+
+    // Send email via Brevo SMTP (with development fallback)
+    await sendStudentRegistrationOtpEmail(
+      cleanEmail,
+      otpCode,
+      firstName.trim(),
+      cleanLastName,
+      cleanPhone
+    );
+
+    res.json({
+      success: true,
+      message: 'A 6-digit verification code has been sent to your email.',
+      devOtp: process.env.NODE_ENV !== 'production' ? otpCode : undefined
+    });
+  } catch (error: any) {
+    console.error('Error in send-registration-otp:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to send OTP.' });
+  }
+});
+
+/**
+ * 2. Verify OTP & Create Direct Student Account
+ */
+router.post('/verify-and-register', authRateLimiter, async (req, res) => {
+  try {
+    const { firstName, lastName, email, phone, password, otp } = req.body;
+
+    if (!firstName || !email || !password || !otp || !phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'First name, email, mobile number, password, and OTP code are required.'
+      });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.toString().trim();
+    const cleanFirstName = firstName.trim();
+    const cleanLastName = (lastName || '').trim();
+    const cleanPhone = (phone || '').toString().trim().replace(/\D/g, '');
+    const cleanPassword = password.toString();
+
+    if (!/^[a-zA-Z\s'-]{2,50}$/.test(cleanFirstName)) {
+      return res.status(400).json({
+        success: false,
+        message: 'First name must contain only letters and be at least 2 characters.'
+      });
+    }
+
+    if (cleanLastName && !/^[a-zA-Z\s'-]{1,50}$/.test(cleanLastName)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Last name must contain only letters.'
+      });
+    }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
+    }
+
+    if (!cleanPhone || !/^[6-9]\d{9}$/.test(cleanPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid 10-digit mobile number starting with 6, 7, 8, or 9 is required.'
+      });
+    }
+
+    const [phoneExists]: any = await db.query('SELECT id FROM students WHERE phone = ?', [cleanPhone]);
+    if (phoneExists && phoneExists.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'This mobile number is already registered to another account. Please log in.'
+      });
+    }
+
+    if (cleanPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+    }
+
+    if (cleanOtp.length !== 6) {
+      return res.status(400).json({ success: false, message: 'Verification code must be 6 digits.' });
+    }
+
+    // Verify OTP record with MySQL native clock
+    const [otpRows]: any = await db.query(`
+      SELECT id, otp_code, attempts, (expires_at < NOW()) as is_expired
+      FROM student_email_otps
+      WHERE email = ? AND purpose = 'STUDENT_REGISTRATION' AND is_used = 0
+      ORDER BY id DESC LIMIT 1
+    `, [cleanEmail]);
+
+    if (!otpRows || otpRows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active verification code found for this email. Please request a new code.'
+      });
+    }
+
+    const otpRecord = otpRows[0];
+    if (Number(otpRecord.is_expired) === 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired. Please request a new one.'
+      });
+    }
+
+    if (otpRecord.attempts >= 5) {
+      await db.query('UPDATE student_email_otps SET is_used = 1 WHERE id = ?', [otpRecord.id]);
+      return res.status(400).json({
+        success: false,
+        message: 'Too many incorrect attempts. Please request a new verification code.'
+      });
+    }
+
+    if (otpRecord.otp_code !== cleanOtp) {
+      await db.query('UPDATE student_email_otps SET attempts = attempts + 1 WHERE id = ?', [otpRecord.id]);
+      return res.status(400).json({
+        success: false,
+        message: 'Incorrect verification code. Please check your email and try again.'
+      });
+    }
+
+    // Mark OTP as successfully used
+    await db.query('UPDATE student_email_otps SET is_used = 1 WHERE id = ?', [otpRecord.id]);
+
+    // Check again if already registered
+    const [existing]: any = await db.query('SELECT id FROM students WHERE email = ?', [cleanEmail]);
+    if (existing && existing.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'An account with this email is already registered. Please log in.'
+      });
+    }
+
+    // Generate unique Online Candidate IDs
+    const timestampSuffix = Date.now().toString().slice(-6);
+    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    const rollNo = `EXM-${timestampSuffix}${randomSuffix}`;
+    const enrollmentNo = `TS-${timestampSuffix}${randomSuffix}`;
+
+    const [insertResult]: any = await db.query(`
+      INSERT INTO students (
+        firstName, lastName, email, phone, password,
+        centerId, courseId, is_direct_student, email_verified,
+        status, student_type, roll_no, enrollment_no
+      ) VALUES (?, ?, ?, ?, ?, NULL, NULL, 1, 1, 'active', 'direct_online', ?, ?)
+    `, [
+      cleanFirstName,
+      cleanLastName,
+      cleanEmail,
+      cleanPhone,
+      cleanPassword,
+      rollNo,
+      enrollmentNo
+    ]);
+
+    const newStudentId = insertResult.insertId;
+    const [studentData]: any = await db.query('SELECT * FROM students WHERE id = ?', [newStudentId]);
+    const student = studentData[0];
+
+    const token = jwt.sign(
+      { studentId: student.id, role: 'student', isDirect: true },
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Account created successfully! Welcome to Examirror.',
+      token,
+      student
+    });
+  } catch (error: any) {
+    console.error('Error in verify-and-register:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to register account.' });
+  }
+});
 
 router.post('/login', authRateLimiter, async (req, res) => {
   try {

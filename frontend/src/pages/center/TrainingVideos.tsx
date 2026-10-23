@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { useDebounce } from '../../hooks/useDebounce';
 import { 
   Video, 
   Clock, 
@@ -47,6 +48,7 @@ export const TrainingVideos: React.FC = () => {
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 250);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const playerRef = useRef<HTMLDivElement>(null);
 
@@ -116,17 +118,19 @@ export const TrainingVideos: React.FC = () => {
   // Extract unique categories dynamically
   const categories = ['All', ...Array.from(new Set(videos.map(v => v.category || 'Portal Guide').filter(Boolean)))];
 
-  // Filter videos
-  const filteredVideos = videos.filter(video => {
-    const matchesCategory = selectedCategory === 'All' || video.category === selectedCategory;
-    const q = searchQuery.toLowerCase().trim();
-    const matchesSearch = !q || 
-      video.title.toLowerCase().includes(q) || 
-      (video.description || '').toLowerCase().includes(q) ||
-      (video.module_name || '').toLowerCase().includes(q) ||
-      (video.category || '').toLowerCase().includes(q);
-    return matchesCategory && matchesSearch;
-  });
+  // Filter videos (memoized with debounced search)
+  const filteredVideos = useMemo(() => {
+    const q = debouncedSearchQuery.toLowerCase().trim();
+    return videos.filter(video => {
+      const matchesCategory = selectedCategory === 'All' || video.category === selectedCategory;
+      const matchesSearch = !q || 
+        video.title.toLowerCase().includes(q) || 
+        (video.description || '').toLowerCase().includes(q) ||
+        (video.module_name || '').toLowerCase().includes(q) ||
+        (video.category || '').toLowerCase().includes(q);
+      return matchesCategory && matchesSearch;
+    });
+  }, [videos, selectedCategory, debouncedSearchQuery]);
 
   const activeYtId = activeVideo?.youtube_id || extractYouTubeVideoId(activeVideo?.url) || 'M7lc1UVf-VE';
 
@@ -363,6 +367,7 @@ export const TrainingVideos: React.FC = () => {
                         alt={vid.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <Film size={36} className="text-slate-500" />

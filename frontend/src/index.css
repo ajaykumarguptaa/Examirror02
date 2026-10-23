@@ -69,11 +69,76 @@ textarea {
   font-family: 'Poppins', sans-serif;
 }
 
-/* Base custom utilities & Zero-Gradient Modern Premium Design System */
-.no-gradients,
-.no-gradient,
-[class*="bg-gradient-"] {
-  background-image: none !important;
+/* ========================================================
+   APPLE MOTION & FLUID DESIGN SYSTEM (macOS & iOS Inspired)
+   ======================================================== */
+:root {
+  --ease-apple: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-apple-cinema: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-apple-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --shadow-apple-ambient: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+  --shadow-apple-card: 0 10px 30px -10px rgba(15, 23, 42, 0.08), 0 4px 12px -4px rgba(15, 23, 42, 0.03);
+  --shadow-apple-hover: 0 24px 48px -12px rgba(15, 23, 42, 0.14), 0 8px 16px -6px rgba(15, 23, 42, 0.04);
+  --shadow-apple-modal: 0 32px 72px -16px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+}
+
+/* Apple Liquid Retina Frosted Glass */
+.apple-glass {
+  background-color: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
+}
+
+.apple-glass-card {
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow: var(--shadow-apple-card) !important;
+}
+
+.apple-glass-dark {
+  background-color: rgba(15, 23, 42, 0.82) !important;
+  backdrop-filter: blur(24px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(200%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Global Apple Physics for Interactive Elements */
+button,
+a[role="button"],
+.btn-apple {
+  transition: transform 0.22s var(--ease-apple), box-shadow 0.22s var(--ease-apple), background-color 0.2s ease, opacity 0.2s ease;
+  will-change: transform;
+}
+
+button:active,
+a[role="button"]:active,
+.btn-apple:active {
+  transform: scale(0.975) !important;
+  transition-duration: 0.08s !important;
+}
+
+/* Apple Card Hover Physics with Inertial Deceleration */
+.apple-card,
+[class*="hover:shadow-md"],
+[class*="hover:shadow-lg"] {
+  transition: transform 0.45s var(--ease-apple), box-shadow 0.45s var(--ease-apple), border-color 0.3s ease !important;
+  will-change: transform, box-shadow;
+}
+
+.apple-card:hover,
+[class*="hover:shadow-md"]:hover,
+[class*="hover:shadow-lg"]:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: var(--shadow-apple-hover) !important;
+}
+
+.apple-card:active,
+[class*="hover:shadow-md"]:active,
+[class*="hover:shadow-lg"]:active {
+  transform: translateY(-1px) scale(0.99) !important;
 }
 
 /* Modern Minimalist Cards with Soft Minimal Shadow */
@@ -83,18 +148,18 @@ textarea {
 .card-3d-purple {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 1rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-apple-card);
+  transition: transform 0.4s var(--ease-apple), box-shadow 0.4s var(--ease-apple), border-color 0.2s ease;
 }
 
 .card-3d:hover,
 .card-3d-emerald:hover,
 .card-3d-amber:hover,
 .card-3d-purple:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
   border-color: #cbd5e1;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-apple-hover);
 }
 
 /* Ultra-Premium Tactile & Elastic Button System (GSAP & Physics Inspired) */
@@ -102,9 +167,11 @@ textarea {
   transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease, background 0.3s ease, border-color 0.3s ease !important;
   will-change: transform, box-shadow;
 }
+
 .btn-elastic:hover {
   transform: translateY(-2.5px) scale(1.035);
 }
+
 .btn-elastic:active {
   transform: translateY(1.5px) scale(0.93) !important;
   transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1) !important;
@@ -128,11 +195,13 @@ textarea {
   transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease, background-color 0.2s ease;
   will-change: transform, box-shadow;
 }
+
 .btn-glow-primary:hover {
   background-color: #1d4ed8;
   transform: translateY(-2.5px) scale(1.03);
   box-shadow: 0 8px 22px -2px rgba(37, 99, 235, 0.45);
 }
+
 .btn-glow-primary:active {
   transform: translateY(1.5px) scale(0.94);
   box-shadow: 0 2px 8px 0 rgba(37, 99, 235, 0.4);
@@ -151,11 +220,13 @@ textarea {
   transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease, background-color 0.2s ease;
   will-change: transform, box-shadow;
 }
+
 .btn-glow-emerald:hover {
   background-color: #047857;
   transform: translateY(-2.5px) scale(1.035);
   box-shadow: 0 8px 22px -2px rgba(5, 150, 105, 0.45);
 }
+
 .btn-glow-emerald:active {
   transform: translateY(1.5px) scale(0.94);
   box-shadow: 0 2px 8px 0 rgba(5, 150, 105, 0.4);
@@ -167,10 +238,12 @@ textarea {
   transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, background-color 0.2s ease, border-color 0.2s ease;
   will-change: transform;
 }
+
 .btn-icon-bounce:hover {
   transform: scale(1.14) translateY(-1.5px);
   box-shadow: 0 8px 20px -3px rgba(79, 70, 229, 0.28);
 }
+
 .btn-icon-bounce:active {
   transform: scale(0.88);
   transition: transform 0.1s ease;
@@ -186,11 +259,13 @@ textarea {
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease;
 }
+
 .btn-3d-primary:hover {
   background-color: #1d4ed8;
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 6px 12px -2px rgba(37, 99, 235, 0.3);
 }
+
 .btn-3d-primary:active {
   transform: scale(0.95);
 }
@@ -204,11 +279,13 @@ textarea {
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease;
 }
+
 .btn-3d-dark:hover {
   background-color: #0f172a;
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 6px 12px -2px rgba(15, 23, 42, 0.3);
 }
+
 .btn-3d-dark:active {
   transform: scale(0.95);
 }
@@ -222,12 +299,14 @@ textarea {
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease;
 }
+
 .btn-3d-amber:hover {
   background-color: #d97706;
   color: #ffffff;
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 6px 12px -2px rgba(245, 158, 11, 0.35);
 }
+
 .btn-3d-amber:active {
   transform: scale(0.95);
 }
@@ -241,12 +320,14 @@ textarea {
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
+
 .btn-3d-white:hover {
   background-color: #f8fafc;
   border-color: #94a3b8;
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.08);
 }
+
 .btn-3d-white:active {
   transform: scale(0.95);
 }
@@ -282,26 +363,61 @@ textarea {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
 }
 
 .skeleton-shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(226, 232, 240, 0.85) 0%,
-    rgba(241, 245, 249, 1) 50%,
-    rgba(226, 232, 240, 0.85) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(226, 232, 240, 0.85) 0%,
+      rgba(241, 245, 249, 1) 50%,
+      rgba(226, 232, 240, 0.85) 100%);
   background-size: 200% 100%;
   animation: shimmerWave 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Modern High-Gloss Prism Light Beam Sweep */
+@keyframes prismLightSweep {
+  0% {
+    transform: translateX(-150%) skewX(-25deg);
+  }
+
+  50%,
+  100% {
+    transform: translateX(250%) skewX(-25deg);
+  }
+}
+
+.animate-prism-sweep {
+  animation: prismLightSweep 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Subtle Breathing Pulse for Media Loaders */
+@keyframes ambientBreathe {
+
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 0.95;
+    transform: scale(1.04);
+  }
+}
+
+.animate-ambient-breathe {
+  animation: ambientBreathe 2.4s ease-in-out infinite;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
   -ms-overflow-style: none;

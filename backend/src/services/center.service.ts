@@ -422,6 +422,7 @@ export const centerService = {
     const [rows]: any = await db.query(`
       SELECT s.*, 
              c.name as courseName, c.code as courseCode, c.semesters as courseSemesters, c.duration as courseDuration,
+             (SELECT COUNT(*) FROM course_questions cq WHERE cq.courseId = s.courseId) as courseQuestionsCount,
              cntr.name as centerName, cntr.center_code as centerCode, cntr.address as centerAddress, cntr.city as centerCity, cntr.state as centerState,
              cntr.signature_url as centerSignatureUrl, cntr.stamp_url as centerStampUrl, cntr.head_name as centerHeadName
       FROM students s 
@@ -461,6 +462,7 @@ export const centerService = {
     const [rows]: any = await db.query(`
       SELECT s.*, 
              c.name as courseName, c.code as courseCode, c.semesters as courseSemesters, c.duration as courseDuration,
+             (SELECT COUNT(*) FROM course_questions cq WHERE cq.courseId = s.courseId) as courseQuestionsCount,
              cntr.name as centerName, cntr.center_code as centerCode, cntr.address as centerAddress, cntr.city as centerCity, cntr.state as centerState,
              cntr.signature_url as centerSignatureUrl, cntr.stamp_url as centerStampUrl, cntr.head_name as centerHeadName
       FROM students s 
@@ -924,15 +926,24 @@ export const centerService = {
     };
   },
 
-  claimCenterCertificate: async (centerId: string | number) => {
+  claimCenterCertificate: async (centerId: string | number, isReminder: boolean = false) => {
     const [centers]: any = await db.query(
-      'SELECT id, name, email, phone, certificate_status FROM centers WHERE id = ?',
+      'SELECT id, name, center_code, email, phone, certificate_status FROM centers WHERE id = ?',
       [centerId]
     );
     if (!centers || centers.length === 0) {
       throw new Error('Center not found');
     }
     const center = centers[0];
+
+    // If certificate is already approved, prevent duplicate requests
+    if (center.certificate_status === 'approved') {
+      return {
+        success: true,
+        status: 'approved',
+        message: 'Your Center Affiliation Certificate is already officially approved and active.'
+      };
+    }
 
     await db.query(`
       UPDATE centers SET
@@ -942,26 +953,65 @@ export const centerService = {
     `, [center.id]);
 
     try {
-      await db.query(`
-        UPDATE franchise_applications SET
-          certificate_status = 'pending',
-          certificate_claim_date = NOW()
-        WHERE center_name = ? OR email = ? OR phone = ?
-      `, [center.name, center.email, center.phone]);
-    } catch (_) {}
+      // Find matching record in franchise_applications
+      const [existingApp]: any = await db.query(`
+        SELECT id FROM franchise_applications
+        WHERE center_id = ? OR center_code = ? OR center_name = ? OR (email = ? AND email IS NOT NULL)
+        LIMIT 1
+      `, [center.id, center.center_code, center.name, center.email]);
 
-    // Send real-time notification to Super Admin instantly
+      if (existingApp && existingApp.length > 0) {
+        await db.query(`
+          UPDATE franchise_applications SET
+            center_id = ?,
+            center_code = ?,
+            certificate_status = 'pending',
+            certificate_claim_date = NOW()
+          WHERE id = ?
+        `, [center.id, center.center_code, existingApp[0].id]);
+      } else {
+        const rawHead = (center.name || 'Center Director').trim();
+        const headParts = rawHead.split(/\s+/);
+        const firstName = headParts[0] || 'Center';
+        const lastName = headParts.length > 1 ? headParts.slice(1).join(' ') : 'Director';
+
+        await db.query(`
+          INSERT INTO franchise_applications (
+            center_id, center_code, center_head_first_name, center_head_last_name,
+            phone, email, center_name, status, certificate_status, certificate_claim_date, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'Approved', 'pending', NOW(), NOW())
+        `, [center.id, center.center_code, firstName, lastName, center.phone || '', center.email || '', center.name]);
+      }
+    } catch (appErr) {
+      console.warn('[CenterService] Syncing claim to franchise_applications error:', appErr);
+    }
+
+    // Send real-time notification & event to Super Admin instantly
+    const title = isReminder
+      ? '🔔 Center Certificate Claim Reminder'
+      : '📜 Center Certificate Claim Request';
+    const message = isReminder
+      ? `<strong>${center.name}</strong> (Code: <b>${center.center_code || center.id}</b>) has submitted an expedited <strong>reminder / re-request</strong> to unlock their Affiliation Certificate.`
+      : `<strong>${center.name}</strong> has submitted a claim for their official Affiliation Certificate.`;
+
+    const certTargetLink = `/admin/franchise-requests?tab=cert_claims&search=${encodeURIComponent(center.center_code || center.name || '')}`;
     await realtimeService.notifyAdmin(
-      '📜 Center Certificate Claim Request',
-      `<strong>${center.name}</strong> has submitted a claim for their official Affiliation Certificate.`,
+      title,
+      message,
       'certificate_claimed',
-      { centerId: center.id, centerName: center.name }
+      { centerId: center.id, centerName: center.name, isReminder },
+      certTargetLink
     ).catch(err => console.error('[Realtime] Failed to notify admin of certificate claim:', err));
+
+    realtimeService.emitToAdmin('certificate-updated', { centerId: center.id, status: 'pending' });
+    realtimeService.emitToAdmin('franchise-updated', { centerId: center.id, status: 'pending' });
 
     return {
       success: true,
       status: 'pending',
-      message: 'Certificate claim request submitted to Super Admin for verification.'
+      message: isReminder
+        ? 'Priority reminder & re-request sent to Super Admin! Check Certificate Claims.'
+        : 'Certificate claim request submitted to Super Admin for verification.'
     };
   },
 
@@ -1020,11 +1070,13 @@ export const centerService = {
     } catch (_) {}
 
     // Send real-time notification to Super Admin instantly
+    const certTargetLink = `/admin/franchise-requests?tab=cert_claims&search=${encodeURIComponent(center.center_code || center.name || '')}`;
     await realtimeService.notifyAdmin(
       '📋 Demanded Documents Resubmitted',
       `<strong>${center.name}</strong> has uploaded ${newSavedDocs.length} requested verification document(s) for certificate approval.`,
       'certificate_resubmitted',
-      { centerId: center.id, centerName: center.name, count: newSavedDocs.length }
+      { centerId: center.id, centerName: center.name, count: newSavedDocs.length },
+      certTargetLink
     ).catch(err => console.error('[Realtime] Failed to notify admin of document resubmission:', err));
 
     return {
@@ -1691,6 +1743,20 @@ export const centerService = {
   },
 
   saveStudentMarks: async (studentId: string | number, marks: any[], centerId: string | number, isDateChangeCharge: boolean = false) => {
+    // If scheduling an exam (assigning an exam_date), verify course questions exist
+    const isSchedulingExam = (marks || []).some((m: any) => m.exam_date && String(m.exam_date).trim() !== '');
+    if (isSchedulingExam) {
+      const [stRows]: any = await db.query('SELECT courseId FROM students WHERE id = ?', [studentId]);
+      if (stRows && stRows.length > 0) {
+        const studentCourseId = stRows[0].courseId;
+        const [qCountRows]: any = await db.query('SELECT COUNT(*) as cnt FROM course_questions WHERE courseId = ?', [studentCourseId]);
+        const qCount = Number(qCountRows?.[0]?.cnt || 0);
+        if (qCount === 0) {
+          throw new Error('Cannot schedule exam! No exam questions have been added for this course yet. Please configure questions in Course Management first.');
+        }
+      }
+    }
+
     if (isDateChangeCharge) {
       const [centerRows]: any = await db.query('SELECT wallet_balance FROM centers WHERE id = ?', [centerId]);
       if (!centerRows || centerRows.length === 0) throw new Error('Center not found');

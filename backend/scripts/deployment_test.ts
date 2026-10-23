@@ -114,11 +114,11 @@ async function runDeploymentVerification() {
     return `Latency: ${latency}ms`;
   });
 
-  await recordTest('Database', 'Table Count (Exact 45 Tables Present)', async () => {
+  await recordTest('Database', 'Table Count (Exact 46 Tables Present)', async () => {
     const [rows]: any = await db.query('SHOW TABLES');
     const tableCount = rows.length;
-    if (tableCount !== 45) {
-      throw new Error(`Expected exactly 45 tables, found ${tableCount}`);
+    if (tableCount !== 46) {
+      throw new Error(`Expected exactly 46 tables, found ${tableCount}`);
     }
     return `Confirmed ${tableCount} tables in database`;
   });
@@ -170,10 +170,10 @@ async function runDeploymentVerification() {
     
     const content = fs.readFileSync(filePath, 'utf8');
     const createMatches = content.match(/CREATE TABLE `[^`]+`/g) || [];
-    if (createMatches.length !== 45) {
-      throw new Error(`Expected 45 CREATE TABLE statements in migration SQL, found ${createMatches.length}`);
+    if (createMatches.length !== 46) {
+      throw new Error(`Expected 46 CREATE TABLE statements in migration SQL, found ${createMatches.length}`);
     }
-    return `File size: ${(stat.size / 1024).toFixed(1)} KB, 45 table definitions verified`;
+    return `File size: ${(stat.size / 1024).toFixed(1)} KB, 46 table definitions verified`;
   });
 
   await recordTest('Migration', 'Zero sensitive mock/test data in migration SQL', async () => {
@@ -262,10 +262,10 @@ async function runDeploymentVerification() {
     });
     if (res.statusCode !== 200) throw new Error(`Expected 200, got ${res.statusCode}: ${res.body}`);
     const json = JSON.parse(res.body);
-    if (!json.success || json.tablesOptimized !== 45) {
-      throw new Error(`Expected 45 tables optimized, got: ${json.tablesOptimized}`);
+    if (!json.success || json.tablesOptimized !== 46) {
+      throw new Error(`Expected 46 tables optimized, got: ${json.tablesOptimized}`);
     }
-    return `Optimized all 45 tables in ${json.durationMs}ms`;
+    return `Optimized all 46 tables in ${json.durationMs}ms`;
   });
 
   // ----------------------------------------------------------------

@@ -192,23 +192,44 @@ const FranchiseRequirements = () => {
         }}
       />
       
-      {/* 1. Header Banner */}
-      <section className="bg-slate-900 text-white py-14 px-4 relative overflow-hidden border-b-2 border-slate-800">
-        <div className="max-w-6xl mx-auto text-center relative z-10 space-y-4">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-400 text-slate-950 shadow-md">
-            <Sparkles size={14} />
+      {/* 1. Header Banner with Apple Compact Height & Motion */}
+      <section className="bg-slate-950 text-white py-4 sm:py-5 px-4 relative overflow-hidden border-b border-slate-800/80">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent" />
+        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-1.5">
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-amber-400 text-slate-950 shadow-md"
+          >
+            <Sparkles size={12} />
             <span>Authorized Study Center Affiliation 2026-27</span>
-          </div>
+          </motion.div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white">
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white"
+          >
             Franchise & Affiliation Requirements
-          </h1>
+          </motion.h1>
 
-          <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className="text-xs sm:text-[13px] text-slate-300 max-w-2xl mx-auto leading-normal"
+          >
             Partner with Examirror to launch an authorized computer and vocational skill development institute in your city or town with zero franchise fee.
-          </p>
+          </motion.p>
 
-          <div className="pt-4 flex flex-wrap justify-center gap-3">
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            className="pt-1 flex flex-wrap justify-center gap-2.5"
+          >
             <Link
               to="/franchise/register"
               className="btn-3d-amber px-7 py-3 text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer"
@@ -223,7 +244,7 @@ const FranchiseRequirements = () => {
               <PhoneCall size={14} />
               <span>Talk to Affiliation Officer</span>
             </Link>
-          </div>
+          </motion.div>
         </div>
       </section>
 

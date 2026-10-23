@@ -126,10 +126,10 @@ class RealtimeService {
   /**
    * Convenience helper: Creates DB notification and pushes real-time event to Super Admin
    */
-  public async notifyAdmin(title: string, message: string, eventType: string = 'info', extraData: any = {}) {
+  public async notifyAdmin(title: string, message: string, eventType: string = 'info', extraData: any = {}, linkUrl: string | null = null) {
     let notificationId: number | null = null;
     try {
-      notificationId = await notificationService.createNotification('admin', null, title, message, eventType);
+      notificationId = await notificationService.createNotification('admin', null, title, message, eventType, null, linkUrl);
     } catch (err) {
       console.error('[Realtime] Failed to write admin notification to DB:', err);
     }
@@ -140,6 +140,7 @@ class RealtimeService {
       title,
       message,
       type: eventType,
+      link_url: linkUrl,
       extraData,
       created_at: new Date().toISOString()
     };
@@ -158,10 +159,10 @@ class RealtimeService {
   /**
    * Convenience helper: Creates DB notification and pushes real-time event to Center
    */
-  public async notifyCenter(centerId: number | null, title: string, message: string, eventType: string = 'info', extraData: any = {}) {
+  public async notifyCenter(centerId: number | null, title: string, message: string, eventType: string = 'info', extraData: any = {}, linkUrl: string | null = null) {
     let notificationId: number | null = null;
     try {
-      notificationId = await notificationService.createNotification('center', centerId, title, message, eventType);
+      notificationId = await notificationService.createNotification('center', centerId, title, message, eventType, null, linkUrl);
     } catch (err) {
       console.error(`[Realtime] Failed to write center notification to DB for center ${centerId}:`, err);
     }
@@ -173,6 +174,7 @@ class RealtimeService {
       title,
       message,
       type: eventType,
+      link_url: linkUrl,
       extraData,
       created_at: new Date().toISOString()
     };

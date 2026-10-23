@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   Search,
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import DeleteConfirmCaptchaModal from '../../components/DeleteConfirmCaptchaModal';
+import { useDebounce } from '../../hooks/useDebounce';
 
 interface StudentData {
   id: number;
@@ -55,6 +56,7 @@ const AdminStudents = () => {
   const [students, setStudents] = useState<StudentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [selectedCenter, setSelectedCenter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewingStudent, setViewingStudent] = useState<StudentData | null>(null);
@@ -112,21 +114,25 @@ const AdminStudents = () => {
   // Get unique centers for filter dropdown
   const uniqueCenters = Array.from(new Set(students.map(s => s.centerName).filter(Boolean)));
 
-  const filtered = students.filter(s => {
-    const term = searchTerm.toLowerCase();
-    const matchesSearch =
-      `${s.firstName} ${s.lastName}`.toLowerCase().includes(term) ||
-      (s.enrollment_no && s.enrollment_no.toLowerCase().includes(term)) ||
-      (s.roll_no && s.roll_no.toLowerCase().includes(term)) ||
-      (s.phone && s.phone.includes(term)) ||
-      (s.centerName && s.centerName.toLowerCase().includes(term)) ||
-      (s.centerCode && s.centerCode.toLowerCase().includes(term));
+  // Memoized and debounced search/filter
+  const filtered = useMemo(() => {
+    const term = debouncedSearchTerm.toLowerCase().trim();
+    return students.filter(s => {
+      const matchesSearch =
+        !term ||
+        `${s.firstName} ${s.lastName}`.toLowerCase().includes(term) ||
+        (s.enrollment_no && s.enrollment_no.toLowerCase().includes(term)) ||
+        (s.roll_no && s.roll_no.toLowerCase().includes(term)) ||
+        (s.phone && s.phone.includes(term)) ||
+        (s.centerName && s.centerName.toLowerCase().includes(term)) ||
+        (s.centerCode && s.centerCode.toLowerCase().includes(term));
 
-    const matchesCenter = selectedCenter === 'all' || s.centerName === selectedCenter;
-    const matchesStatus = statusFilter === 'all' || s.academic_status === statusFilter;
+      const matchesCenter = selectedCenter === 'all' || s.centerName === selectedCenter;
+      const matchesStatus = statusFilter === 'all' || s.academic_status === statusFilter;
 
-    return matchesSearch && matchesCenter && matchesStatus;
-  });
+      return matchesSearch && matchesCenter && matchesStatus;
+    });
+  }, [students, debouncedSearchTerm, selectedCenter, statusFilter]);
 
   const formatImageSrc = (src?: string) => {
     if (!src) return '';

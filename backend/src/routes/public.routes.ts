@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import sharp from 'sharp';
 import { publicService } from '../services/public.service';
 import { adminService } from '../services/admin.service';
 import { saveBase64File } from '../utils/fileStorage';
@@ -57,13 +58,40 @@ router.post('/upload', (req, res, next) => {
 }, async (req, res) => {
   try {
     if (req.file) {
-      const url = `/uploads/branding/${req.file.filename}`;
-      const s3Key = `uploads/branding/${req.file.filename}`;
-      const s3Url = await uploadLocalFileToS3(req.file.path, s3Key);
-      if (s3Url && fs.existsSync(req.file.path)) {
+      let finalFilePath = req.file.path;
+      let finalFilename = req.file.filename;
+
+      // If uploaded file is an image and not already WebP, convert to WebP using sharp
+      const mime = req.file.mimetype.toLowerCase();
+      if (mime.startsWith('image/') && !mime.includes('svg') && !mime.includes('gif')) {
+        const cleanName = path.parse(req.file.filename).name;
+        const webpFilename = `${cleanName}.webp`;
+        const webpPath = path.join(brandingDir, webpFilename);
+
         try {
-          fs.unlinkSync(req.file.path);
-          console.log(`[S3-First] File uploaded directly to S3. Purged local copy: ${s3Key}`);
+          await sharp(req.file.path)
+            .webp({ quality: 82 })
+            .toFile(webpPath);
+
+          // Delete original non-webp file
+          if (fs.existsSync(req.file.path) && req.file.path !== webpPath) {
+            try { fs.unlinkSync(req.file.path); } catch (_) {}
+          }
+
+          finalFilePath = webpPath;
+          finalFilename = webpFilename;
+        } catch (sharpErr: any) {
+          console.warn('[Upload] Failed to convert image to WebP, keeping original:', sharpErr?.message);
+        }
+      }
+
+      const url = `/uploads/branding/${finalFilename}`;
+      const s3Key = `uploads/branding/${finalFilename}`;
+      const s3Url = await uploadLocalFileToS3(finalFilePath, s3Key);
+      if (s3Url && fs.existsSync(finalFilePath)) {
+        try {
+          fs.unlinkSync(finalFilePath);
+          console.log(`[S3-First] WebP file uploaded directly to S3. Purged local copy: ${s3Key}`);
         } catch (_) {}
       }
       return res.status(200).json({ 

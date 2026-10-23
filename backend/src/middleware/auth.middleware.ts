@@ -44,7 +44,8 @@ export const verifyAdmin = (req: Request, res: Response, next: NextFunction) => 
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as AuthenticatedUser;
-    if (decoded.role !== 'superadmin' && decoded.role !== 'admin') {
+    const role = String(decoded.role || '').toLowerCase().trim();
+    if (role !== 'superadmin' && role !== 'admin' && role !== 'super_admin' && role !== 'super admin') {
       return res.status(403).json({ success: false, message: 'Access denied: Super Admin privileges required.' });
     }
     req.user = decoded;
@@ -65,9 +66,10 @@ export const verifyCenterOrAdmin = async (req: Request, res: Response, next: Nex
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as AuthenticatedUser;
+    const userRole = String(decoded.role || '').toLowerCase().trim();
     
     // SuperAdmin can manage any center
-    if (decoded.role === 'superadmin' || decoded.role === 'admin') {
+    if (userRole === 'superadmin' || userRole === 'admin' || userRole === 'super_admin' || userRole === 'super admin') {
       req.user = decoded;
       return next();
     }
@@ -102,7 +104,8 @@ export const verifyCenterOrAdmin = async (req: Request, res: Response, next: Nex
           'courses', 'wallet', 'sample-csv', 'bulk-upload', 'id-cards-pdf', 
           'marksheet-pdf', 'certificate-pdf', 'diploma-pdf', 'students', 
           'admit-cards-pdf', 'edit-requests', 'settings', 'all-admit-cards-pdf',
-          'franchise-certificate', 'bonafide-certificate', 'training-videos'
+          'franchise-certificate', 'bonafide-certificate', 'training-videos',
+          'free-tests', 'exams', 'online-test-quota'
         ];
         if (segments.length > 0 && !reservedWords.includes(segments[0])) {
           requestedCenterId = segments[0];

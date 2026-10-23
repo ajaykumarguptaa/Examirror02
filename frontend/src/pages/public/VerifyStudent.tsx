@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -22,10 +22,12 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import SEO from '../../components/SEO';
-import { QrCameraScannerModal } from '../../components/QrCameraScannerModal';
-import { StudentCertificateModal } from '../../components/StudentCertificateModal';
 import { calculateStudentAcademicGrade } from '../../utils/academicGrade';
 import { HoloBadge, Tilt3DCard } from '../../components/ui';
+
+// Lazy-loaded camera and certificate generator modals
+const QrCameraScannerModal = lazy(() => import('../../components/QrCameraScannerModal').then(m => ({ default: m.QrCameraScannerModal })));
+const StudentCertificateModal = lazy(() => import('../../components/StudentCertificateModal').then(m => ({ default: m.StudentCertificateModal })));
 
 interface VerifiedStudent {
   id: number;
@@ -168,11 +170,15 @@ const VerifyStudent = () => {
         }}
       />
 
-      <QrCameraScannerModal
-        isOpen={isCameraOpen}
-        onClose={() => setIsCameraOpen(false)}
-        onScanSuccess={handleScanSuccess}
-      />
+      {isCameraOpen && (
+        <Suspense fallback={null}>
+          <QrCameraScannerModal
+            isOpen={isCameraOpen}
+            onClose={() => setIsCameraOpen(false)}
+            onScanSuccess={handleScanSuccess}
+          />
+        </Suspense>
+      )}
 
       <div className="max-w-4xl mx-auto space-y-6">
 
@@ -311,6 +317,8 @@ const VerifyStudent = () => {
                     <img
                       src={formatImageSrc(student.photo_url) || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.firstName + ' ' + student.lastName)}&background=0f172a&color=fff`}
                       alt={student.firstName}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   </Tilt3DCard>
@@ -518,12 +526,14 @@ const VerifyStudent = () => {
 
       </div>
 
-      {/* Cloud Certificate Modal */}
+      {/* Cloud Certificate Modal (Lazy Loaded) */}
       {isCertModalOpen && student && (
-        <StudentCertificateModal
-          student={student as any}
-          onClose={() => setIsCertModalOpen(false)}
-        />
+        <Suspense fallback={null}>
+          <StudentCertificateModal
+            student={student as any}
+            onClose={() => setIsCertModalOpen(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

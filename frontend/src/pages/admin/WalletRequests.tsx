@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useDebounce } from '../../hooks/useDebounce';
+import { throttle } from '../../utils/throttleDebounce';
 import { 
   Wallet, 
   CheckCircle2, 
@@ -45,6 +47,7 @@ const WalletRequests = () => {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 250);
   const [copiedUtr, setCopiedUtr] = useState<string | null>(null);
   
   // Custom Toasts State
@@ -97,8 +100,8 @@ const WalletRequests = () => {
   useEffect(() => {
     fetchRequests();
 
-    // Instant SSE sync when wallet request created/modified
-    const handleWalletSync = () => fetchRequests(true);
+    // Throttled SSE & focus sync (at most once every 2 seconds)
+    const handleWalletSync = throttle(() => fetchRequests(true), 2000);
     window.addEventListener('wallet-updated', handleWalletSync);
     window.addEventListener('focus', handleWalletSync);
 
@@ -202,23 +205,34 @@ const WalletRequests = () => {
     }
   };
 
-  // Metrics
-  const pendingList = requests.filter(r => r.status === 'pending');
-  const approvedList = requests.filter(r => r.status === 'approved');
-  const rejectedList = requests.filter(r => r.status === 'rejected');
+  // Metrics (memoized)
+  const { pendingList, approvedList, rejectedList, pendingSum, approvedSum } = useMemo(() => {
+    const pending = requests.filter(r => r.status === 'pending');
+    const approved = requests.filter(r => r.status === 'approved');
+    const rejected = requests.filter(r => r.status === 'rejected');
+    const pSum = pending.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+    const aSum = approved.reduce((acc, curr) => acc + Number(curr.total_credited || curr.amount || 0), 0);
+    return {
+      pendingList: pending,
+      approvedList: approved,
+      rejectedList: rejected,
+      pendingSum: pSum,
+      approvedSum: aSum
+    };
+  }, [requests]);
 
-  const pendingSum = pendingList.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
-  const approvedSum = approvedList.reduce((acc, curr) => acc + Number(curr.total_credited || curr.amount || 0), 0);
-
-  const filtered = requests.filter(r => {
-    const term = searchTerm.toLowerCase();
-    const matchSearch = 
-      r.utr_number?.toLowerCase().includes(term) ||
-      r.centerName?.toLowerCase().includes(term) ||
-      r.centerCode?.toLowerCase().includes(term);
-
-    return matchSearch;
-  });
+  // Filtered requests (memoized with debouncedSearchTerm)
+  const filtered = useMemo(() => {
+    const term = debouncedSearchTerm.toLowerCase().trim();
+    if (!term) return requests;
+    return requests.filter(r => {
+      return (
+        r.utr_number?.toLowerCase().includes(term) ||
+        r.centerName?.toLowerCase().includes(term) ||
+        r.centerCode?.toLowerCase().includes(term)
+      );
+    });
+  }, [requests, debouncedSearchTerm]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 font-sans text-slate-800">

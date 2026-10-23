@@ -849,13 +849,13 @@ export const testSeriesService = {
         s.enrollment_no,
         t.title as test_title,
         ts.title as test_series_title,
-        cntr.name as centre_name,
-        cntr.center_code as centre_code
+        COALESCE(cntr.name, 'Direct Student') as centre_name,
+        COALESCE(cntr.center_code, 'DIRECT') as centre_code
       FROM test_attempts ta
       JOIN students s ON ta.student_id = s.id
       JOIN tests t ON ta.test_id = t.id
       JOIN test_series ts ON ta.test_series_id = ts.id
-      JOIN centers cntr ON s.centerId = cntr.id
+      LEFT JOIN centers cntr ON s.centerId = cntr.id
     `;
     const params: any[] = [];
     if (seriesId) {
@@ -1358,14 +1358,56 @@ export const testSeriesService = {
       ORDER BY display_order ASC, id ASC
     `, [testId]);
 
-    for (const q of questions) {
-      const [opts]: any = await db.query(`
+    const questionIds = questions.map((q: any) => q.id);
+    if (questionIds.length > 0) {
+      const [allOptions]: any = await db.query(`
         SELECT id, question_id, option_key, option_text
         FROM question_options
-        WHERE question_id = ?
+        WHERE question_id IN (?)
         ORDER BY option_key ASC
-      `, [q.id]);
-      q.options = opts;
+      `, [questionIds]);
+
+      const optMap = new Map<number, any[]>();
+      for (const opt of allOptions) {
+        const qId = Number(opt.question_id);
+        if (!optMap.has(qId)) optMap.set(qId, []);
+        optMap.get(qId)!.push(opt);
+      }
+
+      // Seeded pseudo-random generator so questions and options shuffle dynamically per attempt/retake,
+      // but remain 100% consistent if the student refreshes the browser during the same attempt.
+      const createPrng = (seed: number) => {
+        let s = (seed * 9301 + 49297) % 233280;
+        return () => {
+          s = (s * 9301 + 49297) % 233280;
+          return s / 233280;
+        };
+      };
+      const rng = createPrng(Number(attemptId) || 1);
+
+      // 1. Shuffle questions order for this attempt
+      for (let i = questions.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [questions[i], questions[j]] = [questions[j], questions[i]];
+      }
+
+      // 2. Shuffle options for each question and assign clean A, B, C, D display keys
+      const optionLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
+      for (const q of questions) {
+        const opts = optMap.get(Number(q.id)) || [];
+        for (let i = opts.length - 1; i > 0; i--) {
+          const j = Math.floor(rng() * (i + 1));
+          [opts[i], opts[j]] = [opts[j], opts[i]];
+        }
+        opts.forEach((o: any, idx: number) => {
+          o.option_key = optionLetters[idx] || String.fromCharCode(65 + idx);
+        });
+        q.options = opts;
+      }
+    } else {
+      for (const q of questions) {
+        q.options = [];
+      }
     }
 
     // Fetch any previously saved answers for this active attempt
@@ -1417,7 +1459,7 @@ export const testSeriesService = {
     const [dbQuestions]: any = await db.query(`
       SELECT q.id, q.marks, q.negative_marks, qo.option_key as correct_key
       FROM questions q
-      JOIN question_options qo ON q.id = qo.question_id AND qo.is_correct = TRUE
+      LEFT JOIN question_options qo ON q.id = qo.question_id AND qo.is_correct = TRUE
       WHERE q.test_id = ?
     `, [attempt.test_id]);
 
@@ -1458,26 +1500,26 @@ export const testSeriesService = {
       const studentAns = answerMap.get(qId);
       const qOptions = optionsByQuestion.get(qId) || [];
 
-      // Determine selected option key: either from option key or resolved from option id
+      // Determine selected option and correctness
+      const optId = Number(studentAns?.selectedOptionId || studentAns?.selected_option_id || studentAns?.optionId || studentAns?.option_id);
       let selectedKey: string | null = studentAns?.selectedOptionKey || studentAns?.selected_option_key || studentAns?.optionKey || studentAns?.option_key || null;
-      if (!selectedKey) {
-        const optId = Number(studentAns?.selectedOptionId || studentAns?.selected_option_id || studentAns?.optionId || studentAns?.option_id);
-        if (!isNaN(optId) && optId > 0) {
-          const matched = qOptions.find((o: any) => Number(o.id) === optId);
-          if (matched) {
-            selectedKey = matched.option_key;
+      const isMarked = Boolean(studentAns?.isMarkedForReview || studentAns?.is_marked_for_review);
+      const timeSpent = Number(studentAns?.timeSpentSeconds || studentAns?.time_spent_seconds || 0);
+      let isCorrect = false;
+
+      if (!isNaN(optId) && optId > 0) {
+        const matched = qOptions.find((o: any) => Number(o.id) === optId);
+        if (matched) {
+          selectedKey = matched.option_key;
+          if (matched.is_correct === 1 || matched.is_correct === true || String(matched.is_correct) === '1') {
+            isCorrect = true;
           }
         }
       }
 
-      const isMarked = Boolean(studentAns?.isMarkedForReview || studentAns?.is_marked_for_review);
-      const timeSpent = Number(studentAns?.timeSpentSeconds || studentAns?.time_spent_seconds || 0);
-
-      let isCorrect = false;
-
-      if (!selectedKey) {
+      if (!selectedKey && (!optId || isNaN(optId))) {
         unansweredCount++;
-      } else if (String(selectedKey).trim().toUpperCase() === String(q.correct_key).trim().toUpperCase()) {
+      } else if (isCorrect || (selectedKey && String(selectedKey).trim().toUpperCase() === String(q.correct_key).trim().toUpperCase())) {
         isCorrect = true;
         correctCount++;
         marksObtained += Number(q.marks || 2.0);
@@ -1511,9 +1553,14 @@ export const testSeriesService = {
     `, [attempt.test_id, finalScore]);
     const dynamicRank = (betterAttempts[0]?.cnt || 0) + 1;
 
-    // 3. Calculate duration and update attempt record
-    const startedAtTime = attempt.started_at ? new Date(attempt.started_at).getTime() : Date.now();
-    const durationSeconds = Math.max(1, Math.round((Date.now() - startedAtTime) / 1000));
+    // 3. Calculate accurate duration directly via MySQL TIMESTAMPDIFF to eliminate timezone offset issues
+    const maxDurationSec = Math.max(60, (Number(attempt.duration_minutes) || 60) * 60);
+    const [diffResult]: any = await db.query(`
+      SELECT GREATEST(1, LEAST(?, TIMESTAMPDIFF(SECOND, started_at, CURRENT_TIMESTAMP))) as duration_sec
+      FROM test_attempts
+      WHERE id = ?
+    `, [maxDurationSec, attemptId]);
+    const durationSeconds = Number(diffResult[0]?.duration_sec) || 60;
 
     await db.query(`
       UPDATE test_attempts
@@ -1587,12 +1634,12 @@ export const testSeriesService = {
         s.firstName as student_first_name,
         s.lastName as student_last_name,
         s.enrollment_no,
-        cntr.name as centre_name
+        COALESCE(cntr.name, 'National Portal') as centre_name
       FROM test_attempts ta
       JOIN tests t ON ta.test_id = t.id
       JOIN test_series ts ON ta.test_series_id = ts.id
       JOIN students s ON ta.student_id = s.id
-      JOIN centers cntr ON s.centerId = cntr.id
+      LEFT JOIN centers cntr ON s.centerId = cntr.id
       WHERE ta.id = ? AND ta.student_id = ?
     `, [attemptId, studentId]);
 
@@ -1617,14 +1664,29 @@ export const testSeriesService = {
       ORDER BY q.display_order ASC, q.id ASC
     `, [attemptId, attempt.test_id]);
 
-    for (const q of questions) {
-      const [options]: any = await db.query(`
+    const scorecardQIds = questions.map((q: any) => q.id);
+    if (scorecardQIds.length > 0) {
+      const [allOptions]: any = await db.query(`
         SELECT id, question_id, option_key, option_text, is_correct
         FROM question_options
-        WHERE question_id = ?
+        WHERE question_id IN (?)
         ORDER BY option_key ASC
-      `, [q.id]);
-      q.options = options;
+      `, [scorecardQIds]);
+
+      const optMap = new Map<number, any[]>();
+      for (const opt of allOptions) {
+        const qId = Number(opt.question_id);
+        if (!optMap.has(qId)) optMap.set(qId, []);
+        optMap.get(qId)!.push(opt);
+      }
+
+      for (const q of questions) {
+        q.options = optMap.get(Number(q.id)) || [];
+      }
+    } else {
+      for (const q of questions) {
+        q.options = [];
+      }
     }
 
     // Fetch earned achievements

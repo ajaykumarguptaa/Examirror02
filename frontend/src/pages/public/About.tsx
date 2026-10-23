@@ -112,19 +112,35 @@ const About = () => {
           }
         }}
       />
-      {/* Header Banner */}
-      <section className="bg-slate-900 text-white py-14 sm:py-16 text-center relative overflow-hidden border-b border-slate-800">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-1.5 bg-blue-500/10 border border-blue-400/20 text-blue-300 px-3 py-1 rounded-full text-xs font-semibold">
-            <ShieldCheck size={14} />
+      {/* Header Banner with Apple Compact Height & Motion */}
+      <section className="bg-slate-950 text-white py-4 sm:py-5 text-center relative overflow-hidden border-b border-slate-800/80">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-500/15 via-transparent to-transparent" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 space-y-1.5">
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="inline-flex items-center gap-1.5 bg-blue-500/10 border border-blue-400/20 text-blue-300 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
+          >
+            <ShieldCheck size={13} />
             <span>National Skill Development & Vocational Training</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight"
+          >
             {pageTitle}
-          </h1>
-          <p className="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className="text-slate-300 text-xs sm:text-[13px] max-w-2xl mx-auto leading-normal"
+          >
             {pageData?.header?.subtitle || DEFAULT_ABOUT_DATA.header.subtitle}
-          </p>
+          </motion.p>
         </div>
       </section>
 
@@ -143,6 +159,8 @@ const About = () => {
                 <img
                   src={overviewImage}
                   alt="About Examirror"
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -215,6 +233,8 @@ const About = () => {
                     <img
                       src={member.imageUrl}
                       alt={member.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover object-top"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src =

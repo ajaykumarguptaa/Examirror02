@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDebounce } from '../../hooks/useDebounce';
 import { 
   Building2, 
   Users, 
@@ -191,6 +192,7 @@ const AdminDashboard = () => {
   const [announcementForm, setAnnouncementForm] = useState({ title: '', message: '', expiryDate: '' });
   const [announcementSubmitting, setAnnouncementSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 250);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [showAnalyticsTab, setShowAnalyticsTab] = useState<'overview' | 'analytics'>('overview');
 
@@ -482,8 +484,10 @@ const AdminDashboard = () => {
 
     try {
       setIsUpdatingPassword(true);
-      const res = await axios.post(`http://localhost:3000/api/admin/centers/${passwordModalCenter.id}/password`, {
-        newPassword
+      const centerIdentifier = passwordModalCenter.id || passwordModalCenter.center_code;
+      const res = await axios.post(`/api/admin/centers/${centerIdentifier}/password`, {
+        newPassword,
+        password: newPassword
       });
 
       if (res.data.success) {
@@ -503,11 +507,15 @@ const AdminDashboard = () => {
     }
   };
 
-  const filteredCenters = centers.filter(c => 
-    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.center_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCenters = useMemo(() => {
+    const term = debouncedSearchTerm.toLowerCase().trim();
+    if (!term) return centers;
+    return centers.filter(c => 
+      c.name?.toLowerCase().includes(term) ||
+      c.center_code?.toLowerCase().includes(term) ||
+      c.email?.toLowerCase().includes(term)
+    );
+  }, [centers, debouncedSearchTerm]);
 
   // Sample data fallback for charts if zero entries
   const monthlyChartData = analytics?.monthlyAdmissions && analytics.monthlyAdmissions.length > 0 

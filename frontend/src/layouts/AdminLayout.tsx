@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -30,8 +30,12 @@ import {
 import axios from 'axios';
 import NotificationBell from '../components/common/NotificationBell';
 import { RealtimeNotificationProvider } from '../context/RealtimeNotificationContext';
-import { AuthoritySignatureModal } from '../components/admin/AuthoritySignatureModal';
+import { throttle } from '../utils/throttleDebounce';
 import SEO from '../components/SEO';
+
+const AuthoritySignatureModal = React.lazy(() =>
+  import('../components/admin/AuthoritySignatureModal').then(m => ({ default: m.AuthoritySignatureModal }))
+);
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -52,13 +56,14 @@ const AdminLayout = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
+    localStorage.removeItem('admin_token');
     sessionStorage.removeItem('adminToken');
     navigate('/login/admin');
   };
 
   // Super Admin Authentication Guard
   useEffect(() => {
-    const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+    const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken') || localStorage.getItem('admin_token');
     if (!token) {
       navigate('/login/admin', { replace: true });
     }
@@ -118,10 +123,11 @@ const AdminLayout = () => {
 
     checkPendingRequests();
     
-    // Realtime SSE Event listeners - instant 0.01s sync when data changes
-    const handleRealtimeSync = () => {
+    // Throttled Realtime SSE & window focus handler to prevent event storms
+    const handleRealtimeSync = throttle(() => {
       checkPendingRequests();
-    };
+    }, 2000);
+
     window.addEventListener('franchise-updated', handleRealtimeSync);
     window.addEventListener('wallet-updated', handleRealtimeSync);
     window.addEventListener('contact-updated', handleRealtimeSync);
@@ -177,6 +183,13 @@ const AdminLayout = () => {
       highlight: pendingContactCount > 0
     },
     {
+      to: '/admin/settings/home',
+      label: 'Website & Hero Customizer',
+      icon: Globe,
+      badge: 'New Slider',
+      highlight: true
+    },
+    {
       to: '/admin/centers/create',
       label: 'Create Center',
       icon: Building2
@@ -217,11 +230,6 @@ const AdminLayout = () => {
       to: '/admin/audit-logs',
       label: 'Security & Audit Logs',
       icon: ShieldCheck
-    },
-    {
-      to: '/admin/settings/home',
-      label: 'Page Customization',
-      icon: Globe
     }
   ];
 
@@ -366,8 +374,8 @@ const AdminLayout = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* Header Ribbon */}
-        <header className="h-14 sm:h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-6 z-10 shrink-0 gap-2">
+        {/* Header Ribbon with Apple Frosted Glass */}
+        <header className="h-14 sm:h-16 apple-glass border-b border-white/60 flex items-center justify-between px-3 sm:px-6 z-10 shrink-0 gap-2 transition-all duration-300">
           <div className="flex items-center gap-2 min-w-0">
             {/* Mobile Hamburger Button */}
             <button
@@ -438,6 +446,16 @@ const AdminLayout = () => {
               </span>
             </Link>
 
+            {/* Quick Website Customizer Shortcut */}
+            <Link
+              to="/admin/settings/home"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-all cursor-pointer shadow-2xs active:scale-95"
+              title="Super Admin Website & Hero Slider Customizer"
+            >
+              <Globe size={13} className="text-indigo-600" />
+              <span>Customize Website</span>
+            </Link>
+
             {/* Authority E-Signature Settings */}
             <button
               type="button"
@@ -476,10 +494,14 @@ const AdminLayout = () => {
       </div>
 
       {/* Super Admin Authority Signature Modal */}
-      <AuthoritySignatureModal
-        isOpen={isAuthorityModalOpen}
-        onClose={() => setIsAuthorityModalOpen(false)}
-      />
+      {isAuthorityModalOpen && (
+        <Suspense fallback={null}>
+          <AuthoritySignatureModal
+            isOpen={isAuthorityModalOpen}
+            onClose={() => setIsAuthorityModalOpen(false)}
+          />
+        </Suspense>
+      )}
 
       </div>
     </RealtimeNotificationProvider>

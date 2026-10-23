@@ -66,6 +66,8 @@ const handleGetCategories = async (req: Request, res: Response) => {
 };
 router.get('/admin/categories', handleGetCategories);
 router.get('/admin/test-series/categories', handleGetCategories);
+router.get('/public/categories', handleGetCategories);
+router.get('/categories', handleGetCategories);
 
 const handleCreateCategory = async (req: Request, res: Response) => {
   try {
@@ -405,6 +407,8 @@ const handleStudentAvailable = async (req: Request, res: Response) => {
 };
 router.get('/student/available', handleStudentAvailable);
 router.get('/student/test-series/available', handleStudentAvailable);
+router.get('/public/featured', handleStudentAvailable);
+router.get('/public/list', handleStudentAvailable);
 
 // 2. My Enrolled Series
 const handleStudentMySeries = async (req: Request, res: Response) => {

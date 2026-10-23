@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import axios from 'axios';
 import { 
   Download, User, MapPin, Phone, Award, CreditCard, Calendar, CheckCircle, 
@@ -8,14 +8,17 @@ import {
   Hash, UserCheck, RotateCcw, Crown, HelpCircle, BookmarkCheck, Layers, Lock as LockIcon
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { StudentIdCardModal } from '../../components/StudentIdCardModal';
-import { StudentMarksheetModal } from '../../components/StudentMarksheetModal';
-import { StudentCertificateModal } from '../../components/StudentCertificateModal';
-import { AntiPiracyStudyMaterialModal } from '../../components/AntiPiracyStudyMaterialModal';
-import { StudyMaterialPaymentModal } from '../../components/StudyMaterialPaymentModal';
 import { FadeUp, StaggerContainer, StaggerItem } from '../../motion';
 import { getAssetUrl } from '../../utils/axiosSetup';
 import toast from 'react-hot-toast';
+import { LazyImage } from '../../components/ui/LazyImage';
+
+// Code-split heavy modals (loads only when clicked)
+const StudentIdCardModal = lazy(() => import('../../components/StudentIdCardModal').then(m => ({ default: m.StudentIdCardModal })));
+const StudentMarksheetModal = lazy(() => import('../../components/StudentMarksheetModal').then(m => ({ default: m.StudentMarksheetModal })));
+const StudentCertificateModal = lazy(() => import('../../components/StudentCertificateModal').then(m => ({ default: m.StudentCertificateModal })));
+const AntiPiracyStudyMaterialModal = lazy(() => import('../../components/AntiPiracyStudyMaterialModal').then(m => ({ default: m.AntiPiracyStudyMaterialModal })));
+const StudyMaterialPaymentModal = lazy(() => import('../../components/StudyMaterialPaymentModal').then(m => ({ default: m.StudyMaterialPaymentModal })));
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -113,7 +116,7 @@ const StudentDashboard = () => {
     );
   }
 
-  const daysOfWeek = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const isCenterStudent = Boolean(student?.centerId && Number(student?.is_direct_student) !== 1);
 
   return (
     <div className="w-full space-y-6 pb-12">
@@ -140,105 +143,141 @@ const StudentDashboard = () => {
 
               <div>
                 <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                  <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded-md text-[11px] font-semibold border border-slate-200">
-                    {student?.courseName || 'Vocational Course'}
-                  </span>
-                  <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-md text-[11px] font-semibold border border-emerald-200 flex items-center gap-1">
-                    <ShieldCheck size={12} /> {student?.centerName || 'Active Center'}
-                  </span>
+                  {student?.is_direct_student ? (
+                    <>
+                      <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-[11px] font-bold border border-indigo-200 flex items-center gap-1 shadow-2xs">
+                        <Sparkles size={12} className="text-amber-500" /> Direct Candidate
+                      </span>
+                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-md text-[11px] font-semibold border border-emerald-200 flex items-center gap-1">
+                        <CheckCircle2 size={12} /> Verified via OTP
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded-md text-[11px] font-semibold border border-slate-200">
+                        {student?.courseName || 'Vocational Course'}
+                      </span>
+                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-md text-[11px] font-semibold border border-emerald-200 flex items-center gap-1">
+                        <ShieldCheck size={12} /> {student?.centerName || 'Active Center'}
+                      </span>
+                    </>
+                  )}
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
                   Welcome back, {student?.firstName} {student?.lastName}
                 </h2>
                 <p className="mt-0.5 text-xs text-slate-500 font-medium">
-                  Student Roll / ID: <span className="font-mono text-slate-800 font-semibold">{student?.id_number || `STU${student?.id}`}</span>
+                  Candidate Roll / ID: <span className="font-mono text-slate-800 font-semibold">{student?.roll_no || student?.id_number || `STU${student?.id}`}</span>
                 </p>
               </div>
             </div>
 
             {/* Quick Action Buttons */}
             <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto shrink-0">
-              <button 
-                type="button"
-                onClick={() => setShowIdCardModal(true)}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95"
-              >
-                <CreditCard size={14} className="text-slate-500" />
-                <span>ID Card</span>
-              </button>
+              {!isCenterStudent ? (
+                <>
+                  <button 
+                    type="button"
+                    onClick={() => navigate('/student/test-series')}
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+                  >
+                    <Trophy size={14} className="text-amber-300" />
+                    <span>Open Test Series Hub</span>
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => navigate('/student/test-series')}
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95"
+                  >
+                    <Target size={14} className="text-indigo-600" />
+                    <span>My Test Mocks</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    type="button"
+                    onClick={() => setShowIdCardModal(true)}
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95"
+                  >
+                    <CreditCard size={14} className="text-slate-500" />
+                    <span>ID Card</span>
+                  </button>
 
-              <button 
-                type="button"
-                onClick={async () => {
-                  try {
-                    const token = localStorage.getItem('studentToken');
-                    const toastId = toast.loading('Generating official Admit Card PDF...');
-                    const res = await axios.get('http://localhost:3000/api/student/admit-card', {
-                      headers: { Authorization: `Bearer ${token}` },
-                      responseType: 'blob'
-                    });
-                    const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.setAttribute('download', `Admit_Card_${student?.roll_no || student?.id}.pdf`);
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                    toast.success('Admit Card downloaded successfully!', { id: toastId });
-                  } catch (err: any) {
-                    toast.error('Failed to download Admit Card. Please try again.');
-                  }
-                }}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95"
-              >
-                <FileText size={14} className="text-indigo-600" />
-                <span>Admit Card</span>
-              </button>
+                  <button 
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const token = localStorage.getItem('studentToken');
+                        const toastId = toast.loading('Generating official Admit Card PDF...');
+                        const res = await axios.get('http://localhost:3000/api/student/admit-card', {
+                          headers: { Authorization: `Bearer ${token}` },
+                          responseType: 'blob'
+                        });
+                        const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', `Admit_Card_${student?.roll_no || student?.id}.pdf`);
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        toast.success('Admit Card downloaded successfully!', { id: toastId });
+                      } catch (err: any) {
+                        toast.error('Failed to download Admit Card. Please try again.');
+                      }
+                    }}
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95"
+                  >
+                    <FileText size={14} className="text-indigo-600" />
+                    <span>Admit Card</span>
+                  </button>
 
-              <button 
-                type="button"
-                onClick={() => {
-                  const isReady = certificateInfo?.isReady || 
-                    student?.certificate_status === 'generated' || 
-                    student?.certificate_status === 'issued' || 
-                    (scheduledExams.length > 0 && scheduledExams.every((e: any) => e.status === 'completed'));
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const isReady = certificateInfo?.isReady || 
+                        student?.certificate_status === 'generated' || 
+                        student?.certificate_status === 'issued' || 
+                        (scheduledExams.length > 0 && scheduledExams.every((e: any) => e.status === 'completed'));
 
-                  if (isReady) {
-                    setShowCertificateModal(true);
-                  } else {
-                    const totalSems = scheduledExams.length || 1;
-                    const completedSems = scheduledExams.filter((e: any) => e.status === 'completed').length;
-                    setInfoModal({
-                      isOpen: true,
-                      title: 'Certificate Eligibility Status',
-                      message: `Your course certificate is generated upon successful completion of all semester examinations and fee clearance.\n\n• Semester Progress: ${completedSems} of ${totalSems} Exams Completed\n• Course Fee: ₹${student?.course_fee || '0.00'} (Registered)\n\nPlease complete your remaining scheduled semester examination below to activate your official certificate.`,
-                      type: 'info'
-                    });
-                  }
-                }}
-                className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 border rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95 ${
-                  (student?.certificate_status === 'generated' || student?.certificate_status === 'issued' || certificateInfo?.isReady)
-                    ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
-                    : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
-                }`}
-              >
-                <Award size={14} className="text-amber-600" />
-                <span>Certificate</span>
-                {(student?.certificate_status === 'generated' || student?.certificate_status === 'issued' || certificateInfo?.isReady) && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                )}
-              </button>
+                      if (isReady) {
+                        setShowCertificateModal(true);
+                      } else {
+                        const totalSems = scheduledExams.length || 1;
+                        const completedSems = scheduledExams.filter((e: any) => e.status === 'completed').length;
+                        setInfoModal({
+                          isOpen: true,
+                          title: 'Certificate Eligibility Status',
+                          message: `Your course certificate is generated upon successful completion of all semester examinations and fee clearance.\n\n• Semester Progress: ${completedSems} of ${totalSems} Exams Completed\n• Course Fee: ₹${student?.course_fee || '0.00'} (Registered)\n\nPlease complete your remaining scheduled semester examination below to activate your official certificate.`,
+                          type: 'info'
+                        });
+                      }
+                    }}
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 border rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                      (student?.certificate_status === 'generated' || student?.certificate_status === 'issued' || certificateInfo?.isReady)
+                        ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <Award size={14} className="text-amber-600" />
+                    <span>Certificate</span>
+                    {(student?.certificate_status === 'generated' || student?.certificate_status === 'issued' || certificateInfo?.isReady) && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    )}
+                  </button>
 
-              {(student?.certificate_status === 'generated' || student?.certificate_status === 'issued' || scheduledExams.some((e: any) => (Number(e.is_marksheet_generated) === 1 || e.status === 'completed') && e.is_published_to_student !== 0)) ? (
-                <button 
-                  type="button"
-                  onClick={() => setShowMarksheetModal(true)}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-xs transition-all shadow-xs cursor-pointer active:scale-95"
-                >
-                  <Download size={14} />
-                  <span>Marksheet</span>
-                </button>
-              ) : null}
+                  {(student?.certificate_status === 'generated' || student?.certificate_status === 'issued' || scheduledExams.some((e: any) => (Number(e.is_marksheet_generated) === 1 || e.status === 'completed') && e.is_published_to_student !== 0)) ? (
+                    <button 
+                      type="button"
+                      onClick={() => setShowMarksheetModal(true)}
+                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-xs transition-all shadow-xs cursor-pointer active:scale-95"
+                    >
+                      <Download size={14} />
+                      <span>Marksheet</span>
+                    </button>
+                  ) : null}
+                </>
+              )}
             </div>
           </div>
 
@@ -487,137 +526,224 @@ const StudentDashboard = () => {
       {/* 4. MAIN TWO-COLUMN SECTION */}
       {/* ========================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Scheduled Semester Exams */}
-        <FadeUp delay={0.15}>
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-0 overflow-hidden flex flex-col h-full">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calendar className="text-indigo-600" size={17} />
-                <h3 className="font-bold text-slate-900 text-sm sm:text-base">Course Semester Exams</h3>
-                {scheduledExams.length > 0 && (
-                  <span className="px-1.5 py-0.2 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded-md border border-indigo-100">
-                    {scheduledExams.length}
-                  </span>
+        {/* Scheduled Semester Exams - ONLY VISIBLE TO CENTER LOGIN STUDENTS */}
+        {isCenterStudent ? (
+          <FadeUp delay={0.15}>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-0 overflow-hidden flex flex-col h-full">
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="text-indigo-600" size={17} />
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-base">Course Semester Exams</h3>
+                  {scheduledExams.length > 0 && (
+                    <span className="px-1.5 py-0.2 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded-md border border-indigo-100">
+                      {scheduledExams.length}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {scheduledExams.some((e: any) => Number(e.is_marksheet_generated) === 1 && e.is_published_to_student !== 0) && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md">
+                      Marksheet Available
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={fetchDashboardData}
+                    className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                    title="Reload Exam Schedules"
+                  >
+                    <RotateCcw size={14} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-5 flex-1 bg-white overflow-y-auto space-y-3">
+                {scheduledExams.length > 0 ? (
+                  scheduledExams.map((exam: any) => {
+                    const isCompleted = exam.status === 'completed';
+                    const isReExam = Number(exam.reattempts || 0) > 0;
+                    const isMarksheetHeld = Number(exam.is_marksheet_generated) === 1 && exam.is_published_to_student === 0;
+                    const written = Number(exam.written_marks) || 0;
+                    const viva = Number(exam.viva_marks) || 0;
+                    const total = written + viva;
+
+                    return (
+                      <div key={exam.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 text-[10px] font-bold rounded-md">
+                              {exam.semester || 'SEM 1'}
+                            </span>
+                            <span className="text-xs font-bold text-slate-900">{exam.courseName || student?.courseName}</span>
+                            {isCompleted && (
+                              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold rounded-md">
+                                Evaluated & Passed
+                              </span>
+                            )}
+                            {isMarksheetHeld && (
+                              <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold rounded-md flex items-center gap-1" title={exam.hold_reason || 'Marksheet held pending dues clearance'}>
+                                <LockIcon size={10} className="text-amber-600 shrink-0" />
+                                <span>Held: {exam.hold_reason || 'Dues Pending'}</span>
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="text-[11px] text-slate-500 flex items-center gap-3 flex-wrap">
+                            <span className="flex items-center gap-1">
+                              <Calendar size={12} className="text-slate-400" />
+                              {exam.exam_date ? new Date(exam.exam_date).toLocaleDateString('en-GB') : 'Scheduled'}
+                            </span>
+                            {isCompleted ? (
+                              <span className="font-semibold text-slate-800 font-mono flex items-center gap-1">
+                                <Target size={12} className="text-indigo-600" />
+                                Score: <strong className="text-indigo-700">{total}</strong> / 100 
+                                <span className="text-slate-400 font-normal text-[10px]"> (Written: {written}, Viva: {viva})</span>
+                              </span>
+                            ) : (
+                              <span className="text-amber-700 font-medium text-[10px] flex items-center gap-1">
+                                <Clock size={12} />
+                                Online Assessment Pending
+                              </span>
+                            )}
+                          </div>
+                          {isMarksheetHeld && (
+                            <div className="text-[10px] text-amber-900 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/80 font-medium">
+                              ⚠️ <strong>Notice from Study Center:</strong> {exam.hold_reason || 'Course fee or center dues pending clearance. Please contact center office.'}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                          {isCompleted ? (
+                            isMarksheetHeld ? (
+                              <button
+                                type="button"
+                                onClick={() => alert(`Your official marksheet is currently held.\n\nReason: ${exam.hold_reason || 'Course fee or center dues pending clearance.'}\n\nPlease contact your study center administration to clear dues and download your marksheet.`)}
+                                className="w-full sm:w-auto justify-center px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
+                                title="Marksheet held pending dues clearance"
+                              >
+                                <LockIcon size={13} className="text-amber-600 shrink-0" />
+                                <span>Marksheet Held</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setShowMarksheetModal(true)}
+                                className="w-full sm:w-auto justify-center px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+                              >
+                                <FileText size={13} className="text-emerald-600 shrink-0" />
+                                <span>Marksheet</span>
+                              </button>
+                            )
+                          ) : (
+                            <button 
+                              type="button"
+                              onClick={() => navigate(`/student/exam/${exam.id}`)}
+                              className="w-full sm:w-auto justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs whitespace-nowrap"
+                            >
+                              <PlayCircle size={14} className="shrink-0" /> {isReExam ? 'Give Re-Exam' : 'Start Exam'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-slate-400 py-12">
+                    <Calendar size={36} className="mb-2 text-slate-300" />
+                    <p className="font-semibold text-slate-700 text-xs sm:text-sm">No Semester Exams Scheduled</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Your study center will publish your semester test schedule here.</p>
+                  </div>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                {scheduledExams.some((e: any) => Number(e.is_marksheet_generated) === 1 && e.is_published_to_student !== 0) && (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md">
-                    Marksheet Available
+            </div>
+          </FadeUp>
+        ) : (
+          /* For Direct Student: Featured Mock Test Packs */
+          <FadeUp delay={0.15}>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-0 overflow-hidden flex flex-col h-full">
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="text-indigo-600" size={17} />
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-base">Recommended Mock Test Packs</h3>
+                  <span className="px-1.5 py-0.2 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-md border border-emerald-200">
+                    Live Mocks
                   </span>
-                )}
+                </div>
                 <button
                   type="button"
-                  onClick={fetchDashboardData}
-                  className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
-                  title="Reload Exam Schedules"
+                  onClick={() => navigate('/student/test-series')}
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer transition-colors"
                 >
-                  <RotateCcw size={14} />
+                  <span>Explore All</span>
+                  <ArrowRight size={13} />
                 </button>
               </div>
-            </div>
 
-            <div className="p-5 flex-1 bg-white overflow-y-auto space-y-3">
-              {scheduledExams.length > 0 ? (
-                scheduledExams.map((exam: any) => {
-                  const isCompleted = exam.status === 'completed';
-                  const isReExam = Number(exam.reattempts || 0) > 0;
-                  const isMarksheetHeld = Number(exam.is_marksheet_generated) === 1 && exam.is_published_to_student === 0;
-                  const written = Number(exam.written_marks) || 0;
-                  const viva = Number(exam.viva_marks) || 0;
-                  const total = written + viva;
-
-                  return (
-                    <div key={exam.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 text-[10px] font-bold rounded-md">
-                            {exam.semester || 'SEM 1'}
-                          </span>
-                          <span className="text-xs font-bold text-slate-900">{exam.courseName || student?.courseName}</span>
-                          {isCompleted && (
-                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold rounded-md">
-                              Evaluated & Passed
-                            </span>
-                          )}
-                          {isMarksheetHeld && (
-                            <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold rounded-md flex items-center gap-1" title={exam.hold_reason || 'Marksheet held pending dues clearance'}>
-                              <LockIcon size={10} className="text-amber-600 shrink-0" />
-                              <span>Held: {exam.hold_reason || 'Dues Pending'}</span>
-                            </span>
-                          )}
-                        </div>
-                        
-                        <div className="text-[11px] text-slate-500 flex items-center gap-3 flex-wrap">
-                          <span className="flex items-center gap-1">
-                            <Calendar size={12} className="text-slate-400" />
-                            {exam.exam_date ? new Date(exam.exam_date).toLocaleDateString('en-GB') : 'Scheduled'}
-                          </span>
-                          {isCompleted ? (
-                            <span className="font-semibold text-slate-800 font-mono flex items-center gap-1">
-                              <Target size={12} className="text-indigo-600" />
-                              Score: <strong className="text-indigo-700">{total}</strong> / 100 
-                              <span className="text-slate-400 font-normal text-[10px]"> (Written: {written}, Viva: {viva})</span>
-                            </span>
+              <div className="p-5 flex-1 bg-white overflow-y-auto space-y-3">
+                {featuredSeries.length > 0 ? (
+                  featuredSeries.slice(0, 4).map((series: any) => (
+                    <div
+                      key={series.id}
+                      className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:border-indigo-200 transition-all flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-200 shrink-0 bg-slate-100 flex items-center justify-center">
+                          {series.thumbnail_url ? (
+                            <img src={series.thumbnail_url} alt={series.title} className="w-full h-full object-cover" />
                           ) : (
-                            <span className="text-amber-700 font-medium text-[10px] flex items-center gap-1">
-                              <Clock size={12} />
-                              Online Assessment Pending
-                            </span>
+                            <BookOpen size={18} className="text-indigo-600" />
                           )}
                         </div>
-                        {isMarksheetHeld && (
-                          <div className="text-[10px] text-amber-900 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/80 font-medium">
-                            ⚠️ <strong>Notice from Study Center:</strong> {exam.hold_reason || 'Course fee or center dues pending clearance. Please contact center office.'}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-xs text-slate-900 line-clamp-1">{series.title}</h4>
+                            {Number(series.is_free) === 1 ? (
+                              <span className="px-1.5 py-0.2 bg-emerald-50 text-emerald-700 text-[9px] font-bold rounded border border-emerald-200">
+                                FREE
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.2 bg-indigo-50 text-indigo-700 text-[9px] font-bold rounded border border-indigo-200">
+                                ₹{Number(series.price || 0).toFixed(0)}
+                              </span>
+                            )}
                           </div>
-                        )}
+                          <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-2">
+                            <span>{series.target_exam || 'National Mock Exam'}</span>
+                            <span>•</span>
+                            <span>{series.tests_count || 1} Tests</span>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                        {isCompleted ? (
-                          isMarksheetHeld ? (
-                            <button
-                              type="button"
-                              onClick={() => alert(`Your official marksheet is currently held.\n\nReason: ${exam.hold_reason || 'Course fee or center dues pending clearance.'}\n\nPlease contact your study center administration to clear dues and download your marksheet.`)}
-                              className="w-full sm:w-auto justify-center px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
-                              title="Marksheet held pending dues clearance"
-                            >
-                              <LockIcon size={13} className="text-amber-600 shrink-0" />
-                              <span>Marksheet Held</span>
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setShowMarksheetModal(true)}
-                              className="w-full sm:w-auto justify-center px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
-                            >
-                              <FileText size={13} className="text-emerald-600 shrink-0" />
-                              <span>Marksheet</span>
-                            </button>
-                          )
-                        ) : (
-                          <button 
-                            type="button"
-                            onClick={() => navigate(`/student/exam/${exam.id}`)}
-                            className="w-full sm:w-auto justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs whitespace-nowrap"
-                          >
-                            <PlayCircle size={14} className="shrink-0" /> {isReExam ? 'Give Re-Exam' : 'Start Exam'}
-                          </button>
-                        )}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/student/test-series')}
+                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 transition-all shrink-0"
+                      >
+                        <PlayCircle size={13} />
+                        <span>Practice</span>
+                      </button>
                     </div>
-                  );
-                })
-              ) : (
-                <div className="flex flex-col items-center justify-center text-slate-400 py-12">
-                  <Calendar size={36} className="mb-2 text-slate-300" />
-                  <p className="font-semibold text-slate-700 text-xs sm:text-sm">No Semester Exams Scheduled</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Your study center will publish your semester test schedule here.</p>
-                </div>
-              )}
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-slate-400 py-10 space-y-2">
+                    <Trophy size={32} className="text-slate-300" />
+                    <p className="font-semibold text-slate-700 text-xs">National Test Series Hub</p>
+                    <p className="text-[11px] text-slate-400 text-center max-w-xs">Practice timed mock tests with All-India ranks and instant solutions.</p>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/student/test-series')}
+                      className="mt-2 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl cursor-pointer"
+                    >
+                      Browse All Test Series
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </FadeUp>
+          </FadeUp>
+        )}
 
         {/* Downloadable PDF Resources & Cheat Sheets */}
         <FadeUp delay={0.2}>
@@ -643,7 +769,12 @@ const StudentDashboard = () => {
                     <div className="flex items-center gap-3">
                       {item.thumbnail_url ? (
                         <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
-                          <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover" />
+                          <LazyImage
+                            src={item.thumbnail_url}
+                            alt={item.title}
+                            wrapperClassName="w-full h-full"
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                       ) : (
                         <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shrink-0">
@@ -706,7 +837,8 @@ const StudentDashboard = () => {
       </div>
 
       {/* ========================================================= */}
-      {/* 5. COMPLETE STUDENT PROFILE & ACADEMIC DOSSIER */}
+      {/* ========================================================= */}
+      {/* 5. COMPLETE STUDENT PROFILE & ACADEMIC DOSSIER / CANDIDATE PROFILE */}
       {/* ========================================================= */}
       <FadeUp delay={0.25}>
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-6">
@@ -718,8 +850,14 @@ const StudentDashboard = () => {
                 <UserCheck size={20} />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base sm:text-lg tracking-tight">Complete Student Profile & Academic Dossier</h3>
-                <p className="text-xs text-slate-500 font-normal">Verified Enrollment Records, Program Details, Personal Credentials & Center Affiliation</p>
+                <h3 className="font-bold text-slate-900 text-base sm:text-lg tracking-tight">
+                  {isCenterStudent ? 'Complete Student Profile & Academic Dossier' : 'Candidate Profile & Portal Access'}
+                </h3>
+                <p className="text-xs text-slate-500 font-normal">
+                  {isCenterStudent 
+                    ? 'Verified Enrollment Records, Program Details, Personal Credentials & Center Affiliation'
+                    : 'Verified Online Student Profile, Contact Information & Platform Access'}
+                </p>
               </div>
             </div>
 
@@ -728,268 +866,384 @@ const StudentDashboard = () => {
                 <BadgeCheck size={14} className="text-emerald-600" />
                 Status: {student?.status ? student.status.toUpperCase() : 'ACTIVE'}
               </span>
-              <span className="px-3 py-1 bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold rounded-lg font-mono">
-                Session: {student?.session_start || '2026'} - {student?.session_end || '2026'}
-              </span>
+              {isCenterStudent && (
+                <span className="px-3 py-1 bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold rounded-lg font-mono">
+                  Session: {student?.session_start || '2026'} - {student?.session_end || '2026'}
+                </span>
+              )}
             </div>
           </div>
 
-          {/* 4 Multi-Column Information Sections */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            
-            {/* 1. PERSONAL INFORMATION CARD */}
-            <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200/80 space-y-4">
-              <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-200/70">
-                <User size={15} />
-                <span>Personal Information</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Full Name</span>
-                  <p className="font-bold text-slate-900 text-sm">{student?.firstName} {student?.lastName}</p>
+          {!isCenterStudent ? (
+            /* DIRECT JOIN STUDENT: Clean 2-Card Layout (No unnecessary dummy center/course data) */
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* 1. PERSONAL & CONTACT INFORMATION */}
+              <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-200/70">
+                  <User size={15} />
+                  <span>Personal & Contact Information</span>
                 </div>
 
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Date of Birth</span>
-                  <p className="font-semibold text-slate-800">
-                    {student?.dob ? new Date(student.dob).toLocaleDateString('en-GB') : 'Not Specified'}
-                  </p>
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                  <div className="space-y-0.5 sm:col-span-2">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Full Name</span>
+                    <p className="font-bold text-slate-900 text-sm">
+                      {student?.firstName} {student?.lastName || ''}
+                    </p>
+                  </div>
 
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Father's Name</span>
-                  <p className="font-semibold text-slate-800">{student?.father_name || 'N/A'}</p>
-                </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Registered Email</span>
+                    <p className="font-semibold text-slate-800 truncate" title={student?.email}>
+                      {student?.email || 'N/A'}
+                    </p>
+                  </div>
 
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Mother's Name</span>
-                  <p className="font-semibold text-slate-800">{student?.mother_name || 'N/A'}</p>
-                </div>
-
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Gender</span>
-                  <p className="font-semibold text-slate-800 capitalize">{student?.gender || 'N/A'}</p>
-                </div>
-
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Category</span>
-                  <p className="font-semibold text-slate-800 uppercase">{student?.category || 'General'}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. ENROLLMENT & ACADEMIC CREDENTIALS */}
-            <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200/80 space-y-4">
-              <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-200/70">
-                <GraduationCap size={15} />
-                <span>Program & Enrollment Credentials</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="col-span-2 space-y-0.5 bg-white p-2.5 rounded-lg border border-slate-200/80">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Enrolled Course</span>
-                  <p className="font-bold text-slate-900 text-sm">{student?.courseName || 'Vocational Skill Certification'}</p>
-                </div>
-
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Roll No</span>
-                  <p className="font-mono font-bold text-indigo-700">{student?.roll_no || student?.id_number || `ROL-${student?.id}`}</p>
-                </div>
-
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Enrollment No</span>
-                  <p className="font-mono font-bold text-slate-900">{student?.enrollment_no || `ENR-2026-${student?.id}`}</p>
-                </div>
-
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Course Code & Duration</span>
-                  <p className="font-semibold text-slate-800">{student?.courseCode || 'VOC-101'} • {student?.courseDuration || '6 Months'}</p>
-                </div>
-
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Admission Date</span>
-                  <p className="font-semibold text-slate-800">
-                    {student?.created_at ? new Date(student.created_at).toLocaleDateString('en-GB') : '2026-09-27'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. CONTACT & RESIDENTIAL ADDRESS */}
-            <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200/80 space-y-4">
-              <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-200/70">
-                <Phone size={15} />
-                <span>Contact & Address</span>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-0.5">
                     <span className="text-[10px] font-semibold uppercase text-slate-400">Primary Mobile</span>
-                    <p className="font-mono font-bold text-slate-900">{student?.phone || 'N/A'}</p>
+                    <p className="font-mono font-bold text-slate-900">{student?.phone || 'Not Specified'}</p>
                   </div>
 
+                  {student?.dob && (
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-semibold uppercase text-slate-400">Date of Birth</span>
+                      <p className="font-semibold text-slate-800">
+                        {new Date(student.dob).toLocaleDateString('en-GB')}
+                      </p>
+                    </div>
+                  )}
+
+                  {student?.alternate_phone && (
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-semibold uppercase text-slate-400">Alternate Contact</span>
+                      <p className="font-mono font-semibold text-slate-800">{student.alternate_phone}</p>
+                    </div>
+                  )}
+
+                  {(student?.address || student?.city || student?.state) && (
+                    <div className="space-y-0.5 sm:col-span-2 pt-1 border-t border-slate-200/60">
+                      <span className="text-[10px] font-semibold uppercase text-slate-400">Residential Address</span>
+                      <p className="font-medium text-slate-700 leading-relaxed">
+                        {student?.address ? `${student.address}, ` : ''}
+                        {student?.city || ''}
+                        {student?.state ? `, ${student.state}` : ''}
+                        {student?.pincode ? ` - ${student.pincode}` : ''}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 2. REGISTRATION & PORTAL ACCESS */}
+              <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-200/70">
+                  <Sparkles size={15} className="text-amber-500" />
+                  <span>Registration & Portal Access</span>
+                </div>
+
+                <div className="space-y-3.5 text-xs">
                   <div className="space-y-0.5">
-                    <span className="text-[10px] font-semibold uppercase text-slate-400">Alternate Contact</span>
-                    <p className="font-mono font-semibold text-slate-800">{student?.alternate_phone || student?.parent_phone || 'N/A'}</p>
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Candidate Affiliation</span>
+                    <p className="font-bold text-slate-900 text-sm">Examirror National Direct Candidate</p>
+                    <p className="text-[11px] font-mono text-indigo-700 font-semibold">Channel: Direct Online Registration</p>
                   </div>
-                </div>
 
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Registered Email</span>
-                  <p className="font-semibold text-slate-800 truncate">{student?.email || 'N/A'}</p>
-                </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-semibold uppercase text-slate-400">Account Security</span>
+                      <p className="font-semibold text-slate-900">Email OTP Verified</p>
+                      <span className="text-[10px] text-emerald-600 font-medium block">✓ Active Student Account</span>
+                    </div>
 
-                <div className="space-y-0.5 pt-1 border-t border-slate-200/60">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Residential Address</span>
-                  <p className="font-medium text-slate-700 leading-relaxed">
-                    {student?.address ? `${student.address}, ` : ''}
-                    {student?.city || student?.centerCity || ''}
-                    {student?.state ? `, ${student.state}` : ''}
-                    {student?.pincode ? ` - ${student.pincode}` : ''}
-                    {!student?.address && !student?.city && !student?.state && 'Address on record with study center'}
-                  </p>
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-semibold uppercase text-slate-400">Portal Services</span>
+                      <p className="font-semibold text-slate-800">Online Mock Tests & E-Notes</p>
+                      <p className="text-[11px] text-slate-500 truncate">24x7 Digital Access</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-200/60">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-semibold uppercase text-slate-400">Registration Date</span>
+                      <p className="font-semibold text-slate-800">
+                        {student?.created_at ? new Date(student.created_at).toLocaleDateString('en-GB') : 'Active Member'}
+                      </p>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-semibold uppercase text-slate-400">Assigned Platform</span>
+                      <p className="text-[11px] text-slate-600 font-medium truncate">
+                        Examirror Assessment Platform
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+          ) : (
+            /* CENTER ENROLLED STUDENT: Full 4-Card Academic Dossier */
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* 1. PERSONAL INFORMATION CARD */}
+              <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-200/70">
+                  <User size={15} />
+                  <span>Personal Information</span>
+                </div>
 
-            {/* 4. AUTHORIZED STUDY CENTER & MENTOR */}
-            <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200/80 space-y-4">
-              <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-200/70">
-                <Building2 size={15} />
-                <span>Study Center & Authority</span>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Full Name</span>
+                    <p className="font-bold text-slate-900 text-sm">{student?.firstName} {student?.lastName}</p>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Date of Birth</span>
+                    <p className="font-semibold text-slate-800">
+                      {student?.dob ? new Date(student.dob).toLocaleDateString('en-GB') : 'Not Specified'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Father's Name</span>
+                    <p className="font-semibold text-slate-800">{student?.father_name || 'N/A'}</p>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Mother's Name</span>
+                    <p className="font-semibold text-slate-800">{student?.mother_name || 'N/A'}</p>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Gender</span>
+                    <p className="font-semibold text-slate-800 capitalize">{student?.gender || 'N/A'}</p>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Category</span>
+                    <p className="font-semibold text-slate-800 uppercase">{student?.category || 'General'}</p>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-3 text-xs">
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Study Center</span>
-                  <p className="font-bold text-slate-900 text-sm">{student?.centerName || 'Central Skill Academy'}</p>
-                  <p className="text-[11px] font-mono text-indigo-700 font-semibold">Code: {student?.centerCode || 'CENTER-01'}</p>
+              {/* 2. ENROLLMENT & ACADEMIC CREDENTIALS */}
+              <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-200/70">
+                  <GraduationCap size={15} />
+                  <span>Program & Enrollment Credentials</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-0.5">
-                    <span className="text-[10px] font-semibold uppercase text-slate-400">Center Head</span>
-                    <p className="font-semibold text-slate-900">{student?.centerHeadName || 'Center Administrator'}</p>
-                    <span className="text-[10px] text-emerald-600 font-medium block">✓ Verified Center</span>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="col-span-2 space-y-0.5 bg-white p-2.5 rounded-lg border border-slate-200/80">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Enrolled Course</span>
+                    <p className="font-bold text-slate-900 text-sm">{student?.courseName || 'Vocational Skill Certification'}</p>
                   </div>
 
                   <div className="space-y-0.5">
-                    <span className="text-[10px] font-semibold uppercase text-slate-400">Center Contact</span>
-                    <p className="font-mono font-semibold text-slate-800">{student?.centerPhone || student?.phone || 'N/A'}</p>
-                    <p className="text-[11px] text-slate-500 truncate">{student?.centerEmail || 'N/A'}</p>
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Roll No</span>
+                    <p className="font-mono font-bold text-indigo-700">{student?.roll_no || student?.id_number || `ROL-${student?.id}`}</p>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Enrollment No</span>
+                    <p className="font-mono font-bold text-slate-900">{student?.enrollment_no || `ENR-2026-${student?.id}`}</p>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Course Code & Duration</span>
+                    <p className="font-semibold text-slate-800">{student?.courseCode || 'VOC-101'} • {student?.courseDuration || '6 Months'}</p>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Admission Date</span>
+                    <p className="font-semibold text-slate-800">
+                      {student?.created_at ? new Date(student.created_at).toLocaleDateString('en-GB') : '2026-09-27'}
+                    </p>
                   </div>
                 </div>
+              </div>
 
-                <div className="space-y-0.5 pt-1 border-t border-slate-200/60">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Location</span>
-                  <p className="text-[11px] text-slate-600">
-                    {student?.centerAddress ? `${student.centerAddress}, ` : ''}
-                    {student?.centerCity || ''}
-                    {student?.centerState ? `, ${student.centerState}` : ''}
-                    {student?.centerPincode ? ` - ${student.centerPincode}` : ''}
-                  </p>
+              {/* 3. CONTACT & RESIDENTIAL ADDRESS */}
+              <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-200/70">
+                  <Phone size={15} />
+                  <span>Contact & Address</span>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-semibold uppercase text-slate-400">Primary Mobile</span>
+                      <p className="font-mono font-bold text-slate-900">{student?.phone || 'N/A'}</p>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-semibold uppercase text-slate-400">Alternate Contact</span>
+                      <p className="font-mono font-semibold text-slate-800">{student?.alternate_phone || student?.parent_phone || 'N/A'}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Registered Email</span>
+                    <p className="font-semibold text-slate-800 truncate">{student?.email || 'N/A'}</p>
+                  </div>
+
+                  <div className="space-y-0.5 pt-1 border-t border-slate-200/60">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Residential Address</span>
+                    <p className="font-medium text-slate-700 leading-relaxed">
+                      {student?.address ? `${student.address}, ` : ''}
+                      {student?.city || student?.centerCity || ''}
+                      {student?.state ? `, ${student.state}` : ''}
+                      {student?.pincode ? ` - ${student.pincode}` : ''}
+                      {!student?.address && !student?.city && !student?.state && 'Address on record with study center'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. AUTHORIZED STUDY CENTER & MENTOR */}
+              <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-200/70">
+                  <Building2 size={15} />
+                  <span>Study Center & Authority</span>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Study Center</span>
+                    <p className="font-bold text-slate-900 text-sm">{student?.centerName || 'Authorized Center'}</p>
+                    <p className="text-[11px] font-mono text-indigo-700 font-semibold">Code: {student?.centerCode || 'CENTER-01'}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-semibold uppercase text-slate-400">Center Head</span>
+                      <p className="font-semibold text-slate-900">{student?.centerHeadName || 'Center Administrator'}</p>
+                      <span className="text-[10px] text-emerald-600 font-medium block">✓ Verified Center</span>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-semibold uppercase text-slate-400">Center Contact</span>
+                      <p className="font-mono font-semibold text-slate-800">{student?.centerPhone || student?.phone || 'N/A'}</p>
+                      <p className="text-[11px] text-slate-500 truncate">{student?.centerEmail || 'N/A'}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-0.5 pt-1 border-t border-slate-200/60">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Location</span>
+                    <p className="text-[11px] text-slate-600">
+                      {student?.centerAddress ? `${student.centerAddress}, ` : ''}
+                      {student?.centerCity || ''}
+                      {student?.centerState ? `, ${student.centerState}` : ''}
+                      {student?.centerPincode ? ` - ${student.centerPincode}` : ''}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-
-          </div>
+          )}
 
           {/* Bottom Action / Document Quick-Access Toolbar */}
           <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/80 p-4 rounded-xl">
             <div className="flex items-center gap-2 text-xs text-slate-600">
               <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
-              <span>All student records and credentials are cryptographically verified and recorded on the academic registry.</span>
+              <span>
+                {isCenterStudent
+                  ? 'All student records and credentials are cryptographically verified and recorded on the academic registry.'
+                  : 'Your student account is active and verified for all online test series, mock exams, and learning materials.'}
+              </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowIdCardModal(true)}
-                className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-semibold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
-              >
-                <CreditCard size={14} className="text-indigo-600" />
-                <span>View ID Card</span>
-              </button>
+            {isCenterStudent && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowIdCardModal(true)}
+                  className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-semibold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+                >
+                  <CreditCard size={14} className="text-indigo-600" />
+                  <span>View ID Card</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
-              >
-                <Printer size={14} />
-                <span>Print Dossier</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+                >
+                  <Printer size={14} />
+                  <span>Print Dossier</span>
+                </button>
+              </div>
+            )}
           </div>
 
         </div>
       </FadeUp>
 
-      {/* Modals */}
-      {showIdCardModal && student && (
-        <StudentIdCardModal student={student} onClose={() => setShowIdCardModal(false)} />
-      )}
-      
-      {showMarksheetModal && student && (
-        <StudentMarksheetModal 
-          student={{
-            ...student,
-            marks: student.marks && student.marks.length > 0 ? student.marks : scheduledExams
-          }} 
-          onClose={() => setShowMarksheetModal(false)} 
-        />
-      )}
+      {/* Modals (Lazy Loaded) */}
+      <Suspense fallback={null}>
+        {showIdCardModal && student && (
+          <StudentIdCardModal student={student} onClose={() => setShowIdCardModal(false)} />
+        )}
+        
+        {showMarksheetModal && student && (
+          <StudentMarksheetModal 
+            student={{
+              ...student,
+              marks: student.marks && student.marks.length > 0 ? student.marks : scheduledExams
+            }} 
+            onClose={() => setShowMarksheetModal(false)} 
+          />
+        )}
 
-      {showCertificateModal && student && (
-        <StudentCertificateModal 
-          student={{
-            ...student,
-            marks: student.marks && student.marks.length > 0 ? student.marks : scheduledExams
-          }} 
-          onClose={() => setShowCertificateModal(false)} 
-          onOpenMarksheet={() => {
-            setShowCertificateModal(false);
-            setShowMarksheetModal(true);
-          }}
-        />
-      )}
+        {showCertificateModal && student && (
+          <StudentCertificateModal 
+            student={{
+              ...student,
+              marks: student.marks && student.marks.length > 0 ? student.marks : scheduledExams
+            }} 
+            onClose={() => setShowCertificateModal(false)} 
+            onOpenMarksheet={() => {
+              setShowCertificateModal(false);
+              setShowMarksheetModal(true);
+            }}
+          />
+        )}
 
-      {/* Anti-Piracy Secure Watermarked Reader Modal */}
-      {activeReadingMaterialId && student && (
-        <AntiPiracyStudyMaterialModal
-          materialId={activeReadingMaterialId}
-          student={student}
-          onClose={() => setActiveReadingMaterialId(null)}
-          onUnlockClick={(matId) => {
-            const mat = studyMaterials.find((m: any) => String(m.id) === String(matId));
-            setActiveReadingMaterialId(null);
-            if (mat) {
-              setPaymentMaterial(mat);
-            }
-          }}
-        />
-      )}
+        {/* Anti-Piracy Secure Watermarked Reader Modal */}
+        {activeReadingMaterialId && student && (
+          <AntiPiracyStudyMaterialModal
+            materialId={activeReadingMaterialId}
+            student={student}
+            onClose={() => setActiveReadingMaterialId(null)}
+            onUnlockClick={(matId) => {
+              const mat = studyMaterials.find((m: any) => String(m.id) === String(matId));
+              setActiveReadingMaterialId(null);
+              if (mat) {
+                setPaymentMaterial(mat);
+              }
+            }}
+          />
+        )}
 
-      {/* Payment QR Unlock Modal */}
-      {paymentMaterial && student && (
-        <StudyMaterialPaymentModal
-          material={paymentMaterial}
-          student={student}
-          onClose={() => setPaymentMaterial(null)}
-          onSuccess={() => {
-            setPaymentMaterial(null);
-            fetchDashboardData();
-            setInfoModal({
-              isOpen: true,
-              title: 'Payment Verification Submitted',
-              message: 'Your payment reference has been submitted. Your study note access will be unlocked shortly once verified by Examirror admin.',
-              type: 'info'
-            });
-          }}
-        />
-      )}
+        {/* Payment QR Unlock Modal */}
+        {paymentMaterial && student && (
+          <StudyMaterialPaymentModal
+            material={paymentMaterial}
+            student={student}
+            onClose={() => setPaymentMaterial(null)}
+            onSuccess={() => {
+              setPaymentMaterial(null);
+              fetchDashboardData();
+              setInfoModal({
+                isOpen: true,
+                title: 'Payment Verification Submitted',
+                message: 'Your payment reference has been submitted. Your study note access will be unlocked shortly once verified by Examirror admin.',
+                type: 'info'
+              });
+            }}
+          />
+        )}
+      </Suspense>
 
       {/* Info Notice Modal */}
       {infoModal.isOpen && (

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Image as ImageIcon, Camera, Sparkles, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import SEO from '../../components/SEO';
+import { LazyImage } from '../../components/ui/LazyImage';
 
 interface GalleryItem {
   id: number | string;
@@ -101,19 +102,35 @@ export const Gallery = () => {
         )}
       </AnimatePresence>
 
-      {/* Header Banner */}
-      <section className="bg-slate-900 text-white py-14 sm:py-16 text-center relative overflow-hidden border-b border-slate-800">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-1.5 bg-blue-500/10 border border-blue-400/20 text-blue-300 px-3 py-1 rounded-full text-xs font-semibold">
-            <Camera size={14} />
+      {/* Header Banner with Apple Compact Height & Motion */}
+      <section className="bg-slate-950 text-white py-4 sm:py-5 text-center relative overflow-hidden border-b border-slate-800/80">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-500/15 via-transparent to-transparent" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 space-y-1.5">
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="inline-flex items-center gap-1.5 bg-blue-500/10 border border-blue-400/20 text-blue-300 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
+          >
+            <Camera size={13} />
             <span>Campus Moments & Official Activities</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight"
+          >
             Photo Gallery
-          </h1>
-          <p className="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className="text-slate-300 text-xs sm:text-[13px] max-w-2xl mx-auto leading-normal"
+          >
             Official photographs of student workshops, convocation ceremonies, practical lab sessions, and authorized center events.
-          </p>
+          </motion.p>
         </div>
       </section>
 
@@ -130,20 +147,20 @@ export const Gallery = () => {
               return (
                 <motion.div
                   key={image.id || index}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.25) }}
-                  className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition-all group relative cursor-pointer flex flex-col"
+                  initial={{ opacity: 0, y: 24, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: Math.min(index * 0.04, 0.25) }}
+                  className="apple-card bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs hover:shadow-xl transition-all group relative cursor-pointer flex flex-col"
                   onClick={() => setSelectedImage(fullUrl)}
                 >
                   <div className="h-64 overflow-hidden relative bg-slate-100">
-                    <img
+                    <LazyImage
                       src={fullUrl}
                       alt={image.caption || `Gallery photo ${index + 1}`}
+                      wrapperClassName="w-full h-full"
                       className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
-                      loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
                       <span className="bg-white/95 text-slate-900 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 backdrop-blur-xs">
                         <Eye size={14} className="text-blue-600" />
                         <span>View Photo</span>

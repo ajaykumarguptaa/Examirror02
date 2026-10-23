@@ -80,22 +80,23 @@ router.use(verifyAdmin);
 
 router.post('/announcements', validateBody(announcementSchema), async (req, res) => {
   try {
-    const { title, message, expiryDate, target, type } = req.body;
+    const { title, message, expiryDate, target, type, linkUrl } = req.body;
     
     const notificationType = type || 'announcement';
     const targetAudience = target || 'center'; // 'center', 'student', or 'both'
 
     if (targetAudience === 'center' || targetAudience === 'both') {
-      await notificationService.createNotification('center', null, title, message, notificationType, expiryDate || null);
+      await notificationService.createNotification('center', null, title, message, notificationType, expiryDate || null, linkUrl || null);
       realtimeService.emitToCenter(null, 'notification', {
         title,
         message,
         type: notificationType,
+        link_url: linkUrl || null,
         created_at: new Date().toISOString()
       });
     }
     if (targetAudience === 'student' || targetAudience === 'both') {
-      await notificationService.createNotification('student', null, title, message, notificationType, expiryDate || null);
+      await notificationService.createNotification('student', null, title, message, notificationType, expiryDate || null, linkUrl || null);
     }
     
     res.status(200).json({ success: true, message: `Announcement broadcasted to ${targetAudience === 'both' ? 'Centers & Students' : targetAudience === 'center' ? 'All Centers' : 'All Students'}!` });
@@ -115,10 +116,10 @@ router.get('/announcements', async (req, res) => {
 
 router.put('/announcements/:id', async (req, res) => {
   try {
-    const { title, message, expiryDate, type } = req.body;
+    const { title, message, expiryDate, type, linkUrl } = req.body;
     await db.query(
-      'UPDATE notifications SET title = ?, message = ?, type = ?, expiry_date = ? WHERE id = ? AND user_id IS NULL',
-      [title, message, type || 'announcement', expiryDate || null, req.params.id]
+      'UPDATE notifications SET title = ?, message = ?, type = ?, expiry_date = ?, link_url = ? WHERE id = ? AND user_id IS NULL',
+      [title, message, type || 'announcement', expiryDate || null, linkUrl || null, req.params.id]
     );
     res.status(200).json({ success: true, message: 'Broadcast updated successfully' });
   } catch (error: any) {
@@ -173,23 +174,25 @@ router.delete('/centers/:id', async (req, res) => {
 });
 
 router.put('/centers/:id/password', async (req, res) => {
-  const { newPassword } = req.body;
+  const newPassword = req.body.newPassword || req.body.password;
   try {
     const result = await adminService.updateCenterPassword(req.params.id, newPassword);
     await logAudit({ userType: 'admin', userName: (req as any).user?.username || 'Super Admin', action: 'CENTER_PASSWORD_RESET', entityType: 'center', entityId: req.params.id }, req);
     res.status(200).json({ success: true, message: 'Center password updated successfully', ...result });
   } catch (error: any) {
+    console.error(`[Admin] Failed to update password for center ${req.params.id}:`, error.message);
     res.status(400).json({ success: false, message: error.message });
   }
 });
 
 router.post('/centers/:id/password', async (req, res) => {
-  const { newPassword } = req.body;
+  const newPassword = req.body.newPassword || req.body.password;
   try {
     const result = await adminService.updateCenterPassword(req.params.id, newPassword);
     await logAudit({ userType: 'admin', userName: (req as any).user?.username || 'Super Admin', action: 'CENTER_PASSWORD_RESET', entityType: 'center', entityId: req.params.id }, req);
     res.status(200).json({ success: true, message: 'Center password updated successfully', ...result });
   } catch (error: any) {
+    console.error(`[Admin] Failed to update password for center ${req.params.id}:`, error.message);
     res.status(400).json({ success: false, message: error.message });
   }
 });

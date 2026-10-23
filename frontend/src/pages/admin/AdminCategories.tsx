@@ -15,7 +15,7 @@ export default function AdminCategories() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({ name: '', slug: '', description: '' });
 
-  const adminToken = localStorage.getItem('admin_token') || localStorage.getItem('token');
+  const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken') || localStorage.getItem('admin_token') || '';
 
   useEffect(() => {
     fetchCategories();

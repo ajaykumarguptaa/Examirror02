@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { 
   RotateCcw, 
   AlertTriangle, 
@@ -28,8 +28,11 @@ import {
   Pencil
 } from 'lucide-react';
 import axios from 'axios';
-import { StudentMarksheetModal } from '../../components/StudentMarksheetModal';
-import { StudentCertificateModal } from '../../components/StudentCertificateModal';
+import { useDebounce } from '../../hooks/useDebounce';
+
+// Lazy-loaded heavy PDF certificate & marksheet modals
+const StudentMarksheetModal = lazy(() => import('../../components/StudentMarksheetModal').then(m => ({ default: m.StudentMarksheetModal })));
+const StudentCertificateModal = lazy(() => import('../../components/StudentCertificateModal').then(m => ({ default: m.StudentCertificateModal })));
 
 const formatImageSrc = (url: string | null) => {
   if (!url) return 'https://via.placeholder.com/150';
@@ -76,9 +79,15 @@ const ExamsList = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [walletBalance, setWalletBalance] = useState<number>(0);
+
+  // Auto-reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
 
   // Instant Certificate Permissions & Pricing
   const [allowInstantCertificate, setAllowInstantCertificate] = useState(true);
@@ -564,18 +573,20 @@ const ExamsList = () => {
     setCertViewModalOpen(true);
   };
 
-  // Filtered Students
-  const filteredStudents = students.filter(st => {
-    if (!searchTerm.trim()) return true;
-    const q = searchTerm.toLowerCase();
-    const fullName = `${st.firstName} ${st.lastName || ''}`.toLowerCase();
-    const studentId = String(st.studentId);
-    const course = (st.courseName || '').toLowerCase();
-    const enr = (st.enrollment_no || '').toLowerCase();
-    const roll = (st.roll_no || '').toLowerCase();
-    const father = (st.father_name || '').toLowerCase();
-    return fullName.includes(q) || studentId.includes(q) || course.includes(q) || enr.includes(q) || roll.includes(q) || father.includes(q);
-  });
+  // Filtered Students (Memoized + Debounced)
+  const filteredStudents = useMemo(() => {
+    const q = debouncedSearchTerm.toLowerCase().trim();
+    if (!q) return students;
+    return students.filter(st => {
+      const fullName = `${st.firstName} ${st.lastName || ''}`.toLowerCase();
+      const studentId = String(st.studentId);
+      const course = (st.courseName || '').toLowerCase();
+      const enr = (st.enrollment_no || '').toLowerCase();
+      const roll = (st.roll_no || '').toLowerCase();
+      const father = (st.father_name || '').toLowerCase();
+      return fullName.includes(q) || studentId.includes(q) || course.includes(q) || enr.includes(q) || roll.includes(q) || father.includes(q);
+    });
+  }, [students, debouncedSearchTerm]);
 
   const totalPages = Math.ceil(filteredStudents.length / entriesPerPage) || 1;
   const paginatedStudents = filteredStudents.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
@@ -845,7 +856,7 @@ const ExamsList = () => {
                             <div className="flex items-center justify-between text-[11px] text-gray-500 pt-0.5">
                               <div className="flex items-center gap-1 font-medium">
                                 <Clock size={12} className="text-gray-400" />
-                                <span>Exam Date: {sem.examDate ? new Date(sem.examDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not Scheduled'}</span>
+                                <span>Exam Date: {sem.examDate ? new Date(sem.examDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : (Number(st.courseQuestionsCount || 0) === 0 ? 'Not Scheduled (Questions Pending)' : 'Not Scheduled')}</span>
                               </div>
                             </div>
                           </div>
@@ -1497,10 +1508,12 @@ const ExamsList = () => {
       {/* 2. FULL MARKSHEET MODAL (WITH CENTER WATERMARK & LOGO) */}
       {/* ======================================================== */}
       {fullMarksheetModalOpen && selectedMarksheetStudent && (
-        <StudentMarksheetModal 
-          student={selectedMarksheetStudent} 
-          onClose={() => { setFullMarksheetModalOpen(false); setSelectedMarksheetStudent(null); }} 
-        />
+        <Suspense fallback={null}>
+          <StudentMarksheetModal 
+            student={selectedMarksheetStudent} 
+            onClose={() => { setFullMarksheetModalOpen(false); setSelectedMarksheetStudent(null); }} 
+          />
+        </Suspense>
       )}
 
       {/* ======================================================== */}
@@ -1858,38 +1871,40 @@ const ExamsList = () => {
         </div>
       )}
 
-      {/* Student Certificate Modal View */}
+      {/* Student Certificate Modal View (Lazy Loaded) */}
       {certViewModalOpen && viewingCertStudent && (
-        <StudentCertificateModal
-          student={{
-            ...viewingCertStudent,
-            id: viewingCertStudent.studentId || viewingCertStudent.id,
-            firstName: viewingCertStudent.studentName?.split(' ')[0] || viewingCertStudent.firstName || viewingCertStudent.studentName,
-            lastName: viewingCertStudent.studentName?.split(' ').slice(1).join(' ') || viewingCertStudent.lastName || '',
-            enrollment_no: viewingCertStudent.enrollment_no || viewingCertStudent.roll_no,
-            roll_no: viewingCertStudent.roll_no,
-            course_title: viewingCertStudent.courseName || viewingCertStudent.course_name,
-            father_name: viewingCertStudent.father_name || viewingCertStudent.fatherName,
-            mother_name: viewingCertStudent.mother_name || viewingCertStudent.motherName,
-            photo: viewingCertStudent.photo || viewingCertStudent.photo_url,
-            certificate_number: viewingCertStudent.certificate_number || viewingCertStudent.cert_no,
-            certificate_date: viewingCertStudent.certificate_date || viewingCertStudent.cert_date,
-            is_certified: viewingCertStudent.is_certified,
-            center_name: viewingCertStudent.center_name,
-            center_code: viewingCertStudent.center_code,
-            marks: viewingCertStudent.marks || []
-          }}
-          onClose={() => {
-            setCertViewModalOpen(false);
-            setViewingCertStudent(null);
-          }}
-          onOpenMarksheet={() => {
-            const tgt = viewingCertStudent;
-            setCertViewModalOpen(false);
-            setViewingCertStudent(null);
-            openFullMarksheet(tgt);
-          }}
-        />
+        <Suspense fallback={null}>
+          <StudentCertificateModal
+            student={{
+              ...viewingCertStudent,
+              id: viewingCertStudent.studentId || viewingCertStudent.id,
+              firstName: viewingCertStudent.studentName?.split(' ')[0] || viewingCertStudent.firstName || viewingCertStudent.studentName,
+              lastName: viewingCertStudent.studentName?.split(' ').slice(1).join(' ') || viewingCertStudent.lastName || '',
+              enrollment_no: viewingCertStudent.enrollment_no || viewingCertStudent.roll_no,
+              roll_no: viewingCertStudent.roll_no,
+              course_title: viewingCertStudent.courseName || viewingCertStudent.course_name,
+              father_name: viewingCertStudent.father_name || viewingCertStudent.fatherName,
+              mother_name: viewingCertStudent.mother_name || viewingCertStudent.motherName,
+              photo: viewingCertStudent.photo || viewingCertStudent.photo_url,
+              certificate_number: viewingCertStudent.certificate_number || viewingCertStudent.cert_no,
+              certificate_date: viewingCertStudent.certificate_date || viewingCertStudent.cert_date,
+              is_certified: viewingCertStudent.is_certified,
+              center_name: viewingCertStudent.center_name,
+              center_code: viewingCertStudent.center_code,
+              marks: viewingCertStudent.marks || []
+            }}
+            onClose={() => {
+              setCertViewModalOpen(false);
+              setViewingCertStudent(null);
+            }}
+            onOpenMarksheet={() => {
+              const tgt = viewingCertStudent;
+              setCertViewModalOpen(false);
+              setViewingCertStudent(null);
+              openFullMarksheet(tgt);
+            }}
+          />
+        </Suspense>
       )}
 
     </div>

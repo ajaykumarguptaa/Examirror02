@@ -1,38 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Volume2, VolumeX } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bell, Check, Volume2, VolumeX, ChevronRight, ExternalLink } from 'lucide-react';
 import axios from 'axios';
 
 const API_BASE = 'http://localhost:3000/api';
 
-// Web Audio API synthesizer for clean notification sound without external asset dependencies
-const playChimeSound = () => {
-  try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+import { playNotificationSound } from '../../context/RealtimeNotificationContext';
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
-
-    gain.gain.setValueAtTime(0.09, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start();
-    osc.stop(ctx.currentTime + 0.35);
-  } catch (_) {}
-};
 
 interface Notification {
   id: number;
   title: string;
   message: string;
   type: string;
+  link_url?: string;
   is_read: number;
   created_at: string;
 }
@@ -43,6 +24,7 @@ interface NotificationBellProps {
 }
 
 const NotificationBell: React.FC<NotificationBellProps> = ({ userType, userId }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
@@ -56,7 +38,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userType, userId })
     setSoundEnabled(next);
     localStorage.setItem('notification_sound_enabled', String(next));
     if (next) {
-      playChimeSound();
+      playNotificationSound();
     }
   };
 
@@ -70,7 +52,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userType, userId })
           if (playSound && soundEnabled) {
             const hasNewUnread = newItems.some(n => n.is_read === 0 && !prev.some(p => p.id === n.id));
             if (hasNewUnread) {
-              playChimeSound();
+              playNotificationSound();
             }
           }
           return newItems;
@@ -90,10 +72,116 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userType, userId })
     }
   };
 
+  // Determine destination URL intelligently based on notification data
+  const getNotificationDestination = (n: Notification): string => {
+    if (n.link_url && n.link_url.trim()) {
+      return n.link_url.trim();
+    }
+
+    const titleLower = (n.title || '').toLowerCase();
+    const msgLower = (n.message || '').toLowerCase();
+    const typeLower = (n.type || '').toLowerCase();
+
+    // Extract center code if present in the message
+    const codeMatch = n.message?.match(/code:\s*<[^>]*>([a-zA-Z0-9_-]+)<[^>]*>/i) || 
+                      n.message?.match(/code:\s*([a-zA-Z0-9_-]+)/i);
+    const centerCode = codeMatch ? codeMatch[1].trim() : '';
+
+    if (userType === 'admin') {
+      if (
+        typeLower.includes('certificate') || 
+        titleLower.includes('certificate') || 
+        titleLower.includes('demanded documents') ||
+        msgLower.includes('certificate')
+      ) {
+        return `/admin/franchise-requests?tab=cert_claims${centerCode ? `&search=${encodeURIComponent(centerCode)}` : ''}`;
+      }
+      if (typeLower.includes('franchise') || titleLower.includes('franchise') || msgLower.includes('franchise')) {
+        return `/admin/franchise-requests${centerCode ? `?search=${encodeURIComponent(centerCode)}` : ''}`;
+      }
+      if (
+        typeLower.includes('wallet') || 
+        titleLower.includes('wallet') || 
+        titleLower.includes('recharge') || 
+        msgLower.includes('wallet') || 
+        msgLower.includes('utr')
+      ) {
+        return '/admin/wallet-requests';
+      }
+      if (typeLower.includes('contact') || titleLower.includes('contact') || titleLower.includes('inquiry')) {
+        return '/admin/contact-queries';
+      }
+      if (typeLower.includes('student') || titleLower.includes('student')) {
+        return '/admin/students';
+      }
+      if (typeLower.includes('course') || titleLower.includes('course')) {
+        return '/admin/courses';
+      }
+      if (typeLower.includes('test') || titleLower.includes('test')) {
+        return '/admin/test-series';
+      }
+      return '/admin/franchise-requests';
+    }
+
+    if (userType === 'center') {
+      if (typeLower.includes('certificate') || titleLower.includes('certificate') || titleLower.includes('demanded')) {
+        return '/center';
+      }
+      if (typeLower.includes('wallet') || titleLower.includes('wallet') || titleLower.includes('recharge')) {
+        return '/center/wallet';
+      }
+      if (typeLower.includes('student') || titleLower.includes('student')) {
+        return '/center/students';
+      }
+      if (typeLower.includes('course') || titleLower.includes('course')) {
+        return '/center/courses';
+      }
+      if (typeLower.includes('exam') || titleLower.includes('exam') || typeLower.includes('test')) {
+        return '/center/exams';
+      }
+      return '/center';
+    }
+
+    if (userType === 'student') {
+      if (typeLower.includes('test') || titleLower.includes('test') || titleLower.includes('series')) {
+        return '/student/test-series';
+      }
+      if (typeLower.includes('note') || titleLower.includes('note') || titleLower.includes('study')) {
+        return '/student/notes';
+      }
+      return '/student/dashboard';
+    }
+
+    return '/';
+  };
+
+  const handleNotificationClick = async (n: Notification) => {
+    // 1. Mark this specific notification as read in UI & backend
+    if (n.is_read === 0) {
+      setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, is_read: 1 } : item));
+      try {
+        await axios.patch(`${API_BASE}/notifications/${n.id}/read`);
+      } catch (_) {}
+    }
+
+    // 2. Close notification dropdown
+    setIsOpen(false);
+
+    // 3. Navigate to target destination
+    const destination = getNotificationDestination(n);
+    if (destination) {
+      if (destination.startsWith('http')) {
+        window.location.href = destination;
+      } else {
+        navigate(destination);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchNotifications();
     
-    // Fallback heartbeat (every 60s) while SSE push events deliver instant 0.01s updates
+    // Fallback heartbeat (every 60s) while SSE push events deliver instant updates
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchNotifications();
@@ -140,7 +228,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userType, userId })
       <button 
         onClick={() => {
           setIsOpen(!isOpen);
-          if (!isOpen && unreadCount > 0) markAllAsRead();
         }}
         className={`relative w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-colors border cursor-pointer ${
           unreadCount > 0 ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
@@ -156,7 +243,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userType, userId })
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-84 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute right-0 mt-2 w-88 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
             <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
               Notifications {unreadCount > 0 && <span className="px-2 py-0.5 bg-rose-100 text-rose-700 text-[10px] font-bold rounded-full">{unreadCount} New</span>}
@@ -179,33 +266,50 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userType, userId })
             </div>
           </div>
           
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-96 overflow-y-auto divide-y divide-gray-100">
             {notifications.length === 0 ? (
-              <div className="p-6 text-center text-gray-400 text-xs font-medium">
+              <div className="p-8 text-center text-gray-400 text-xs font-medium">
                 No notifications yet.
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
-                {notifications.map(n => (
-                  <div key={n.id} className={`p-4 transition-colors ${n.is_read === 0 ? 'bg-indigo-50/50' : 'hover:bg-gray-50'}`}>
-                    <div className="flex items-start gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${n.is_read === 0 ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500'}`}>
-                        <Bell size={14} />
+              notifications.map(n => (
+                <div 
+                  key={n.id} 
+                  onClick={() => handleNotificationClick(n)}
+                  className={`p-3.5 transition-all cursor-pointer group hover:bg-indigo-50/70 active:bg-indigo-100/60 ${
+                    n.is_read === 0 ? 'bg-indigo-50/40' : 'bg-white'
+                  }`}
+                  title="Click to view and open"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 shadow-xs ${
+                      n.is_read === 0 ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      <Bell size={14} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <h4 className={`text-xs font-bold truncate ${n.is_read === 0 ? 'text-gray-900' : 'text-gray-700'}`}>
+                          {n.title}
+                        </h4>
+                        <ChevronRight size={14} className="text-gray-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all shrink-0" />
                       </div>
-                      <div>
-                        <h4 className={`text-xs font-bold ${n.is_read === 0 ? 'text-gray-900' : 'text-gray-700'}`}>{n.title}</h4>
-                        <div 
-                          className="text-[11px] text-gray-500 mt-1 leading-relaxed prose-sm max-w-none prose-p:my-1 prose-a:text-indigo-600 hover:prose-a:text-indigo-800 prose-strong:font-bold prose-strong:text-gray-700" 
-                          dangerouslySetInnerHTML={{ __html: n.message }} 
-                        />
-                        <p className="text-[9px] text-gray-400 font-medium mt-2">
+                      <div 
+                        className="text-[11px] text-gray-500 mt-1 leading-relaxed prose-sm max-w-none line-clamp-2 prose-p:my-0.5 prose-a:text-indigo-600 prose-strong:font-bold prose-strong:text-gray-700" 
+                        dangerouslySetInnerHTML={{ __html: n.message }} 
+                      />
+                      <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-gray-100/70 text-[9.5px]">
+                        <span className="text-gray-400 font-medium">
                           {new Date(n.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </p>
+                        </span>
+                        <span className="text-indigo-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                          View Details <ChevronRight size={10} />
+                        </span>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))
             )}
           </div>
         </div>

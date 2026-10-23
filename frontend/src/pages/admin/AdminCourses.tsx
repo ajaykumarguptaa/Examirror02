@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, X, Trash2, CheckCircle2, AlertCircle, AlertTriangle, Loader2, Check, Edit3, ShieldAlert, FileText, Building2, Users, LayoutGrid, Table, Image as ImageIcon, Upload, Clock, Layers, HelpCircle, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useDebounce } from '../../hooks/useDebounce';
+import { compressImageFile } from '../../utils/imageCompressor';
 
 interface Semester {
   num: number;
@@ -44,6 +46,7 @@ const AdminCourses = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [filterType, setFilterType] = useState('all');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -69,7 +72,7 @@ const AdminCourses = () => {
     { num: 1, subjects: '', marks: 80, oral: 20, marks_per_question: 1, negative_marks: 0, pass_marks: 40 }
   ]);
 
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -80,11 +83,16 @@ const AdminCourses = () => {
       setFeedback({ type: 'error', text: 'Image file size must be less than 5MB.' });
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setCourseImage(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressImageFile(file, { maxWidth: 1200, maxHeight: 800, quality: 0.85 });
+      setCourseImage(compressed.dataUrl);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCourseImage(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const fetchData = async () => {
@@ -401,19 +409,22 @@ const AdminCourses = () => {
     return [{ num: 1, subjects: course.shortDescription || 'General Modules', marks: 80, oral: 20, marks_per_question: 1, negative_marks: 0, pass_marks: 40 }];
   };
 
-  const filteredCourses = courses.filter((c: any) => {
-    if (filterType === 'published' && c.is_published !== 1) return false;
-    if (filterType === 'drafts' && c.is_draft !== 1) return false;
-    if (filterType === 'unpublished' && (c.is_published === 1 || c.is_draft === 1)) return false;
+  // Memoized & Debounced Course Filtering
+  const filteredCourses = useMemo(() => {
+    const query = debouncedSearchTerm.toLowerCase().trim();
+    return courses.filter((c: any) => {
+      if (filterType === 'published' && c.is_published !== 1) return false;
+      if (filterType === 'drafts' && c.is_draft !== 1) return false;
+      if (filterType === 'unpublished' && (c.is_published === 1 || c.is_draft === 1)) return false;
 
-    if (!searchTerm.trim()) return true;
-    const query = searchTerm.toLowerCase();
-    return (
-      (c.name && c.name.toLowerCase().includes(query)) ||
-      (c.code && c.code.toLowerCase().includes(query)) ||
-      (c.shortDescription && c.shortDescription.toLowerCase().includes(query))
-    );
-  });
+      if (!query) return true;
+      return (
+        (c.name && c.name.toLowerCase().includes(query)) ||
+        (c.code && c.code.toLowerCase().includes(query)) ||
+        (c.shortDescription && c.shortDescription.toLowerCase().includes(query))
+      );
+    });
+  }, [courses, filterType, debouncedSearchTerm]);
 
   const renderSemesterInputs = () => (
     <div className="space-y-4">

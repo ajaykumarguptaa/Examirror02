@@ -32,7 +32,7 @@ import {
   Building2
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { onlyDigits, onlyNameLetters, isValidIndianPhone } from '../../utils/validators';
+import { onlyDigits, onlyNameLetters, isValidIndianPhone, isValidEmail } from '../../utils/validators';
 
 interface Question {
   id: number;
@@ -127,6 +127,73 @@ const CandidateTestPortal: React.FC = () => {
   const [studentMobile, setStudentMobile] = useState('');
   const [studentEmail, setStudentEmail] = useState('');
   const [agreeRules, setAgreeRules] = useState(false);
+  const [formTouched, setFormTouched] = useState<{ [key: string]: boolean }>({});
+  const [formAttempted, setFormAttempted] = useState(false);
+
+  // Validate candidate input fields
+  const getFieldErrors = () => {
+    const errs: { [key: string]: string } = {};
+
+    // 1. Full Name (Required, alphabetic & spaces, 3 to 60 characters)
+    const trimmedName = studentName.trim();
+    if (!trimmedName) {
+      errs.name = 'Full Name is required for candidate verification.';
+    } else if (trimmedName.length < 3) {
+      errs.name = 'Full Name must be at least 3 characters long.';
+    } else if (trimmedName.length > 60) {
+      errs.name = 'Full Name cannot exceed 60 characters.';
+    }
+
+    // 2. Roll / Enrollment No (Optional, alphanumeric with - / _, 3-30 chars)
+    const trimmedRoll = studentRoll.trim();
+    if (trimmedRoll) {
+      if (trimmedRoll.length < 3) {
+        errs.roll = 'Roll / Enrollment number must be at least 3 characters if provided.';
+      } else if (!/^[A-Za-z0-9\-_/]+$/.test(trimmedRoll)) {
+        errs.roll = 'Roll number can only contain letters, numbers, hyphens (-), and slashes (/).';
+      }
+    }
+
+    // 3. ID Card / Aadhar No (Optional)
+    const trimmedId = studentIdCard.trim();
+    if (trimmedId) {
+      const numericOnly = trimmedId.replace(/\s/g, '');
+      if (/^\d+$/.test(numericOnly)) {
+        if (numericOnly.length !== 12) {
+          errs.idCard = `Aadhaar number must be exactly 12 digits (currently ${numericOnly.length}/12).`;
+        }
+      } else if (trimmedId.length < 3) {
+        errs.idCard = 'ID Card number must be at least 3 characters.';
+      } else if (trimmedId.length > 25) {
+        errs.idCard = 'ID Card number cannot exceed 25 characters.';
+      }
+    }
+
+    // 4. Mobile Number (Optional, 10-digit Indian phone)
+    const trimmedMobile = studentMobile.trim();
+    if (trimmedMobile) {
+      if (trimmedMobile.length < 10) {
+        errs.mobile = `Mobile number must be 10 digits (currently ${trimmedMobile.length}/10).`;
+      } else if (!isValidIndianPhone(trimmedMobile)) {
+        errs.mobile = 'Mobile number must start with 6, 7, 8, or 9.';
+      }
+    }
+
+    // 5. Email Address (Optional, valid email format)
+    const trimmedEmail = studentEmail.trim();
+    if (trimmedEmail) {
+      if (!isValidEmail(trimmedEmail)) {
+        errs.email = 'Please enter a valid email address (e.g. name@example.com).';
+      }
+    }
+
+    // 6. Agreement Checkbox (Required)
+    if (!agreeRules) {
+      errs.agreement = 'You must accept the examination instructions and anti-cheat rules to begin.';
+    }
+
+    return errs;
+  };
 
   // Anti-Cheating & Security State
   const [tabViolations, setTabViolations] = useState<number>(0);
@@ -350,20 +417,31 @@ const CandidateTestPortal: React.FC = () => {
   // Start Test Action with Question Shuffling & Fullscreen Request
   const handleStartTest = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!studentName.trim()) {
-      alert('Please enter your full name');
+    setFormAttempted(true);
+    setFormTouched({
+      name: true,
+      roll: true,
+      idCard: true,
+      mobile: true,
+      email: true,
+      agreement: true
+    });
+
+    const errs = getFieldErrors();
+    const errKeys = Object.keys(errs);
+
+    if (errKeys.length > 0) {
+      const firstField = errKeys[0];
+      const el = document.getElementById(`field-${firstField}`);
+      if (el) {
+        el.focus();
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
-    if (studentMobile.trim() && !isValidIndianPhone(studentMobile.trim())) {
-      alert('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
-      return;
-    }
-    if (!agreeRules) {
-      alert('Please accept the exam guidelines to proceed');
-      return;
-    }
+
     if (questions.length === 0) {
-      alert('This test has no questions currently.');
+      setError('This test has no questions currently available. Please contact the examination center.');
       return;
     }
 
@@ -744,12 +822,12 @@ const CandidateTestPortal: React.FC = () => {
   // ----------------------------------------------------
   if (stage === 'entry') {
     return (
-      <div className="min-h-screen bg-slate-50 font-sans py-10 px-4 flex items-center justify-center animate-in fade-in duration-1000">
+      <div className="min-h-screen w-full bg-slate-50 font-sans flex flex-col justify-start animate-in fade-in duration-500">
         <SEO title={`${testInfo.title || 'Online Test Portal'} | Examirror`} noindex={true} />
-        <div className="max-w-3xl w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200 animate-in slide-in-from-bottom-8 duration-700">
+        <div className="w-full flex-1 flex flex-col bg-white">
           
-          {/* Header Banner */}
-          <div className="bg-[#1e1b4b] text-white p-6 sm:p-8">
+          {/* Header Banner - Full Screen Width */}
+          <div className="bg-[#1e1b4b] text-white px-4 sm:px-8 lg:px-12 py-6 border-b border-indigo-950">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
                 <div className="bg-white p-2 rounded-xl shadow-sm hidden sm:block">
@@ -764,7 +842,7 @@ const CandidateTestPortal: React.FC = () => {
                 </div>
               </div>
 
-              <div className="text-right bg-black/20 px-4 py-3 rounded-2xl border border-white/10 shrink-0 max-w-[180px] sm:max-w-[250px] flex items-center gap-3 relative overflow-hidden">
+              <div className="text-right bg-black/20 px-4 py-3 rounded-2xl border border-white/10 shrink-0 max-w-[200px] sm:max-w-[280px] flex items-center gap-3 relative overflow-hidden">
                 {testInfo.centerLogo && (
                   <img src={testInfo.centerLogo} alt="Center Logo" className="w-10 h-10 object-contain rounded bg-white p-1" />
                 )}
@@ -791,120 +869,384 @@ const CandidateTestPortal: React.FC = () => {
                 <div className="text-xs text-indigo-200 flex items-center justify-center gap-1"><CheckCircle2 size={13} /> Passing Mark</div>
                 <div className="text-lg font-black text-white">{testInfo.pass_marks}%</div>
               </div>
+              <div className="bg-white/10 rounded-xl p-2.5 text-center">
+                <div className="text-xs text-indigo-200 flex items-center justify-center gap-1"><Clock size={13} /> Duration</div>
+                <div className="text-lg font-black text-white">{testInfo.duration_minutes || (testInfo as any).duration || 60} Mins</div>
+              </div>
             </div>
           </div>
 
-          {/* Form Area */}
-          <div className="p-6 sm:p-8">
-            <form onSubmit={handleStartTest} className="space-y-6">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 mb-1 flex items-center gap-2">
-                  <User size={18} className="text-indigo-600" /> Candidate Verification Details
-                </h3>
-                <p className="text-xs text-slate-500 mb-4">Please enter your accurate candidate details. Your official scorecard will be generated with this information.</p>
+          {/* Form Area - Full Screen Width Layout */}
+          <div className="flex-1 w-full px-4 sm:px-8 lg:px-12 py-8 bg-slate-50/50">
+            {(() => {
+              const fieldErrors = getFieldErrors();
+              return (
+                <form onSubmit={handleStartTest} noValidate className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    
+                    {/* Left Column: Candidate Verification Details (7 cols) */}
+                    <div className="lg:col-span-7 bg-white p-6 sm:p-7 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900 mb-1 flex items-center gap-2">
+                          <User size={18} className="text-indigo-600" /> Candidate Verification Details
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          Please enter your accurate candidate details. Your official scorecard will be generated with this information.
+                        </p>
+                      </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Full Name *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Rahul Sharma"
-                      value={studentName}
-                      onChange={(e) => setStudentName(onlyNameLetters(e.target.value))}
-                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-                    />
+                      {/* Validation Error Banner */}
+                      {formAttempted && Object.keys(fieldErrors).length > 0 && (
+                        <div className="mb-4 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-2.5 text-xs text-rose-800 animate-in fade-in duration-200">
+                          <AlertCircle size={18} className="text-rose-600 shrink-0" />
+                          <div>
+                            <strong className="font-bold">Please check your candidate details:</strong>{' '}
+                            <span>Correct the highlighted field(s) below to start your test.</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Full Name */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label htmlFor="field-name" className="block text-xs font-bold text-slate-700">
+                              Full Name <span className="text-rose-500">*</span>
+                            </label>
+                            {studentName.trim().length >= 3 && !fieldErrors.name && (
+                              <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                                <CheckCircle2 size={11} /> Valid Name
+                              </span>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                              <User size={15} />
+                            </div>
+                            <input
+                              id="field-name"
+                              type="text"
+                              required
+                              placeholder="e.g. Rahul Sharma"
+                              value={studentName}
+                              onChange={(e) => {
+                                setStudentName(onlyNameLetters(e.target.value).slice(0, 60));
+                              }}
+                              onBlur={() => setFormTouched((prev) => ({ ...prev, name: true }))}
+                              className={`w-full pl-9 pr-8 py-2.5 border rounded-xl text-xs font-semibold outline-none transition-all ${
+                                (formTouched.name || formAttempted) && fieldErrors.name
+                                  ? 'border-rose-400 bg-rose-50/20 text-rose-950 focus:border-rose-600 focus:ring-2 focus:ring-rose-100'
+                                  : studentName.trim().length >= 3
+                                    ? 'border-emerald-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 text-slate-800'
+                                    : 'border-slate-300 text-slate-800 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'
+                              }`}
+                            />
+                            <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
+                              {(formTouched.name || formAttempted) && fieldErrors.name ? (
+                                <AlertCircle size={15} className="text-rose-500" />
+                              ) : studentName.trim().length >= 3 ? (
+                                <CheckCircle2 size={15} className="text-emerald-500" />
+                              ) : null}
+                            </div>
+                          </div>
+                          {(formTouched.name || formAttempted) && fieldErrors.name ? (
+                            <p className="text-[11px] text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                              <AlertCircle size={12} className="shrink-0" /> {fieldErrors.name}
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-slate-400 mt-1">
+                              Alphabets only. This will appear on your Certificate & Marksheet.
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Roll / Enrollment No */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label htmlFor="field-roll" className="block text-xs font-bold text-slate-700">
+                              Roll / Enrollment No <span className="text-slate-400 font-normal">(Optional)</span>
+                            </label>
+                            {studentRoll.trim().length >= 3 && !fieldErrors.roll && (
+                              <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                                <CheckCircle2 size={11} /> Format OK
+                              </span>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                              <FileText size={15} />
+                            </div>
+                            <input
+                              id="field-roll"
+                              type="text"
+                              placeholder="e.g. EXAM-2026-081"
+                              value={studentRoll}
+                              onChange={(e) => {
+                                setStudentRoll(e.target.value.replace(/[^a-zA-Z0-9\-_/]/g, '').toUpperCase().slice(0, 30));
+                              }}
+                              onBlur={() => setFormTouched((prev) => ({ ...prev, roll: true }))}
+                              className={`w-full pl-9 pr-8 py-2.5 border rounded-xl text-xs font-semibold outline-none transition-all uppercase ${
+                                (formTouched.roll || formAttempted) && fieldErrors.roll
+                                  ? 'border-rose-400 bg-rose-50/20 text-rose-950 focus:border-rose-600 focus:ring-2 focus:ring-rose-100'
+                                  : studentRoll.trim().length >= 3
+                                    ? 'border-emerald-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 text-slate-800'
+                                    : 'border-slate-300 text-slate-800 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'
+                              }`}
+                            />
+                            <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
+                              {(formTouched.roll || formAttempted) && fieldErrors.roll ? (
+                                <AlertCircle size={15} className="text-rose-500" />
+                              ) : studentRoll.trim().length >= 3 ? (
+                                <CheckCircle2 size={15} className="text-emerald-500" />
+                              ) : null}
+                            </div>
+                          </div>
+                          {(formTouched.roll || formAttempted) && fieldErrors.roll ? (
+                            <p className="text-[11px] text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                              <AlertCircle size={12} className="shrink-0" /> {fieldErrors.roll}
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-slate-400 mt-1">Letters, digits, hyphens (-), and slashes (/).</p>
+                          )}
+                        </div>
+
+                        {/* ID Card / Aadhar No */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label htmlFor="field-idCard" className="block text-xs font-bold text-slate-700">
+                              ID Card / Aadhar No <span className="text-slate-400 font-normal">(Optional)</span>
+                            </label>
+                            {studentIdCard.trim() && !fieldErrors.idCard && (
+                              <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                                <CheckCircle2 size={11} /> Format OK
+                              </span>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                              <ShieldCheck size={15} />
+                            </div>
+                            <input
+                              id="field-idCard"
+                              type="text"
+                              placeholder="e.g. ID-89429 or 12-digit Aadhar"
+                              value={studentIdCard}
+                              onChange={(e) => {
+                                setStudentIdCard(e.target.value.replace(/[^a-zA-Z0-9\-_/ ]/g, '').slice(0, 25));
+                              }}
+                              onBlur={() => setFormTouched((prev) => ({ ...prev, idCard: true }))}
+                              className={`w-full pl-9 pr-14 py-2.5 border rounded-xl text-xs font-semibold outline-none transition-all ${
+                                (formTouched.idCard || formAttempted) && fieldErrors.idCard
+                                  ? 'border-rose-400 bg-rose-50/20 text-rose-950 focus:border-rose-600 focus:ring-2 focus:ring-rose-100'
+                                  : studentIdCard.trim() && !fieldErrors.idCard
+                                    ? 'border-emerald-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 text-slate-800'
+                                    : 'border-slate-300 text-slate-800 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'
+                              }`}
+                            />
+                            <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center gap-1">
+                              {/^\d+$/.test(studentIdCard.replace(/\s/g, '')) && studentIdCard.replace(/\s/g, '').length > 0 && (
+                                <span
+                                  className={`text-[10px] font-mono font-bold px-1 rounded ${
+                                    studentIdCard.replace(/\s/g, '').length === 12
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : 'bg-slate-100 text-slate-500'
+                                  }`}
+                                >
+                                  {studentIdCard.replace(/\s/g, '').length}/12
+                                </span>
+                              )}
+                              {(formTouched.idCard || formAttempted) && fieldErrors.idCard ? (
+                                <AlertCircle size={15} className="text-rose-500" />
+                              ) : studentIdCard.trim() && !fieldErrors.idCard ? (
+                                <CheckCircle2 size={15} className="text-emerald-500" />
+                              ) : null}
+                            </div>
+                          </div>
+                          {(formTouched.idCard || formAttempted) && fieldErrors.idCard ? (
+                            <p className="text-[11px] text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                              <AlertCircle size={12} className="shrink-0" /> {fieldErrors.idCard}
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-slate-400 mt-1">12 digits for Aadhaar, or alphanumeric student ID.</p>
+                          )}
+                        </div>
+
+                        {/* Mobile Number */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label htmlFor="field-mobile" className="block text-xs font-bold text-slate-700">
+                              Mobile Number <span className="text-slate-400 font-normal">(Optional)</span>
+                            </label>
+                            {studentMobile.length === 10 && isValidIndianPhone(studentMobile) && (
+                              <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                                <CheckCircle2 size={11} /> 10 Digits Valid
+                              </span>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                              <Phone size={15} />
+                            </div>
+                            <input
+                              id="field-mobile"
+                              type="tel"
+                              inputMode="numeric"
+                              maxLength={10}
+                              placeholder="e.g. 9876543210 (10 Digits)"
+                              value={studentMobile}
+                              onChange={(e) => {
+                                setStudentMobile(onlyDigits(e.target.value, 10));
+                              }}
+                              onBlur={() => setFormTouched((prev) => ({ ...prev, mobile: true }))}
+                              className={`w-full pl-9 pr-14 py-2.5 border rounded-xl text-xs font-semibold outline-none transition-all ${
+                                (formTouched.mobile || formAttempted) && fieldErrors.mobile
+                                  ? 'border-rose-400 bg-rose-50/20 text-rose-950 focus:border-rose-600 focus:ring-2 focus:ring-rose-100'
+                                  : studentMobile.length === 10 && isValidIndianPhone(studentMobile)
+                                    ? 'border-emerald-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 text-slate-800'
+                                    : 'border-slate-300 text-slate-800 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'
+                              }`}
+                            />
+                            <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center gap-1">
+                              {studentMobile.length > 0 && (
+                                <span
+                                  className={`text-[10px] font-mono font-bold px-1 rounded ${
+                                    studentMobile.length === 10 && isValidIndianPhone(studentMobile)
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : 'bg-slate-100 text-slate-500'
+                                  }`}
+                                >
+                                  {studentMobile.length}/10
+                                </span>
+                              )}
+                              {(formTouched.mobile || formAttempted) && fieldErrors.mobile ? (
+                                <AlertCircle size={15} className="text-rose-500" />
+                              ) : studentMobile.length === 10 && isValidIndianPhone(studentMobile) ? (
+                                <CheckCircle2 size={15} className="text-emerald-500" />
+                              ) : null}
+                            </div>
+                          </div>
+                          {(formTouched.mobile || formAttempted) && fieldErrors.mobile ? (
+                            <p className="text-[11px] text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                              <AlertCircle size={12} className="shrink-0" /> {fieldErrors.mobile}
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-slate-400 mt-1">10-digit Indian number starting with 6, 7, 8, or 9.</p>
+                          )}
+                        </div>
+
+                        {/* Email Address */}
+                        <div className="sm:col-span-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <label htmlFor="field-email" className="block text-xs font-bold text-slate-700">
+                              Email Address <span className="text-slate-400 font-normal">(Optional)</span>
+                            </label>
+                            {studentEmail.trim() && isValidEmail(studentEmail) && (
+                              <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                                <CheckCircle2 size={11} /> Valid Email
+                              </span>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                              <Mail size={15} />
+                            </div>
+                            <input
+                              id="field-email"
+                              type="email"
+                              placeholder="e.g. student@gmail.com"
+                              value={studentEmail}
+                              onChange={(e) => {
+                                setStudentEmail(e.target.value.trim().toLowerCase().slice(0, 80));
+                              }}
+                              onBlur={() => setFormTouched((prev) => ({ ...prev, email: true }))}
+                              className={`w-full pl-9 pr-8 py-2.5 border rounded-xl text-xs font-semibold outline-none transition-all ${
+                                (formTouched.email || formAttempted) && fieldErrors.email
+                                  ? 'border-rose-400 bg-rose-50/20 text-rose-950 focus:border-rose-600 focus:ring-2 focus:ring-rose-100'
+                                  : studentEmail.trim() && isValidEmail(studentEmail)
+                                    ? 'border-emerald-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 text-slate-800'
+                                    : 'border-slate-300 text-slate-800 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'
+                              }`}
+                            />
+                            <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
+                              {(formTouched.email || formAttempted) && fieldErrors.email ? (
+                                <AlertCircle size={15} className="text-rose-500" />
+                              ) : studentEmail.trim() && isValidEmail(studentEmail) ? (
+                                <CheckCircle2 size={15} className="text-emerald-500" />
+                              ) : null}
+                            </div>
+                          </div>
+                          {(formTouched.email || formAttempted) && fieldErrors.email ? (
+                            <p className="text-[11px] text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                              <AlertCircle size={12} className="shrink-0" /> {fieldErrors.email}
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-slate-400 mt-1">Official scorecard link and marks statement can be shared here.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Instructions, Anti-Cheat & Start Button (5 cols) */}
+                    <div className="lg:col-span-5 space-y-4">
+                      {/* Instructions Box */}
+                      <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-2xs text-xs text-slate-700 space-y-3">
+                        <div className="font-bold text-slate-900 flex items-center justify-between text-sm border-b border-slate-100 pb-2">
+                          <span className="flex items-center gap-1.5"><ShieldCheck size={16} className="text-emerald-600" /> Exam Instructions & Anti-Cheat Rules</span>
+                          <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-extrabold uppercase">Strict Proctoring</span>
+                        </div>
+                        <ul className="list-disc pl-5 space-y-2 text-slate-600 leading-relaxed text-xs">
+                          <li>Timer begins immediately upon clicking <strong>Start Assessment Now</strong>.</li>
+                          <li><strong>🎲 Unique Question Shuffling:</strong> All questions are randomly arranged uniquely for each candidate session.</li>
+                          <li><strong>🚨 Strict Anti-Cheating Policy:</strong> Window/tab switching or minimizing the browser is strictly monitored. <strong>Switching tabs will trigger a security violation and auto-submit your test.</strong></li>
+                          <li>Copying question text, right-clicking, or opening inspect tools is strictly disabled.</li>
+                          <li>When timer reaches <strong>00:00</strong>, your test will <strong>automatically submit</strong>.</li>
+                        </ul>
+                      </div>
+
+                      {/* Agreement Checkbox */}
+                      <div
+                        className={`p-4 rounded-2xl transition-all bg-white border ${
+                          (formTouched.agreement || formAttempted) && fieldErrors.agreement
+                            ? 'bg-rose-50/70 border-rose-300 ring-2 ring-rose-100'
+                            : 'border-slate-200 shadow-2xs'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <input
+                            type="checkbox"
+                            id="field-agreement"
+                            checked={agreeRules}
+                            onChange={(e) => {
+                              setAgreeRules(e.target.checked);
+                              setFormTouched((prev) => ({ ...prev, agreement: true }));
+                            }}
+                            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          />
+                          <label htmlFor="field-agreement" className="text-xs text-slate-700 font-medium cursor-pointer select-none leading-relaxed">
+                            I agree to the examination code of conduct. I understand that any attempt to switch tabs or cheat will result in immediate automatic test submission.
+                          </label>
+                        </div>
+                        {(formTouched.agreement || formAttempted) && fieldErrors.agreement && (
+                          <p className="text-[11px] text-rose-600 font-semibold mt-1.5 pl-6.5 flex items-center gap-1">
+                            <AlertCircle size={12} className="shrink-0" /> {fieldErrors.agreement}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Submit CTA */}
+                      <button
+                        type="submit"
+                        className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl text-base shadow-lg shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                      >
+                        <span>Start Assessment Now</span>
+                        <ArrowRight size={18} />
+                      </button>
+                    </div>
+
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Roll / Enrollment No (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. EXAM-2026-081"
-                      value={studentRoll}
-                      onChange={(e) => setStudentRoll(e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">ID Card / Aadhar No (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. ID-89429 or 12-digit Aadhar"
-                      value={studentIdCard}
-                      onChange={(e) => setStudentIdCard(e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Mobile Number (Optional)</label>
-                    <input
-                      type="tel"
-                      inputMode="numeric"
-                      maxLength={10}
-                      placeholder="e.g. 9876543210 (10 Digits)"
-                      value={studentMobile}
-                      onChange={(e) => setStudentMobile(onlyDigits(e.target.value, 10))}
-                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Email Address (Optional)</label>
-                    <input
-                      type="email"
-                      placeholder="e.g. student@gmail.com"
-                      value={studentEmail}
-                      onChange={(e) => setStudentEmail(e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Instructions Box */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 space-y-2.5">
-                <div className="font-bold text-slate-900 flex items-center justify-between text-sm border-b pb-2">
-                  <span className="flex items-center gap-1.5"><ShieldCheck size={16} className="text-emerald-600" /> Exam Instructions & Anti-Cheat Rules</span>
-                  <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-extrabold uppercase">Strict Proctoring</span>
-                </div>
-                <ul className="list-disc pl-5 space-y-1.5 text-slate-600 leading-relaxed">
-                  <li>Timer begins immediately upon clicking <strong>Start Assessment Now</strong>.</li>
-                  <li><strong>🎲 Unique Question Shuffling:</strong> All questions are randomly arranged uniquely for each candidate session.</li>
-                  <li><strong>🚨 Strict Anti-Cheating Policy:</strong> Window/tab switching or minimizing the browser is strictly monitored. <strong>Switching tabs will trigger a security violation and auto-submit your test.</strong></li>
-                  <li>Copying question text, right-clicking, or opening inspect tools is strictly disabled.</li>
-                  <li>When timer reaches <strong>00:00</strong>, your test will <strong>automatically submit</strong>.</li>
-                </ul>
-              </div>
-
-              {/* Agreement Checkbox */}
-              <div className="flex items-start gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="agreeRules"
-                  checked={agreeRules}
-                  onChange={(e) => setAgreeRules(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                />
-                <label htmlFor="agreeRules" className="text-xs text-slate-600 cursor-pointer select-none">
-                  I agree to the examination code of conduct. I understand that any attempt to switch tabs or cheat will result in immediate automatic test submission.
-                </label>
-              </div>
-
-              {/* Submit CTA */}
-              <div className="flex justify-end pt-2">
-                <button
-                  type="submit"
-                  disabled={!studentName.trim() || !agreeRules}
-                  className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl text-sm shadow-lg shadow-indigo-600/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <span>Start Assessment Now</span>
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            </form>
+                </form>
+              );
+            })()}
           </div>
 
         </div>

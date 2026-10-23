@@ -51,11 +51,23 @@ import {
   Lock,
   Unlock,
   Move,
-  Cloud
+  Cloud,
+  Play,
+  Pause,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
+import HeroVisualSlider, {
+  DEFAULT_HERO_SLIDES,
+  type HeroSlideItem,
+  type HeroSliderConfig
+} from '../../../components/home/HeroVisualSlider';
+
+export type { HeroSlideItem, HeroSliderConfig };
+
 
 
 export interface StatItem {
@@ -206,6 +218,66 @@ export const DEFAULT_HOME_SETTINGS = {
     floatingTag1: 'Skill Development Ecosystem',
     floatingTag2: 'Pan-India Recognized',
     heroImage: '',
+    // Advanced Multi-Image Slider System
+    heroSlides: [
+      {
+        id: 'hs-1',
+        url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80',
+        title: 'Modern Computer Lab & Practical Workstation',
+        badge: 'High-Tech Lab'
+      },
+      {
+        id: 'hs-2',
+        url: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80',
+        title: 'Job-Ready Digital Skills & Teamwork',
+        badge: 'Live Projects'
+      },
+      {
+        id: 'hs-3',
+        url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+        title: 'Online Examination & QR Certification',
+        badge: 'Fast Result'
+      }
+    ] as HeroSlideItem[],
+    transitionEffect: 'zoom' as 'fade' | 'slide' | 'zoom' | 'slide-up' | 'flip',
+    autoplay: true,
+    intervalSeconds: 5,
+    pauseOnHover: true,
+    showIndicators: true,
+    indicatorStyle: 'bars' as 'dots' | 'bars' | 'numbers' | 'progress',
+    showArrows: 'hover' as 'always' | 'hover' | 'never',
+    aspectRatio: '4/3' as '4/3' | '16/9' | '3/2' | '1/1',
+    overlayStyle: 'subtle-dark' as 'subtle-dark' | 'brand-indigo' | 'emerald' | 'glass' | 'none',
+    enableTilt3D: true,
+
+    // Floating Badges
+    badgeTopRight: {
+      enabled: true,
+      title: 'Government',
+      subtitle: 'Recognized',
+      icon: 'check' as 'check' | 'shield' | 'star' | 'award' | 'building',
+      theme: 'emerald' as 'emerald' | 'blue' | 'indigo' | 'amber' | 'purple',
+      animate: true
+    },
+    badgeBottomLeft: {
+      enabled: true,
+      title: 'Student Portal',
+      subtitle: 'Instant QR Verify',
+      icon: 'star' as 'star' | 'qrcode' | 'laptop' | 'sparkles' | 'trophy',
+      theme: 'amber' as 'amber' | 'emerald' | 'blue' | 'purple' | 'rose',
+      animate: true
+    },
+
+    // Bottom Stats Ribbon
+    statsRibbon: {
+      enabled: true,
+      stat1Label: 'Certified',
+      stat1Value: '',
+      stat2Label: 'Study Centers',
+      stat2Value: '',
+      stat3Label: 'Courses',
+      stat3Value: ''
+    },
     heroImageStyle: {
       width: 320,
       height: 320,
@@ -525,9 +597,14 @@ const HomePageCustomizer = () => {
   const [saving, setSaving] = useState(false);
 
   // Customizer Tabs & Device View State
-  const [activeSection, setActiveSection] = useState<'colors' | 'topbar' | 'hero' | 'stats' | 'features' | 'verification' | 'courses' | 'centers' | 'enquiry' | 'cta' | 'footer'>('colors');
+  const [activeSection, setActiveSection] = useState<'colors' | 'topbar' | 'hero' | 'stats' | 'features' | 'verification' | 'courses' | 'centers' | 'enquiry' | 'cta' | 'footer'>('hero');
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [previewKey, setPreviewKey] = useState(0);
+
+  // Hero Sub-Tab & Slide Management State
+  const [heroSubTab, setHeroSubTab] = useState<'slides' | 'transitions' | 'badges_style' | 'content'>('slides');
+  const [newSlideUrl, setNewSlideUrl] = useState('');
+  const [uploadingHeroSlide, setUploadingHeroSlide] = useState(false);
 
   // Image Upload Handling
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -621,7 +698,27 @@ const HomePageCustomizer = () => {
           theme: { ...DEFAULT_HOME_SETTINGS.theme, ...(d.theme || {}) },
           topbar: { ...DEFAULT_HOME_SETTINGS.topbar, ...(d.topbar || {}) },
           marquee: { ...DEFAULT_HOME_SETTINGS.marquee, ...(d.marquee || {}) },
-          hero: { ...DEFAULT_HOME_SETTINGS.hero, ...(d.hero || {}) },
+          hero: {
+            ...DEFAULT_HOME_SETTINGS.hero,
+            ...(d.hero || {}),
+            heroSlides: (Array.isArray(d.hero?.heroSlides) && d.hero.heroSlides.length > 0)
+              ? d.hero.heroSlides
+              : (d.hero?.heroImage
+                  ? [{ id: 'hs-custom', url: d.hero.heroImage, title: 'Training Lab Visual', badge: 'High-Tech Lab' }, ...DEFAULT_HOME_SETTINGS.hero.heroSlides.slice(1)]
+                  : DEFAULT_HOME_SETTINGS.hero.heroSlides),
+            badgeTopRight: {
+              ...DEFAULT_HOME_SETTINGS.hero.badgeTopRight,
+              ...(d.hero?.badgeTopRight || {})
+            },
+            badgeBottomLeft: {
+              ...DEFAULT_HOME_SETTINGS.hero.badgeBottomLeft,
+              ...(d.hero?.badgeBottomLeft || {})
+            },
+            statsRibbon: {
+              ...DEFAULT_HOME_SETTINGS.hero.statsRibbon,
+              ...(d.hero?.statsRibbon || {})
+            }
+          },
           stats: {
             enabled: d.stats?.enabled ?? DEFAULT_HOME_SETTINGS.stats.enabled,
             items: statsItems
@@ -827,9 +924,9 @@ const HomePageCustomizer = () => {
   };
 
   const SECTIONS_LIST = [
+    { id: 'hero' as const, label: '✨ Hero Visual Slider & Carousel', icon: Sparkles, hint: 'Multi-image slides, transitions, speed & floating badges' },
     { id: 'colors' as const, label: '🎨 Colors & Palette', icon: Palette, hint: 'Pick text, headline & button colors' },
     { id: 'topbar' as const, label: 'Top Bar & Brand', icon: Building2, hint: 'Helpline, email, logo & company title' },
-    { id: 'hero' as const, label: 'Hero & Marquee', icon: Sparkles, hint: 'Main headline, badge & welcome copy' },
     { id: 'stats' as const, label: 'Impact Counters', icon: Users, hint: 'Add, remove & hide counter cards' },
     { id: 'features' as const, label: 'Key Feature Cards', icon: Award, hint: 'Add, remove & hide feature cards' },
     { id: 'verification' as const, label: 'Verification Hub', icon: ShieldCheck, hint: 'Add, remove & hide verification cards' },
@@ -2261,138 +2358,273 @@ const HomePageCustomizer = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Badge Tagline</label>
-                  <input
-                    type="text"
-                    value={data.hero.welcomeBadge}
-                    onChange={(e) => setData({ ...data, hero: { ...data.hero, welcomeBadge: e.target.value } })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs font-bold"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Welcome Text</label>
-                    <input
-                      type="text"
-                      value={data.hero.welcomeText}
-                      onChange={(e) => setData({ ...data, hero: { ...data.hero, welcomeText: e.target.value } })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">ISO Accreditation Tag</label>
-                    <input
-                      type="text"
-                      value={data.hero.isoBadge}
-                      onChange={(e) => setData({ ...data, hero: { ...data.hero, isoBadge: e.target.value } })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Main Headline / Academy Name</label>
-                  <input
-                    type="text"
-                    value={data.hero.mainTitle}
-                    onChange={(e) => setData({ ...data, hero: { ...data.hero, mainTitle: e.target.value } })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 font-black text-indigo-950 text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Mission / Subtitle Description</label>
-                  <textarea
-                    rows={3}
-                    value={data.hero.subtitle}
-                    onChange={(e) => setData({ ...data, hero: { ...data.hero, subtitle: e.target.value } })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs leading-relaxed"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Primary CTA Button</label>
-                    <input
-                      type="text"
-                      value={data.hero.primaryBtnText}
-                      onChange={(e) => setData({ ...data, hero: { ...data.hero, primaryBtnText: e.target.value } })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Primary Button Link</label>
-                    <input
-                      type="text"
-                      value={data.hero.primaryBtnLink}
-                      onChange={(e) => setData({ ...data, hero: { ...data.hero, primaryBtnLink: e.target.value } })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Secondary Button</label>
-                    <input
-                      type="text"
-                      value={data.hero.secondaryBtnText}
-                      onChange={(e) => setData({ ...data, hero: { ...data.hero, secondaryBtnText: e.target.value } })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Secondary Link</label>
-                    <input
-                      type="text"
-                      value={data.hero.secondaryBtnLink}
-                      onChange={(e) => setData({ ...data, hero: { ...data.hero, secondaryBtnLink: e.target.value } })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs"
-                    />
-                  </div>
-                </div>
-
-                {/* HERO VISUAL LAB IMAGE (S3 CLOUD BACKED) */}
-                <div className="pt-4 border-t border-slate-200/80 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="block font-black text-xs text-slate-800">
-                        Hero Visual Image (Front Training Lab Photo)
-                      </label>
-                      <p className="text-[11px] text-slate-500">
-                        Upload a photo from your computer or paste any URL. Uploaded images are automatically saved to your AWS S3 Bucket.
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200 flex items-center gap-1">
-                      <Cloud size={11} /> AWS S3 Synced
+                {/* HERO SUB-NAV TABS */}
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-2xl border border-slate-200 overflow-x-auto">
+                  <button
+                    type="button"
+                    onClick={() => setHeroSubTab('slides')}
+                    className={`flex-1 min-w-[95px] px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      heroSubTab === 'slides'
+                        ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-black'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                    }`}
+                  >
+                    <ImageIcon size={13} className={heroSubTab === 'slides' ? 'text-indigo-600' : 'text-slate-500'} />
+                    <span>Slides</span>
+                    <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-indigo-50 text-indigo-700 font-black">
+                      {(data.hero?.heroSlides || DEFAULT_HERO_SLIDES).length}
                     </span>
-                  </div>
+                  </button>
 
-                  <div className="flex flex-col sm:flex-row gap-4 items-start bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                    {/* Image Preview Box */}
-                    <div className="w-28 h-24 sm:w-32 sm:h-24 rounded-xl overflow-hidden bg-slate-900 border border-slate-300 shrink-0 relative group shadow-xs">
-                      <img
-                        src={data.hero?.heroImage || "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=600&q=80"}
-                        alt="Hero Preview"
-                        className="w-full h-full object-cover"
-                      />
+                  <button
+                    type="button"
+                    onClick={() => setHeroSubTab('transitions')}
+                    className={`flex-1 min-w-[100px] px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      heroSubTab === 'transitions'
+                        ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-black'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                    }`}
+                  >
+                    <Zap size={13} className={heroSubTab === 'transitions' ? 'text-amber-500' : 'text-slate-500'} />
+                    <span>Transitions</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setHeroSubTab('badges_style')}
+                    className={`flex-1 min-w-[110px] px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      heroSubTab === 'badges_style'
+                        ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-black'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                    }`}
+                  >
+                    <ShieldCheck size={13} className={heroSubTab === 'badges_style' ? 'text-emerald-600' : 'text-slate-500'} />
+                    <span>Badges & 3D</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setHeroSubTab('content')}
+                    className={`flex-1 min-w-[105px] px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      heroSubTab === 'content'
+                        ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-black'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                    }`}
+                  >
+                    <Type size={13} className={heroSubTab === 'content' ? 'text-indigo-600' : 'text-slate-500'} />
+                    <span>Text & CTAs</span>
+                  </button>
+                </div>
+
+                {/* 1. SLIDES GALLERY SUB-TAB */}
+                {heroSubTab === 'slides' && (
+                  <div className="space-y-4 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-black text-xs text-slate-900 flex items-center gap-1.5">
+                          <span>Hero Carousel Slides</span>
+                          <span className="text-[10px] text-slate-500 font-normal">
+                            (Autoplays and loops smoothly on home banner)
+                          </span>
+                        </h4>
+                      </div>
+                      <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200 flex items-center gap-1">
+                        <Cloud size={11} /> AWS S3 Synced
+                      </span>
                     </div>
 
-                    {/* Upload Controls */}
-                    <div className="flex-1 space-y-2 w-full">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <label className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-sm transition-colors">
-                          <Upload size={13} />
-                          <span>Upload New Hero Image</span>
+                    {/* Current Slides List */}
+                    <div className="space-y-2.5">
+                      {((data.hero?.heroSlides && Array.isArray(data.hero.heroSlides) && data.hero.heroSlides.length > 0)
+                        ? data.hero.heroSlides
+                        : DEFAULT_HERO_SLIDES
+                      ).map((slide, index, arr) => (
+                        <div
+                          key={slide.id || index}
+                          className="p-3 bg-slate-50 hover:bg-white border border-slate-200 rounded-2xl transition-all shadow-2xs space-y-2"
+                        >
+                          <div className="flex items-center gap-3">
+                            {/* Slide Thumbnail */}
+                            <div className="w-16 h-14 rounded-xl overflow-hidden bg-slate-900 border border-slate-300 shrink-0 relative group shadow-2xs">
+                              <img
+                                src={slide.url}
+                                alt={slide.title || `Slide ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute top-0.5 left-0.5 bg-black/70 text-white font-mono text-[9px] font-bold px-1 rounded">
+                                #{index + 1}
+                              </div>
+                            </div>
+
+                            {/* Inputs for Title & Badge */}
+                            <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-500 mb-0.5">Slide Caption / Title</label>
+                                <input
+                                  type="text"
+                                  value={slide.title || ''}
+                                  placeholder="e.g. Modern Practical Lab"
+                                  onChange={(e) => {
+                                    const next = [...arr];
+                                    next[index] = { ...next[index], title: e.target.value };
+                                    setData({
+                                      ...data,
+                                      hero: {
+                                        ...data.hero,
+                                        heroSlides: next,
+                                        heroImage: next[0]?.url || data.hero.heroImage
+                                      }
+                                    });
+                                  }}
+                                  className="w-full px-2.5 py-1 text-xs rounded-lg border border-slate-300 outline-none focus:border-indigo-600 bg-white"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-500 mb-0.5">Tag Badge</label>
+                                <input
+                                  type="text"
+                                  value={slide.badge || ''}
+                                  placeholder="e.g. High-Tech Lab"
+                                  onChange={(e) => {
+                                    const next = [...arr];
+                                    next[index] = { ...next[index], badge: e.target.value };
+                                    setData({
+                                      ...data,
+                                      hero: {
+                                        ...data.hero,
+                                        heroSlides: next
+                                      }
+                                    });
+                                  }}
+                                  className="w-full px-2.5 py-1 text-xs rounded-lg border border-slate-300 outline-none focus:border-indigo-600 bg-white"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Action Buttons: Move Up, Move Down, Delete */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                disabled={index === 0}
+                                onClick={() => {
+                                  if (index === 0) return;
+                                  const next = [...arr];
+                                  const temp = next[index - 1];
+                                  next[index - 1] = next[index];
+                                  next[index] = temp;
+                                  setData({
+                                    ...data,
+                                    hero: {
+                                      ...data.hero,
+                                      heroSlides: next,
+                                      heroImage: next[0]?.url || data.hero.heroImage
+                                    }
+                                  });
+                                }}
+                                title="Move Slide Up"
+                                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 cursor-pointer"
+                              >
+                                <ArrowUp size={13} />
+                              </button>
+
+                              <button
+                                type="button"
+                                disabled={index === arr.length - 1}
+                                onClick={() => {
+                                  if (index === arr.length - 1) return;
+                                  const next = [...arr];
+                                  const temp = next[index + 1];
+                                  next[index + 1] = next[index];
+                                  next[index] = temp;
+                                  setData({
+                                    ...data,
+                                    hero: {
+                                      ...data.hero,
+                                      heroSlides: next,
+                                      heroImage: next[0]?.url || data.hero.heroImage
+                                    }
+                                  });
+                                }}
+                                title="Move Slide Down"
+                                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 cursor-pointer"
+                              >
+                                <ArrowDown size={13} />
+                              </button>
+
+                              <button
+                                type="button"
+                                disabled={arr.length <= 1}
+                                onClick={() => {
+                                  if (arr.length <= 1) {
+                                    toast.error('At least 1 slide must remain in hero visual');
+                                    return;
+                                  }
+                                  const next = arr.filter((_, i) => i !== index);
+                                  setData({
+                                    ...data,
+                                    hero: {
+                                      ...data.hero,
+                                      heroSlides: next,
+                                      heroImage: next[0]?.url || ''
+                                    }
+                                  });
+                                  toast.success(`Slide #${index + 1} removed`);
+                                }}
+                                title="Delete Slide"
+                                className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Image URL input */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono text-slate-400 shrink-0">URL:</span>
+                            <input
+                              type="text"
+                              value={slide.url}
+                              onChange={(e) => {
+                                const next = [...arr];
+                                next[index] = { ...next[index], url: e.target.value };
+                                setData({
+                                  ...data,
+                                  hero: {
+                                    ...data.hero,
+                                    heroSlides: next,
+                                    heroImage: next[0]?.url || data.hero.heroImage
+                                  }
+                                });
+                              }}
+                              className="w-full px-2 py-0.5 text-[11px] font-mono rounded border border-slate-200 outline-none focus:border-indigo-500 bg-white text-slate-700"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Add Slide Controls */}
+                    <div className="p-3 bg-indigo-50/60 border border-indigo-200/80 rounded-2xl space-y-3">
+                      <div className="font-bold text-xs text-indigo-950 flex items-center gap-1.5">
+                        <Plus size={14} className="text-indigo-600" />
+                        <span>Add New Slide Image</span>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        {/* Upload from file */}
+                        <label className="flex-1 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors">
+                          <Upload size={14} />
+                          <span>{uploadingHeroSlide ? 'Uploading to S3...' : 'Upload from Computer (Auto-S3)'}</span>
                           <input
                             type="file"
                             accept="image/*"
+                            disabled={uploadingHeroSlide}
                             className="hidden"
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file) return;
+                              setUploadingHeroSlide(true);
                               const form = new FormData();
                               form.append('file', file);
                               try {
@@ -2400,50 +2632,1145 @@ const HomePageCustomizer = () => {
                                   headers: { 'Content-Type': 'multipart/form-data' }
                                 });
                                 if (res.data?.success && res.data.url) {
+                                  const currentSlides = (data.hero?.heroSlides && Array.isArray(data.hero.heroSlides))
+                                    ? data.hero.heroSlides
+                                    : DEFAULT_HERO_SLIDES;
+                                  const newSlide: HeroSlideItem = {
+                                    id: `hs-${Date.now()}`,
+                                    url: res.data.url,
+                                    title: 'Computer Lab Workstation',
+                                    badge: 'Practical Lab'
+                                  };
                                   setData({
                                     ...data,
                                     hero: {
                                       ...data.hero,
-                                      heroImage: res.data.url
+                                      heroSlides: [...currentSlides, newSlide],
+                                      heroImage: currentSlides.length === 0 ? res.data.url : data.hero.heroImage
                                     }
                                   });
+                                  toast.success('Slide image uploaded to S3!');
                                 }
                               } catch (err: any) {
-                                alert('Failed to upload hero image: ' + (err.response?.data?.message || err.message));
+                                toast.error('Failed to upload image: ' + (err.response?.data?.message || err.message));
+                              } finally {
+                                setUploadingHeroSlide(false);
                               }
                             }}
                           />
                         </label>
 
+                        {/* Reset to Defaults */}
                         <button
                           type="button"
                           onClick={() => {
+                            if (window.confirm('Reset hero slides back to default educational lab images?')) {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  heroSlides: DEFAULT_HERO_SLIDES,
+                                  heroImage: DEFAULT_HERO_SLIDES[0].url
+                                }
+                              });
+                              toast.success('Reset to default slides');
+                            }
+                          }}
+                          className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-colors cursor-pointer"
+                        >
+                          Reset Defaults
+                        </button>
+                      </div>
+
+                      {/* Add by Direct URL */}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newSlideUrl}
+                          onChange={(e) => setNewSlideUrl(e.target.value)}
+                          placeholder="Or paste direct image URL (https://... or /uploads/...)"
+                          className="flex-1 px-3 py-1.5 text-xs font-mono rounded-xl border border-indigo-200 outline-none focus:border-indigo-600 bg-white"
+                        />
+                        <button
+                          type="button"
+                          disabled={!newSlideUrl.trim()}
+                          onClick={() => {
+                            if (!newSlideUrl.trim()) return;
+                            const currentSlides = (data.hero?.heroSlides && Array.isArray(data.hero.heroSlides))
+                              ? data.hero.heroSlides
+                              : DEFAULT_HERO_SLIDES;
+                            const newSlide: HeroSlideItem = {
+                              id: `hs-${Date.now()}`,
+                              url: newSlideUrl.trim(),
+                              title: 'Practical Computer Training',
+                              badge: 'New Facility'
+                            };
                             setData({
                               ...data,
                               hero: {
                                 ...data.hero,
-                                heroImage: "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80"
+                                heroSlides: [...currentSlides, newSlide],
+                                heroImage: currentSlides.length === 0 ? newSlideUrl.trim() : data.hero.heroImage
                               }
                             });
+                            setNewSlideUrl('');
+                            toast.success('Slide added to carousel!');
                           }}
-                          className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-bold border border-slate-300 transition-colors cursor-pointer"
+                          className="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-800 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
                         >
-                          Reset Default
+                          Add URL
                         </button>
                       </div>
+                    </div>
 
-                      <div className="relative">
+                    {/* Curated 1-Click Educational Lab Preset Gallery */}
+                    <div className="pt-2 border-t border-slate-200/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                          <Sparkles size={13} className="text-amber-500" />
+                          <span>1-Click Curated Education & Lab Presets</span>
+                        </label>
+                        <span className="text-[10px] text-slate-500">Click any card to add to your slider</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {[
+                          {
+                            url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80',
+                            title: 'Modern Computer Lab & Practical Workstation',
+                            badge: 'High-Tech Lab',
+                            desc: 'Computer Lab'
+                          },
+                          {
+                            url: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80',
+                            title: 'Job-Ready Digital Skills & Teamwork',
+                            badge: 'Live Projects',
+                            desc: 'Team Projects'
+                          },
+                          {
+                            url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+                            title: 'Online Examination & QR Certification',
+                            badge: 'Fast Result',
+                            desc: 'Online Exam'
+                          },
+                          {
+                            url: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1200&q=80',
+                            title: 'Interactive Smart Classroom Session',
+                            badge: 'Smart Class',
+                            desc: 'Smart Classroom'
+                          },
+                          {
+                            url: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=1200&q=80',
+                            title: 'Hardware & Networking Architecture Lab',
+                            badge: 'Hardware Lab',
+                            desc: 'Hardware Tech'
+                          },
+                          {
+                            url: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80',
+                            title: 'Student Convocation & Verified Diplomas',
+                            badge: 'Convocation',
+                            desc: 'Certification Day'
+                          }
+                        ].map((preset, pIdx) => (
+                          <button
+                            key={pIdx}
+                            type="button"
+                            onClick={() => {
+                              const currentSlides = (data.hero?.heroSlides && Array.isArray(data.hero.heroSlides))
+                                ? data.hero.heroSlides
+                                : DEFAULT_HERO_SLIDES;
+                              const newSlide: HeroSlideItem = {
+                                id: `hs-preset-${Date.now()}-${pIdx}`,
+                                url: preset.url,
+                                title: preset.title,
+                                badge: preset.badge
+                              };
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  heroSlides: [...currentSlides, newSlide],
+                                  heroImage: currentSlides.length === 0 ? preset.url : data.hero.heroImage
+                                }
+                              });
+                              toast.success(`Added "${preset.desc}" to slider`);
+                            }}
+                            className="group relative rounded-xl overflow-hidden border border-slate-200 bg-slate-900 aspect-16/10 text-left hover:scale-[1.02] hover:shadow-md transition-all cursor-pointer"
+                          >
+                            <img
+                              src={preset.url}
+                              alt={preset.desc}
+                              className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-2">
+                              <span className="text-[9px] font-black uppercase text-amber-400 tracking-wider">
+                                {preset.badge}
+                              </span>
+                              <span className="text-[11px] font-bold text-white truncate">
+                                {preset.desc}
+                              </span>
+                            </div>
+                            <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-white/90 text-indigo-700 flex items-center justify-center font-black text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                              +
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. TRANSITIONS & MOTION SUB-TAB */}
+                {heroSubTab === 'transitions' && (
+                  <div className="space-y-4 animate-in fade-in duration-150">
+                    <div>
+                      <h4 className="font-black text-xs text-slate-900 mb-1">Slide Transition Animation</h4>
+                      <p className="text-[11px] text-slate-500 mb-3">
+                        Select how slides transition into view. Transitions utilize Framer Motion GPU hardware acceleration.
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        {[
+                          {
+                            id: 'zoom',
+                            name: 'Ken Burns Zoom',
+                            desc: 'Cinematic slow zoom-in with smooth opacity blend',
+                            badge: 'Recommended'
+                          },
+                          {
+                            id: 'fade',
+                            name: 'Smooth Crossfade',
+                            desc: 'Luxury smooth cross-dissolve fade effect',
+                            badge: 'Clean'
+                          },
+                          {
+                            id: 'slide',
+                            name: 'Horizontal Slide',
+                            desc: 'Dynamic carousel sliding left to right',
+                            badge: 'Carousel'
+                          },
+                          {
+                            id: 'slide-up',
+                            name: 'Slide Up Reveal',
+                            desc: 'Contemporary vertical upward slide reveal',
+                            badge: 'Modern'
+                          },
+                          {
+                            id: 'flip',
+                            name: '3D Flip Perspective',
+                            desc: 'High-tech 3D card tilt & perspective flip',
+                            badge: '3D Tech'
+                          }
+                        ].map((trans) => {
+                          const active = (data.hero?.transitionEffect || 'zoom') === trans.id;
+                          return (
+                            <button
+                              key={trans.id}
+                              type="button"
+                              onClick={() => {
+                                setData({
+                                  ...data,
+                                  hero: {
+                                    ...data.hero,
+                                    transitionEffect: trans.id as any
+                                  }
+                                });
+                              }}
+                              className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                                active
+                                  ? 'bg-indigo-50/80 border-indigo-600 shadow-sm ring-1 ring-indigo-600'
+                                  : 'bg-white hover:bg-slate-50 border-slate-200'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className={`text-xs font-black ${active ? 'text-indigo-950' : 'text-slate-800'}`}>
+                                  {trans.name}
+                                </span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                                  active ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                                }`}>
+                                  {trans.badge}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 leading-relaxed">
+                                {trans.desc}
+                              </p>
+                              {active && (
+                                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-indigo-700">
+                                  <Check size={11} /> Active Transition
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Autoplay & Speed Controls */}
+                    <div className="pt-3 border-t border-slate-200/80 space-y-3">
+                      <h4 className="font-black text-xs text-slate-900">Autoplay & Timing Controls</h4>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={data.hero?.autoplay ?? true}
+                                onChange={(e) => {
+                                  setData({
+                                    ...data,
+                                    hero: {
+                                      ...data.hero,
+                                      autoplay: e.target.checked
+                                    }
+                                  });
+                                }}
+                                className="rounded accent-indigo-600"
+                              />
+                              <span>Autoplay Carousel</span>
+                            </label>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              (data.hero?.autoplay ?? true) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
+                            }`}>
+                              {(data.hero?.autoplay ?? true) ? 'Active' : 'Paused'}
+                            </span>
+                          </div>
+
+                          <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 cursor-pointer pt-1">
+                            <input
+                              type="checkbox"
+                              checked={data.hero?.pauseOnHover ?? true}
+                              onChange={(e) => {
+                                setData({
+                                  ...data,
+                                  hero: {
+                                    ...data.hero,
+                                    pauseOnHover: e.target.checked
+                                  }
+                                });
+                              }}
+                              className="rounded accent-indigo-600"
+                            />
+                            <span>Pause cycling on mouse hover</span>
+                          </label>
+                        </div>
+
+                        {/* Interval Slider */}
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-800">Slide Display Duration</label>
+                            <span className="text-xs font-black font-mono text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
+                              {data.hero?.intervalSeconds ?? 5}s
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="2"
+                            max="12"
+                            step="1"
+                            value={data.hero?.intervalSeconds ?? 5}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  intervalSeconds: Number(e.target.value)
+                                }
+                              });
+                            }}
+                            className="w-full accent-indigo-600 cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                            <span>2s (Fast)</span>
+                            <span>5s (Default)</span>
+                            <span>12s (Slow)</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Navigation Controls: Arrows & Indicators */}
+                    <div className="pt-3 border-t border-slate-200/80 space-y-3">
+                      <h4 className="font-black text-xs text-slate-900">Carousel Navigation Styling</h4>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Indicator Style */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">Indicator Style</label>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {[
+                              { id: 'bars', label: 'Wide Bars (Default)' },
+                              { id: 'dots', label: 'Minimal Dots' },
+                              { id: 'numbers', label: '1 / 3 Numbers' },
+                              { id: 'progress', label: 'Linear Progress' }
+                            ].map((ind) => (
+                              <button
+                                key={ind.id}
+                                type="button"
+                                onClick={() => {
+                                  setData({
+                                    ...data,
+                                    hero: {
+                                      ...data.hero,
+                                      showIndicators: true,
+                                      indicatorStyle: ind.id as any
+                                    }
+                                  });
+                                }}
+                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border text-left cursor-pointer transition-all ${
+                                  (data.hero?.indicatorStyle || 'bars') === ind.id
+                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                                }`}
+                              >
+                                {ind.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Arrow Visibility */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">Arrow Controls</label>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {[
+                              { id: 'hover', label: 'On Hover' },
+                              { id: 'always', label: 'Always' },
+                              { id: 'never', label: 'Hidden' }
+                            ].map((arrw) => (
+                              <button
+                                key={arrw.id}
+                                type="button"
+                                onClick={() => {
+                                  setData({
+                                    ...data,
+                                    hero: {
+                                      ...data.hero,
+                                      showArrows: arrw.id as any
+                                    }
+                                  });
+                                }}
+                                className={`px-2 py-1.5 rounded-xl text-xs font-bold border text-center cursor-pointer transition-all ${
+                                  (data.hero?.showArrows || 'hover') === arrw.id
+                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                                }`}
+                              >
+                                {arrw.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. BADGES & 3D STYLE SUB-TAB */}
+                {heroSubTab === 'badges_style' && (
+                  <div className="space-y-4 animate-in fade-in duration-150">
+                    {/* Top-Right Badge (Govt. Recognized) */}
+                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-md bg-emerald-500 text-white flex items-center justify-center text-[10px] font-black">
+                            ✓
+                          </div>
+                          <div>
+                            <span className="font-black text-xs text-slate-900">Top-Right Floating Badge</span>
+                            <span className="text-[10px] text-slate-500 ml-1.5">(e.g. Government Recognized)</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={data.hero?.badgeTopRight?.animate ?? true}
+                              onChange={(e) => {
+                                setData({
+                                  ...data,
+                                  hero: {
+                                    ...data.hero,
+                                    badgeTopRight: {
+                                      ...DEFAULT_HOME_SETTINGS.hero.badgeTopRight,
+                                      ...(data.hero?.badgeTopRight || {}),
+                                      animate: e.target.checked
+                                    }
+                                  }
+                                });
+                              }}
+                              className="rounded accent-indigo-600"
+                            />
+                            <span>Bob Animation</span>
+                          </label>
+
+                          <label className="flex items-center gap-1 text-[11px] font-bold text-slate-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={data.hero?.badgeTopRight?.enabled ?? true}
+                              onChange={(e) => {
+                                setData({
+                                  ...data,
+                                  hero: {
+                                    ...data.hero,
+                                    badgeTopRight: {
+                                      ...DEFAULT_HOME_SETTINGS.hero.badgeTopRight,
+                                      ...(data.hero?.badgeTopRight || {}),
+                                      enabled: e.target.checked
+                                    }
+                                  }
+                                });
+                              }}
+                              className="rounded accent-indigo-600"
+                            />
+                            <span>Show Badge</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-0.5">Top Category Title</label>
+                          <input
+                            type="text"
+                            value={data.hero?.badgeTopRight?.title ?? 'Government'}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  badgeTopRight: {
+                                    ...DEFAULT_HOME_SETTINGS.hero.badgeTopRight,
+                                    ...(data.hero?.badgeTopRight || {}),
+                                    title: e.target.value
+                                  }
+                                }
+                              });
+                            }}
+                            className="w-full px-2.5 py-1 text-xs rounded-lg border border-slate-300 outline-none focus:border-indigo-600 bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-0.5">Highlight Subtitle</label>
+                          <input
+                            type="text"
+                            value={data.hero?.badgeTopRight?.subtitle ?? 'Recognized'}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  badgeTopRight: {
+                                    ...DEFAULT_HOME_SETTINGS.hero.badgeTopRight,
+                                    ...(data.hero?.badgeTopRight || {}),
+                                    subtitle: e.target.value
+                                  }
+                                }
+                              });
+                            }}
+                            className="w-full px-2.5 py-1 text-xs font-bold text-emerald-700 rounded-lg border border-slate-300 outline-none focus:border-indigo-600 bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Badge Theme & Icon */}
+                      <div className="grid grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1">Color Theme</label>
+                          <div className="flex items-center gap-1.5">
+                            {[
+                              { id: 'emerald', label: 'Emerald' },
+                              { id: 'blue', label: 'Blue' },
+                              { id: 'indigo', label: 'Indigo' },
+                              { id: 'amber', label: 'Amber' },
+                              { id: 'purple', label: 'Purple' }
+                            ].map((th) => (
+                              <button
+                                key={th.id}
+                                type="button"
+                                onClick={() => {
+                                  setData({
+                                    ...data,
+                                    hero: {
+                                      ...data.hero,
+                                      badgeTopRight: {
+                                        ...DEFAULT_HOME_SETTINGS.hero.badgeTopRight,
+                                        ...(data.hero?.badgeTopRight || {}),
+                                        theme: th.id as any
+                                      }
+                                    }
+                                  });
+                                }}
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold border cursor-pointer ${
+                                  (data.hero?.badgeTopRight?.theme || 'emerald') === th.id
+                                    ? 'bg-slate-900 text-white border-slate-900'
+                                    : 'bg-white text-slate-700 border-slate-200'
+                                }`}
+                              >
+                                {th.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1">Icon</label>
+                          <div className="flex items-center gap-1.5">
+                            {[
+                              { id: 'check', label: '✓' },
+                              { id: 'shield', label: 'Shield' },
+                              { id: 'star', label: '★' },
+                              { id: 'award', label: 'Award' },
+                              { id: 'building', label: 'Gov' }
+                            ].map((ic) => (
+                              <button
+                                key={ic.id}
+                                type="button"
+                                onClick={() => {
+                                  setData({
+                                    ...data,
+                                    hero: {
+                                      ...data.hero,
+                                      badgeTopRight: {
+                                        ...DEFAULT_HOME_SETTINGS.hero.badgeTopRight,
+                                        ...(data.hero?.badgeTopRight || {}),
+                                        icon: ic.id as any
+                                      }
+                                    }
+                                  });
+                                }}
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold border cursor-pointer ${
+                                  (data.hero?.badgeTopRight?.icon || 'check') === ic.id
+                                    ? 'bg-slate-900 text-white border-slate-900'
+                                    : 'bg-white text-slate-700 border-slate-200'
+                                }`}
+                              >
+                                {ic.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom-Left Badge (Student Portal QR Verify) */}
+                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-md bg-amber-400 text-slate-950 flex items-center justify-center text-[10px] font-black">
+                            ★
+                          </div>
+                          <div>
+                            <span className="font-black text-xs text-slate-900">Bottom-Left Floating Badge</span>
+                            <span className="text-[10px] text-slate-500 ml-1.5">(e.g. Student Portal Instant QR Verify)</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={data.hero?.badgeBottomLeft?.animate ?? true}
+                              onChange={(e) => {
+                                setData({
+                                  ...data,
+                                  hero: {
+                                    ...data.hero,
+                                    badgeBottomLeft: {
+                                      ...DEFAULT_HOME_SETTINGS.hero.badgeBottomLeft,
+                                      ...(data.hero?.badgeBottomLeft || {}),
+                                      animate: e.target.checked
+                                    }
+                                  }
+                                });
+                              }}
+                              className="rounded accent-indigo-600"
+                            />
+                            <span>Bob Animation</span>
+                          </label>
+
+                          <label className="flex items-center gap-1 text-[11px] font-bold text-slate-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={data.hero?.badgeBottomLeft?.enabled ?? true}
+                              onChange={(e) => {
+                                setData({
+                                  ...data,
+                                  hero: {
+                                    ...data.hero,
+                                    badgeBottomLeft: {
+                                      ...DEFAULT_HOME_SETTINGS.hero.badgeBottomLeft,
+                                      ...(data.hero?.badgeBottomLeft || {}),
+                                      enabled: e.target.checked
+                                    }
+                                  }
+                                });
+                              }}
+                              className="rounded accent-indigo-600"
+                            />
+                            <span>Show Badge</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-0.5">Top Category Title</label>
+                          <input
+                            type="text"
+                            value={data.hero?.badgeBottomLeft?.title ?? 'Student Portal'}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  badgeBottomLeft: {
+                                    ...DEFAULT_HOME_SETTINGS.hero.badgeBottomLeft,
+                                    ...(data.hero?.badgeBottomLeft || {}),
+                                    title: e.target.value
+                                  }
+                                }
+                              });
+                            }}
+                            className="w-full px-2.5 py-1 text-xs rounded-lg border border-slate-300 outline-none focus:border-indigo-600 bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-0.5">Highlight Subtitle</label>
+                          <input
+                            type="text"
+                            value={data.hero?.badgeBottomLeft?.subtitle ?? 'Instant QR Verify'}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  badgeBottomLeft: {
+                                    ...DEFAULT_HOME_SETTINGS.hero.badgeBottomLeft,
+                                    ...(data.hero?.badgeBottomLeft || {}),
+                                    subtitle: e.target.value
+                                  }
+                                }
+                              });
+                            }}
+                            className="w-full px-2.5 py-1 text-xs font-bold text-amber-700 rounded-lg border border-slate-300 outline-none focus:border-indigo-600 bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Badge Theme & Icon */}
+                      <div className="grid grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1">Color Theme</label>
+                          <div className="flex items-center gap-1.5">
+                            {[
+                              { id: 'amber', label: 'Amber' },
+                              { id: 'emerald', label: 'Emerald' },
+                              { id: 'blue', label: 'Blue' },
+                              { id: 'purple', label: 'Purple' },
+                              { id: 'rose', label: 'Rose' }
+                            ].map((th) => (
+                              <button
+                                key={th.id}
+                                type="button"
+                                onClick={() => {
+                                  setData({
+                                    ...data,
+                                    hero: {
+                                      ...data.hero,
+                                      badgeBottomLeft: {
+                                        ...DEFAULT_HOME_SETTINGS.hero.badgeBottomLeft,
+                                        ...(data.hero?.badgeBottomLeft || {}),
+                                        theme: th.id as any
+                                      }
+                                    }
+                                  });
+                                }}
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold border cursor-pointer ${
+                                  (data.hero?.badgeBottomLeft?.theme || 'amber') === th.id
+                                    ? 'bg-slate-900 text-white border-slate-900'
+                                    : 'bg-white text-slate-700 border-slate-200'
+                                }`}
+                              >
+                                {th.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1">Icon</label>
+                          <div className="flex items-center gap-1.5">
+                            {[
+                              { id: 'star', label: '★' },
+                              { id: 'qrcode', label: 'QR' },
+                              { id: 'laptop', label: 'Portal' },
+                              { id: 'sparkles', label: 'Sparkle' },
+                              { id: 'trophy', label: 'Trophy' }
+                            ].map((ic) => (
+                              <button
+                                key={ic.id}
+                                type="button"
+                                onClick={() => {
+                                  setData({
+                                    ...data,
+                                    hero: {
+                                      ...data.hero,
+                                      badgeBottomLeft: {
+                                        ...DEFAULT_HOME_SETTINGS.hero.badgeBottomLeft,
+                                        ...(data.hero?.badgeBottomLeft || {}),
+                                        icon: ic.id as any
+                                      }
+                                    }
+                                  });
+                                }}
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold border cursor-pointer ${
+                                  (data.hero?.badgeBottomLeft?.icon || 'star') === ic.id
+                                    ? 'bg-slate-900 text-white border-slate-900'
+                                    : 'bg-white text-slate-700 border-slate-200'
+                                }`}
+                              >
+                                {ic.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Stats Ribbon Overrides */}
+                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <span className="font-black text-xs text-slate-900">Bottom Stats Ribbon</span>
+                        <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={data.hero?.statsRibbon?.enabled ?? true}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  statsRibbon: {
+                                    ...DEFAULT_HOME_SETTINGS.hero.statsRibbon,
+                                    ...(data.hero?.statsRibbon || {}),
+                                    enabled: e.target.checked
+                                  }
+                                }
+                              });
+                            }}
+                            className="rounded accent-indigo-600"
+                          />
+                          <span>Show Ribbon</span>
+                        </label>
+                      </div>
+
+                      <p className="text-[11px] text-slate-500">
+                        Leave value blank to automatically use live figures from the database.
+                      </p>
+
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="space-y-1">
+                          <label className="block text-[10px] font-bold text-slate-500">Stat 1 Label</label>
+                          <input
+                            type="text"
+                            value={data.hero?.statsRibbon?.stat1Label ?? 'Certified'}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  statsRibbon: {
+                                    ...DEFAULT_HOME_SETTINGS.hero.statsRibbon,
+                                    ...(data.hero?.statsRibbon || {}),
+                                    stat1Label: e.target.value
+                                  }
+                                }
+                              });
+                            }}
+                            className="w-full px-2 py-1 rounded-lg border border-slate-300 text-xs bg-white"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Live Count"
+                            value={data.hero?.statsRibbon?.stat1Value || ''}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  statsRibbon: {
+                                    ...DEFAULT_HOME_SETTINGS.hero.statsRibbon,
+                                    ...(data.hero?.statsRibbon || {}),
+                                    stat1Value: e.target.value
+                                  }
+                                }
+                              });
+                            }}
+                            className="w-full px-2 py-1 rounded-lg border border-slate-300 text-xs font-mono bg-white"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="block text-[10px] font-bold text-slate-500">Stat 2 Label</label>
+                          <input
+                            type="text"
+                            value={data.hero?.statsRibbon?.stat2Label ?? 'Study Centers'}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  statsRibbon: {
+                                    ...DEFAULT_HOME_SETTINGS.hero.statsRibbon,
+                                    ...(data.hero?.statsRibbon || {}),
+                                    stat2Label: e.target.value
+                                  }
+                                }
+                              });
+                            }}
+                            className="w-full px-2 py-1 rounded-lg border border-slate-300 text-xs bg-white"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Live Count"
+                            value={data.hero?.statsRibbon?.stat2Value || ''}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  statsRibbon: {
+                                    ...DEFAULT_HOME_SETTINGS.hero.statsRibbon,
+                                    ...(data.hero?.statsRibbon || {}),
+                                    stat2Value: e.target.value
+                                  }
+                                }
+                              });
+                            }}
+                            className="w-full px-2 py-1 rounded-lg border border-slate-300 text-xs font-mono bg-white"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="block text-[10px] font-bold text-slate-500">Stat 3 Label</label>
+                          <input
+                            type="text"
+                            value={data.hero?.statsRibbon?.stat3Label ?? 'Courses'}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  statsRibbon: {
+                                    ...DEFAULT_HOME_SETTINGS.hero.statsRibbon,
+                                    ...(data.hero?.statsRibbon || {}),
+                                    stat3Label: e.target.value
+                                  }
+                                }
+                              });
+                            }}
+                            className="w-full px-2 py-1 rounded-lg border border-slate-300 text-xs bg-white"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Live Count"
+                            value={data.hero?.statsRibbon?.stat3Value || ''}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  statsRibbon: {
+                                    ...DEFAULT_HOME_SETTINGS.hero.statsRibbon,
+                                    ...(data.hero?.statsRibbon || {}),
+                                    stat3Value: e.target.value
+                                  }
+                                }
+                              });
+                            }}
+                            className="w-full px-2 py-1 rounded-lg border border-slate-300 text-xs font-mono bg-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Frame & 3D Tilt Controls */}
+                    <div className="pt-2 border-t border-slate-200/80 space-y-3">
+                      <h4 className="font-black text-xs text-slate-900">Atmosphere, Aspect Ratio & 3D Tilt</h4>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {/* Aspect Ratio */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Aspect Ratio</label>
+                          <select
+                            value={data.hero?.aspectRatio || '4/3'}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  aspectRatio: e.target.value as any
+                                }
+                              });
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold bg-white outline-none focus:border-indigo-600 cursor-pointer"
+                          >
+                            <option value="4/3">4:3 (Default Standard)</option>
+                            <option value="16/9">16:9 (Cinematic Widescreen)</option>
+                            <option value="3/2">3:2 (Classic Photography)</option>
+                            <option value="1/1">1:1 (Square Profile)</option>
+                          </select>
+                        </div>
+
+                        {/* Overlay Filter */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Atmosphere Tint</label>
+                          <select
+                            value={data.hero?.overlayStyle || 'subtle-dark'}
+                            onChange={(e) => {
+                              setData({
+                                ...data,
+                                hero: {
+                                  ...data.hero,
+                                  overlayStyle: e.target.value as any
+                                }
+                              });
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold bg-white outline-none focus:border-indigo-600 cursor-pointer"
+                          >
+                            <option value="subtle-dark">Subtle Dark Tint (Default)</option>
+                            <option value="brand-indigo">Brand Indigo Tint</option>
+                            <option value="emerald">Emerald Green Tint</option>
+                            <option value="glass">Frosted Glass Sheen</option>
+                            <option value="none">No Overlay Filter</option>
+                          </select>
+                        </div>
+
+                        {/* 3D Interactive Mouse Tilt */}
+                        <div className="flex flex-col justify-end">
+                          <label className="p-2 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800">
+                            <input
+                              type="checkbox"
+                              checked={data.hero?.enableTilt3D ?? true}
+                              onChange={(e) => {
+                                setData({
+                                  ...data,
+                                  hero: {
+                                    ...data.hero,
+                                    enableTilt3D: e.target.checked
+                                  }
+                                });
+                              }}
+                              className="rounded accent-indigo-600"
+                            />
+                            <span>3D Interactive Tilt</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. HERO TEXT & BUTTONS SUB-TAB */}
+                {heroSubTab === 'content' && (
+                  <div className="space-y-3.5 animate-in fade-in duration-150">
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1">Badge Tagline</label>
+                      <input
+                        type="text"
+                        value={data.hero.welcomeBadge}
+                        onChange={(e) => setData({ ...data, hero: { ...data.hero, welcomeBadge: e.target.value } })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs font-bold"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-700 text-xs mb-1">Welcome Text</label>
                         <input
                           type="text"
-                          value={data.hero?.heroImage || ''}
-                          placeholder="Or paste direct image URL (e.g. /uploads/branding/... or S3 URL)"
-                          onChange={(e) => setData({ ...data, hero: { ...data.hero, heroImage: e.target.value } })}
-                          className="w-full px-3 py-1.5 text-xs font-mono rounded-xl border border-slate-300 outline-none focus:border-indigo-600 bg-white"
+                          value={data.hero.welcomeText}
+                          onChange={(e) => setData({ ...data, hero: { ...data.hero, welcomeText: e.target.value } })}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-700 text-xs mb-1">ISO Accreditation Tag</label>
+                        <input
+                          type="text"
+                          value={data.hero.isoBadge}
+                          onChange={(e) => setData({ ...data, hero: { ...data.hero, isoBadge: e.target.value } })}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1">Main Headline / Academy Name</label>
+                      <input
+                        type="text"
+                        value={data.hero.mainTitle}
+                        onChange={(e) => setData({ ...data, hero: { ...data.hero, mainTitle: e.target.value } })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 font-black text-indigo-950 text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1">Mission / Subtitle Description</label>
+                      <textarea
+                        rows={3}
+                        value={data.hero.subtitle}
+                        onChange={(e) => setData({ ...data, hero: { ...data.hero, subtitle: e.target.value } })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs leading-relaxed"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-700 text-xs mb-1">Primary CTA Button</label>
+                        <input
+                          type="text"
+                          value={data.hero.primaryBtnText}
+                          onChange={(e) => setData({ ...data, hero: { ...data.hero, primaryBtnText: e.target.value } })}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-700 text-xs mb-1">Primary Button Link</label>
+                        <input
+                          type="text"
+                          value={data.hero.primaryBtnLink}
+                          onChange={(e) => setData({ ...data, hero: { ...data.hero, primaryBtnLink: e.target.value } })}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-700 text-xs mb-1">Secondary Button</label>
+                        <input
+                          type="text"
+                          value={data.hero.secondaryBtnText}
+                          onChange={(e) => setData({ ...data, hero: { ...data.hero, secondaryBtnText: e.target.value } })}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-700 text-xs mb-1">Secondary Link</label>
+                        <input
+                          type="text"
+                          value={data.hero.secondaryBtnLink}
+                          onChange={(e) => setData({ ...data, hero: { ...data.hero, secondaryBtnLink: e.target.value } })}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs"
                         />
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -3416,10 +4743,13 @@ const HomePageCustomizer = () => {
                       <img
                         src={data.topbar.logoImage}
                         alt="Logo"
+                        className="bg-transparent object-contain"
                         style={{
                           ...computeImageStyles(data.topbar?.logoStyle, 0.75),
                           height: `${(data.topbar?.logoStyle?.height ?? 48) * 0.75}px`,
-                          maxWidth: `${(data.topbar?.logoStyle?.maxWidth ?? 200) * 0.75}px`
+                          maxWidth: `${(data.topbar?.logoStyle?.maxWidth ?? 200) * 0.75}px`,
+                          backgroundColor: 'transparent',
+                          mixBlendMode: 'multiply'
                         }}
                       />
                       {data.topbar?.logoStyle?.showTextWithLogo && (
@@ -3526,23 +4856,11 @@ const HomePageCustomizer = () => {
 
                     {/* Right Hero Side in Modern Solid Showcase Frame */}
                     <div className="lg:col-span-5 hidden lg:flex flex-col items-center justify-center">
-                      <div className="relative w-full bg-white rounded-2xl border border-slate-200 shadow-xl p-2.5">
-                        <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-slate-900">
-                          <img
-                            src={data.hero?.heroImage || "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80"}
-                            alt="Academy Lab Visual"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="absolute -top-2.5 -right-2 bg-white text-slate-900 border border-slate-200 px-2 py-0.5 rounded-xl shadow-md flex items-center gap-1 z-20">
-                          <div className="w-4 h-4 rounded-md bg-emerald-500 text-white flex items-center justify-center text-[9px] font-black">✓</div>
-                          <span className="text-[8px] font-bold text-emerald-600">Gov. Recognized</span>
-                        </div>
-                        <div className="absolute -bottom-2.5 -left-2 bg-white text-slate-900 border border-slate-200 px-2.5 py-1 rounded-xl shadow-md flex items-center gap-1.5 z-20">
-                          <div className="w-4 h-4 rounded-md bg-amber-500 text-white flex items-center justify-center text-[9px] font-black">★</div>
-                          <span className="text-[8px] font-bold text-amber-600">Instant QR Verify</span>
-                        </div>
-                      </div>
+                      <HeroVisualSlider
+                        config={data.hero}
+                        isCustomizerPreview={true}
+                        className="w-full max-w-sm"
+                      />
                     </div>
                   </div>
                 </section>

@@ -42,6 +42,8 @@ interface AuditLog {
   created_at: string;
 }
 
+import { useDebounce } from '../../hooks/useDebounce';
+
 export const AuditLogs = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,8 +51,9 @@ export const AuditLogs = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalLogs, setTotalLogs] = useState(0);
 
-  // Filters
+  // Filters (Debounced search prevents server spam)
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 400);
   const [selectedAction, setSelectedAction] = useState('ALL');
   const [selectedUserType, setSelectedUserType] = useState('ALL');
 
@@ -66,7 +69,7 @@ export const AuditLogs = () => {
   const [isOptimizingDb, setIsOptimizingDb] = useState(false);
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
 
-  const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+  const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken') || localStorage.getItem('admin_token');
   const authHeaders = { Authorization: `Bearer ${token}` };
 
   const fetchLogs = useCallback(async () => {
@@ -75,12 +78,15 @@ export const AuditLogs = () => {
       const params: any = { page, limit: 15 };
       if (selectedAction !== 'ALL') params.action = selectedAction;
       if (selectedUserType !== 'ALL') params.userType = selectedUserType;
-      if (searchTerm.trim()) params.search = searchTerm.trim();
+      if (debouncedSearchTerm.trim()) params.search = debouncedSearchTerm.trim();
 
-      const res = await axios.get('http://localhost:3000/api/admin/audit-logs', {
+      const res = await axios.get('/api/admin/audit-logs', {
         headers: authHeaders,
         params
-      });
+      }).catch(() => axios.get('http://localhost:3000/api/admin/audit-logs', {
+        headers: authHeaders,
+        params
+      }));
 
       if (res.data?.success) {
         setLogs(res.data.logs || []);
@@ -92,7 +98,7 @@ export const AuditLogs = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, selectedAction, selectedUserType, searchTerm]);
+  }, [page, selectedAction, selectedUserType, debouncedSearchTerm]);
 
   const fetchCacheStats = async () => {
     try {
@@ -153,6 +159,10 @@ export const AuditLogs = () => {
       setIsOptimizingDb(false);
     }
   };
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearchTerm, selectedAction, selectedUserType]);
 
   useEffect(() => {
     fetchLogs();

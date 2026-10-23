@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import { useDebounce } from '../../hooks/useDebounce';
 import {
   Award,
   BookOpen,
@@ -41,8 +43,11 @@ import {
   Target,
   Bookmark,
   CheckCheck,
-  Zap
+  Zap,
+  Loader2,
+  Download,
 } from 'lucide-react';
+import { downloadOfficialScorecardPdf } from '../../utils/scorecardPdf';
 
 interface Category {
   id: number;
@@ -118,16 +123,34 @@ const cleanQuestionText = (text: string) => {
 };
 
 export default function StudentTestSeries() {
-  const [activeTab, setActiveTab] = useState<'discover' | 'my_series' | 'achievements'>('discover');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const activeTab: 'discover' | 'my_series' | 'achievements' =
+    (tabParam === 'my_series' || tabParam === 'achievements') ? tabParam : 'discover';
+
+  const setActiveTab = useCallback((tab: 'discover' | 'my_series' | 'achievements') => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'discover') {
+        next.delete('tab');
+      } else {
+        next.set('tab', tab);
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 250);
   const [filterType, setFilterType] = useState<'ALL' | 'FREE' | 'PAID'>('ALL');
 
   const [availableSeries, setAvailableSeries] = useState<TestSeriesItem[]>([]);
   const [mySeries, setMySeries] = useState<TestSeriesItem[]>([]);
   const [achievements, setAchievements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [startingTest, setStartingTest] = useState<TestItem | null>(null);
 
   // Detail Modal State
   const [selectedSeriesDetail, setSelectedSeriesDetail] = useState<TestSeriesItem | null>(null);
@@ -234,7 +257,12 @@ export default function StudentTestSeries() {
         setAvailableSeries(dedupe(seriesRes.data.data));
       }
       if (mySeriesRes?.data?.success && Array.isArray(mySeriesRes.data.data)) {
-        setMySeries(dedupe(mySeriesRes.data.data));
+        const dedupedMySeries = dedupe(mySeriesRes.data.data);
+        setMySeries(dedupedMySeries);
+        try {
+          localStorage.setItem('studentMySeriesCount', String(dedupedMySeries.length));
+          window.dispatchEvent(new Event('studentSeriesUpdated'));
+        } catch { }
       }
       if (achieveRes?.data?.data && Array.isArray(achieveRes.data.data)) {
         setAchievements(achieveRes.data.data || []);
@@ -385,7 +413,7 @@ export default function StudentTestSeries() {
 
   const handleStartTest = async (test: TestItem) => {
     try {
-      setLoading(true);
+      setStartingTest(test);
       let res;
       try {
         res = await axios.post(`/api/student/test-series/tests/${test.id}/start`, {}, { headers: getAuthHeader() });
@@ -437,7 +465,7 @@ export default function StudentTestSeries() {
     } catch (err: any) {
       showToast('error', err.response?.data?.message || 'Failed to start test.');
     } finally {
-      setLoading(false);
+      setStartingTest(null);
     }
   };
 
@@ -567,18 +595,110 @@ export default function StudentTestSeries() {
     }
   };
 
+  const topicAnalytics = useMemo(() => {
+    if (!scorecardData?.question_analysis || !Array.isArray(scorecardData.question_analysis)) return [];
+    const map = new Map<string, { total: number; correct: number; incorrect: number; unattempted: number }>();
+
+    scorecardData.question_analysis.forEach((q: any) => {
+      const sec = q.section_name?.trim() || 'General Assessment';
+      if (!map.has(sec)) {
+        map.set(sec, { total: 0, correct: 0, incorrect: 0, unattempted: 0 });
+      }
+      const entry = map.get(sec)!;
+      entry.total += 1;
+      if (q.student_is_correct === 1) {
+        entry.correct += 1;
+      } else if (q.selected_option_key) {
+        entry.incorrect += 1;
+      } else {
+        entry.unattempted += 1;
+      }
+    });
+
+    return Array.from(map.entries()).map(([topicName, stats]) => {
+      const accuracy = stats.total > 0 ? (stats.correct / stats.total) * 100 : 0;
+      let status: 'Strong' | 'Moderate' | 'Weak' = 'Weak';
+      if (accuracy >= 75) status = 'Strong';
+      else if (accuracy >= 45) status = 'Moderate';
+
+      return {
+        topicName,
+        total: stats.total,
+        correct: stats.correct,
+        incorrect: stats.incorrect,
+        unattempted: stats.unattempted,
+        accuracy,
+        status,
+      };
+    });
+  }, [scorecardData]);
+
+  const handleDownloadScorecardPdf = () => {
+    if (!scorecardData) return;
+
+    let studentUser: any = {};
+    try {
+      studentUser = JSON.parse(localStorage.getItem('studentUser') || '{}');
+    } catch (_) {
+      studentUser = {};
+    }
+
+    const candidateName = studentUser?.firstName
+      ? `${studentUser.firstName} ${studentUser.lastName || ''}`.trim()
+      : studentUser?.name || 'Student Candidate';
+    const candidateEnroll = studentUser?.enrollment_no || studentUser?.roll_no || studentUser?.registration_no || 'EXM-2026';
+    const centerName = studentUser?.center_name || studentUser?.center?.name || 'Examirror Digital Assessment Center';
+
+    const passingMarks = Number(scorecardData.test_passing_marks || scorecardData.passing_marks || 40);
+    const finalScore = Number(scorecardData.final_score || 0);
+    const isPassed = scorecardData.is_passed !== undefined
+      ? Boolean(scorecardData.is_passed)
+      : finalScore >= passingMarks;
+
+    const topicBreakdown = topicAnalytics.map(t => ({
+      topicName: t.topicName,
+      total: t.total,
+      correct: t.correct,
+      accuracy: t.accuracy,
+    }));
+
+    downloadOfficialScorecardPdf({
+      testTitle: scorecardData.test_title || 'Mock Examination',
+      studentName: candidateName,
+      enrollmentNo: candidateEnroll,
+      centerName,
+      examDate: scorecardData.submitted_at ? new Date(scorecardData.submitted_at).toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' }) : undefined,
+      status: isPassed ? 'PASSED' : 'FAILED',
+      finalScore,
+      totalMarks: Number(scorecardData.test_total_marks || scorecardData.total_marks || 100),
+      passingMarks,
+      percentage: Number(scorecardData.percentage || 0),
+      accuracy: Number(scorecardData.accuracy || 0),
+      durationSeconds: Number(scorecardData.duration_seconds || 0),
+      correctAnswers: Number(scorecardData.correct_answers || 0),
+      incorrectAnswers: Number(scorecardData.incorrect_answers || 0),
+      unanswered: Number(scorecardData.unanswered || 0),
+      topicBreakdown,
+    });
+
+    showToast('success', 'Official PDF Scorecard generated successfully!');
+  };
+
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const filteredSeries = availableSeries.filter(s => {
-    const matchesCat = selectedCategory === 'ALL' || s.category_id === selectedCategory;
-    const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase()) || (s.description && s.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesType = filterType === 'ALL' || (filterType === 'FREE' && s.is_free) || (filterType === 'PAID' && !s.is_free);
-    return matchesCat && matchesSearch && matchesType;
-  });
+  const filteredSeries = useMemo(() => {
+    const q = debouncedSearchQuery.toLowerCase().trim();
+    return availableSeries.filter(s => {
+      const matchesCat = selectedCategory === 'ALL' || s.category_id === selectedCategory;
+      const matchesSearch = !q || s.title.toLowerCase().includes(q) || (s.description && s.description.toLowerCase().includes(q));
+      const matchesType = filterType === 'ALL' || (filterType === 'FREE' && s.is_free) || (filterType === 'PAID' && !s.is_free);
+      return matchesCat && matchesSearch && matchesType;
+    });
+  }, [availableSeries, selectedCategory, debouncedSearchQuery, filterType]);
 
   if (isTakingExam && activeTest) {
     const currentQ = examQuestions[currentQIndex];
@@ -611,303 +731,294 @@ export default function StudentTestSeries() {
     const candidateEnroll = studentUser?.enrollment_no || studentUser?.roll_no || 'REG-2026';
 
     return (
-      <div className="fixed inset-0 bg-slate-100 z-50 flex flex-col font-sans select-none w-full h-full">
-        {/* Top Dark CBT Navigation Bar (Full Width) */}
-        <header className="bg-slate-950 text-white border-b border-slate-800/90 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-xl z-30 w-full shrink-0">
+      <div className="fixed inset-0 bg-slate-50 z-50 flex flex-col font-sans select-none w-full h-full">
+        {/* Top Minimal CBT Navigation Bar */}
+        <header className="bg-slate-900 text-white border-b border-slate-800 px-5 py-2.5 flex items-center justify-between z-30 w-full shrink-0">
           {/* Left: Test Title & Details */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md shrink-0">
-              <Zap size={20} className="text-white" />
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0">
+              <Zap size={16} className="text-white" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-sm sm:text-base font-black text-white truncate leading-tight tracking-tight">
+                <h1 className="text-sm font-semibold text-slate-100 truncate">
                   {activeTest.title}
                 </h1>
-                <span className="hidden sm:inline-flex px-2 py-0.5 bg-indigo-950 text-indigo-300 border border-indigo-700/50 rounded-md text-[10px] font-bold">
-                  LIVE CBT
+                <span className="hidden sm:inline-flex px-1.5 py-0.5 bg-slate-800 text-slate-300 border border-slate-700 rounded text-[10px] font-medium">
+                  CBT
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5 flex items-center gap-2">
-                <span>Total Marks: <b className="text-slate-200">{activeTest.total_marks || 100}</b></span>
+              <p className="text-[11px] text-slate-400 truncate flex items-center gap-2">
+                <span>Total: {activeTest.total_marks || 100} Marks</span>
                 <span>•</span>
-                <span>Negative: <b className="text-rose-400">-{activeTest.negative_marks || activeTest.negative_marks_per_question || 0.50}</b></span>
+                <span>Negative: -{activeTest.negative_marks || activeTest.negative_marks_per_question || 0.50}</span>
               </p>
             </div>
           </div>
 
-          {/* Center: Live Digital Countdown Timer */}
+          {/* Center: Countdown Timer */}
           <div className="flex items-center justify-center px-2">
             <div
-              className={`flex items-center gap-2.5 px-4 sm:px-6 py-2 rounded-2xl border font-mono font-black text-sm sm:text-base transition-all ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border font-mono text-xs transition-colors ${
                 remainingSeconds < 300
-                  ? 'bg-rose-950/90 border-rose-500/80 text-rose-300 ring-4 ring-rose-500/20 animate-pulse shadow-lg shadow-rose-950'
-                  : 'bg-slate-900/95 border-cyan-500/40 text-cyan-300 shadow-inner ring-1 ring-cyan-500/20'
+                  ? 'bg-rose-950/60 border-rose-700/60 text-rose-300 animate-pulse'
+                  : 'bg-slate-800/80 border-slate-700/60 text-slate-200'
               }`}
             >
-              <Clock size={18} className={remainingSeconds < 300 ? 'text-rose-400 animate-spin' : 'text-cyan-400'} />
-              <div className="flex flex-col items-start leading-none">
-                <span className="tracking-wider">{formatTimer(remainingSeconds)}</span>
-                <span className="text-[9px] font-sans font-medium text-slate-400">Time Left</span>
-              </div>
+              <Clock size={14} className={remainingSeconds < 300 ? 'text-rose-400' : 'text-slate-400'} />
+              <span className="font-semibold text-sm tracking-wide">{formatTimer(remainingSeconds)}</span>
             </div>
           </div>
 
           {/* Right: Quick Tools & Submit Button */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2">
             {/* Font Scale Adjuster */}
-            <div className="hidden lg:flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 gap-1">
+            <div className="hidden lg:flex items-center bg-slate-800 border border-slate-700 rounded-lg p-0.5 gap-0.5 text-xs">
               <button
                 type="button"
                 onClick={() => setExamFontSize(prev => prev === 'lg' ? 'base' : 'sm')}
-                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`px-2 py-0.5 rounded font-semibold transition-all cursor-pointer ${
                   examFontSize === 'sm' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
                 }`}
-                title="Decrease Font Size"
+                title="Small font"
               >
                 A-
               </button>
               <button
                 type="button"
                 onClick={() => setExamFontSize('base')}
-                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`px-2 py-0.5 rounded font-semibold transition-all cursor-pointer ${
                   examFontSize === 'base' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
                 }`}
-                title="Standard Font Size"
+                title="Default font"
               >
                 A
               </button>
               <button
                 type="button"
                 onClick={() => setExamFontSize(prev => prev === 'sm' ? 'base' : 'lg')}
-                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`px-2 py-0.5 rounded font-semibold transition-all cursor-pointer ${
                   examFontSize === 'lg' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
                 }`}
-                title="Increase Font Size"
+                title="Large font"
               >
                 A+
               </button>
             </div>
 
-            {/* Instructions Modal Toggle */}
+            {/* Instructions */}
             <button
               type="button"
               onClick={() => setShowInstructionsModal(true)}
-              className="p-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
-              title="View Instructions & Shortcuts"
+              className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+              title="Instructions"
             >
-              <HelpCircle size={18} />
+              <HelpCircle size={16} />
             </button>
 
             {/* Fullscreen Toggle */}
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="hidden sm:flex p-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+              className="hidden sm:flex p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
               title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
             >
-              {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
 
             {/* Top Submit Action Button */}
             <button
               type="button"
               onClick={() => setShowConfirmSubmit(true)}
-              className="px-4 sm:px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-lg active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
             >
-              <CheckCircle2 size={16} />
-              <span>Submit Test</span>
+              <CheckCircle2 size={14} />
+              <span>Submit</span>
             </button>
           </div>
         </header>
 
-        {/* Dynamic Progress Ribbon (Full Width) */}
-        <div className="bg-slate-900/95 border-b border-slate-800 px-4 sm:px-8 py-2 flex flex-wrap items-center justify-between gap-3 text-xs z-20 w-full shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="font-bold text-white flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        {/* Dynamic Progress Ribbon */}
+        <div className="bg-slate-900/90 border-b border-slate-800/80 px-5 py-1.5 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
+          <div className="flex items-center gap-2.5 text-slate-300">
+            <span className="font-medium text-white">
               Question {currentQIndex + 1} of {totalQCount}
             </span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-400 font-medium">
-              Progress: <b className="text-indigo-400">{progressPercent}%</b> ({answeredCount}/{totalQCount} Attempted)
+            <span className="text-slate-600">•</span>
+            <span className="text-slate-400 text-[11px]">
+              {answeredCount}/{totalQCount} Attempted ({progressPercent}%)
             </span>
           </div>
 
-          <div className="flex items-center gap-3 text-[11px]">
-            <span className="px-2.5 py-0.5 bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 rounded-md font-bold">
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="px-2 py-0.5 bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 rounded font-medium">
               ✓ {answeredCount} Answered
             </span>
-            <span className="px-2.5 py-0.5 bg-purple-950/80 text-purple-400 border border-purple-800/60 rounded-md font-bold">
+            <span className="px-2 py-0.5 bg-amber-950/60 text-amber-400 border border-amber-800/50 rounded font-medium">
               ★ {markedCount} Marked
             </span>
-            <span className="px-2.5 py-0.5 bg-slate-800 text-slate-300 rounded-md font-bold">
+            <span className="px-2 py-0.5 bg-slate-800 text-slate-400 rounded font-medium">
               ○ {unansweredCount} Left
             </span>
           </div>
         </div>
 
-        {/* Progress Fill */}
-        <div className="w-full bg-slate-800 h-1 overflow-hidden shrink-0">
+        {/* Progress Fill Line */}
+        <div className="w-full bg-slate-800 h-0.5 overflow-hidden shrink-0">
           <div
             className="h-full bg-indigo-500 transition-all duration-300"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
 
-        {/* Exam Body (Full Width Split Viewport) */}
+        {/* Exam Body (Split Viewport) */}
         <div className="flex-1 flex overflow-hidden w-full">
-          {/* Main Question Area (Full Width Expanded) */}
-          <main className="flex-1 overflow-y-auto p-4 sm:p-8 lg:p-10 flex flex-col justify-between bg-slate-100/60 w-full">
-            {currentQ ? (
-              <div className="w-full space-y-6">
-                {/* Question Metadata Header */}
-                <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs w-full">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-3.5 py-1.5 bg-indigo-600 text-white font-black rounded-xl text-xs shadow-xs flex items-center gap-1.5">
-                      <Target size={14} /> Question {currentQIndex + 1}
-                    </span>
+          {/* Main Question Area */}
+          <main className="flex-1 flex flex-col justify-between overflow-hidden bg-slate-50 w-full">
+            {/* Scrollable Question Content */}
+            <div className="flex-1 overflow-y-auto p-5 sm:p-8 w-full">
+              {currentQ ? (
+                <div className="w-full max-w-5xl mx-auto space-y-4">
+                  {/* Question Statement Card */}
+                  <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4 w-full">
+                    {/* Question Metadata Row */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 bg-slate-100 text-slate-700 font-semibold rounded-md text-xs">
+                          Question {currentQIndex + 1}
+                        </span>
+                        {currentQ.section_name && (
+                          <span className="px-2 py-0.5 text-slate-500 text-xs">
+                            {currentQ.section_name}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-emerald-700 font-medium">
+                          +{currentQ.marks || 2.0}
+                        </span>
+                        <span className="text-slate-300">/</span>
+                        <span className="text-rose-600 font-medium">
+                          -{currentQ.negative_marks || 0.50}
+                        </span>
+                      </div>
+                    </div>
 
-                    {currentQ.section_name ? (
-                      <span className="px-3 py-1 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200">
-                        {currentQ.section_name}
-                      </span>
-                    ) : (
-                      <span className="px-3 py-1 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200">
-                        General Section
-                      </span>
-                    )}
-
-                    <span className="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold rounded-xl text-[11px] border border-blue-200">
-                      Single Choice (MCQ)
-                    </span>
+                    {/* Question Text */}
+                    <p
+                      className={`text-slate-900 font-normal leading-relaxed whitespace-pre-wrap ${
+                        examFontSize === 'sm'
+                          ? 'text-sm'
+                          : examFontSize === 'lg'
+                          ? 'text-lg sm:text-xl'
+                          : 'text-base sm:text-lg'
+                      }`}
+                    >
+                      {cleanQuestionText(currentQ.question_text)}
+                    </p>
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs font-bold">
-                    <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 flex items-center gap-1">
-                      Marks: <b className="text-emerald-700">+{currentQ.marks || 2.0}</b>
-                    </span>
-                    <span className="px-2.5 py-1 bg-rose-50 text-rose-700 rounded-lg border border-rose-200 flex items-center gap-1">
-                      Negative: <b className="text-rose-700">-{currentQ.negative_marks || 0.50}</b>
-                    </span>
-                  </div>
-                </div>
+                  {/* Options List */}
+                  <div className="space-y-2.5 w-full">
+                    {currentQ.options && currentQ.options.length > 0 ? (
+                      currentQ.options.map((opt, optIndex) => {
+                        const isSelected = selectedAnswers[currentQ.id] === opt.id;
+                        const keyLetter = opt.option_key || String.fromCharCode(65 + optIndex);
 
-                {/* Question Statement Box (Full Width) */}
-                <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-3xl border border-slate-200/90 shadow-sm relative overflow-hidden w-full">
-                  <div className="absolute top-0 left-0 w-2.5 h-full bg-indigo-600" />
-                  <p
-                    className={`text-slate-800 font-semibold leading-relaxed whitespace-pre-wrap ${
-                      examFontSize === 'sm'
-                        ? 'text-sm'
-                        : examFontSize === 'lg'
-                        ? 'text-lg sm:text-xl'
-                        : 'text-base sm:text-lg'
-                    }`}
-                  >
-                    {cleanQuestionText(currentQ.question_text)}
-                  </p>
-                </div>
-
-                {/* Interactive Option Cards (Full Width) */}
-                <div className="space-y-3.5 w-full">
-                  {currentQ.options?.map((opt, optIndex) => {
-                    const isSelected = selectedAnswers[currentQ.id] === opt.id;
-                    const keyLetter = opt.option_key || String.fromCharCode(65 + optIndex);
-
-                    return (
-                      <label
-                        key={opt.id}
-                        onClick={() => handleSaveAnswer(currentQ.id, opt.id)}
-                        className={`group flex items-start gap-4 p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer relative w-full ${
-                          isSelected
-                            ? 'bg-indigo-50 border-2 border-indigo-600 text-indigo-950 shadow-md ring-2 ring-indigo-500/20'
-                            : 'bg-white hover:bg-slate-50/80 border-slate-200/90 hover:border-indigo-300 text-slate-800 shadow-2xs'
-                        }`}
-                      >
-                        {/* Option Letter Pill */}
-                        <div
-                          className={`w-10 h-10 rounded-2xl font-black text-sm flex items-center justify-center shrink-0 transition-all ${
-                            isSelected
-                              ? 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-300'
-                              : 'bg-slate-100 border border-slate-200 text-slate-700 group-hover:bg-indigo-50 group-hover:text-indigo-700 group-hover:border-indigo-300'
-                          }`}
-                        >
-                          {keyLetter}
-                        </div>
-
-                        {/* Option Text */}
-                        <div className="flex-1 pt-2">
-                          <span
-                            className={`font-medium leading-relaxed block ${
-                              examFontSize === 'sm'
-                                ? 'text-xs sm:text-sm'
-                                : examFontSize === 'lg'
-                                ? 'text-base sm:text-lg'
-                                : 'text-sm sm:text-base'
-                            } ${isSelected ? 'font-bold text-indigo-950' : 'text-slate-800'}`}
+                        return (
+                          <label
+                            key={opt.id}
+                            onClick={() => handleSaveAnswer(currentQ.id, opt.id)}
+                            className={`group flex items-center gap-3.5 p-3.5 sm:p-4 rounded-xl border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-indigo-50/70 border-indigo-600 text-slate-900 ring-1 ring-indigo-600/30 shadow-xs'
+                                : 'bg-white hover:bg-slate-50/90 border-slate-200 text-slate-700 hover:border-slate-300'
+                            }`}
                           >
-                            {opt.option_text}
-                          </span>
-                        </div>
-
-                        {/* Selected Indicator Badge / Shortcut hint */}
-                        <div className="shrink-0 pt-2 flex items-center gap-2">
-                          <span className="hidden group-hover:inline-block text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                            Key {keyLetter}
-                          </span>
-                          {isSelected && (
-                            <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-xs">
-                              <Check size={14} className="stroke-[3]" />
+                            {/* Option Key Circle */}
+                            <div
+                              className={`w-8 h-8 rounded-lg font-semibold text-xs flex items-center justify-center shrink-0 transition-colors ${
+                                isSelected
+                                  ? 'bg-indigo-600 text-white'
+                                  : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                              }`}
+                            >
+                              {keyLetter}
                             </div>
-                          )}
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
 
-                {/* Keyboard Shortcut Banner */}
-                <div className="bg-slate-50/90 p-3 rounded-2xl border border-slate-200/70 text-center text-[11px] text-slate-500 font-medium w-full">
-                  💡 <b>Quick Keys:</b> Press <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px] font-bold">1</kbd> <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px] font-bold">2</kbd> <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px] font-bold">3</kbd> <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px] font-bold">4</kbd> or <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px] font-bold">A-D</kbd> to select • <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px] font-bold">→</kbd> Save & Next • <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px] font-bold">M</kbd> Mark Review
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-24 text-slate-400 w-full">
-                <FileText size={48} className="mx-auto mb-3 text-slate-300" />
-                <p className="font-bold text-slate-600">No question data found</p>
-                <p className="text-xs text-slate-400 mt-1">Please select another question from the palette.</p>
-              </div>
-            )}
+                            {/* Option Text */}
+                            <div className="flex-1 leading-normal">
+                              <span
+                                className={`block ${
+                                  examFontSize === 'sm'
+                                  ? 'text-xs sm:text-sm'
+                                  : examFontSize === 'lg'
+                                  ? 'text-base sm:text-lg'
+                                  : 'text-sm sm:text-base'
+                                } ${isSelected ? 'font-medium text-slate-900' : 'text-slate-700'}`}
+                              >
+                                {opt.option_text}
+                              </span>
+                            </div>
 
-            {/* Bottom Docked Action Console (Full Width) */}
-            <div className="w-full pt-4 pb-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-3 mt-6">
-              {/* Left Action Buttons */}
+                            {/* Selected Checkmark */}
+                            {isSelected && (
+                              <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                                <Check size={12} className="stroke-[3]" />
+                              </div>
+                            )}
+                          </label>
+                        );
+                      })
+                    ) : (
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs">
+                        No options available for this question.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Minimalist Quick Keys Hint */}
+                  <div className="text-center text-[11px] text-slate-400 font-normal pt-1">
+                    Keys: <kbd className="px-1 py-0.5 bg-slate-100 rounded border border-slate-200 font-mono text-[10px]">1-4</kbd> or <kbd className="px-1 py-0.5 bg-slate-100 rounded border border-slate-200 font-mono text-[10px]">A-D</kbd> select • <kbd className="px-1 py-0.5 bg-slate-100 rounded border border-slate-200 font-mono text-[10px]">→</kbd> Next • <kbd className="px-1 py-0.5 bg-slate-100 rounded border border-slate-200 font-mono text-[10px]">M</kbd> Review
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-24 text-slate-400 w-full">
+                  <FileText size={48} className="mx-auto mb-3 text-slate-300" />
+                  <p className="font-medium text-slate-600">No question data found</p>
+                  <p className="text-xs text-slate-400 mt-1">Please select another question from the palette.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Pinned Bottom Action Toolbar */}
+            <footer className="w-full bg-white border-t border-slate-200/90 px-5 sm:px-8 py-3 flex items-center justify-between gap-3 shrink-0 shadow-xs z-10">
+              {/* Left Actions */}
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => currentQ && handleToggleMarkReview(currentQ.id)}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3.5 py-2 rounded-lg text-xs font-medium border transition-all cursor-pointer flex items-center gap-1.5 ${
                     currentQ && markedQuestions[currentQ.id]
-                      ? 'bg-purple-100 text-purple-800 border-purple-300 shadow-xs'
+                      ? 'bg-amber-50 text-amber-800 border-amber-300 shadow-2xs'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
                   }`}
                 >
-                  <Bookmark size={14} className={currentQ && markedQuestions[currentQ.id] ? 'fill-purple-700' : ''} />
-                  <span>{currentQ && markedQuestions[currentQ.id] ? 'Marked for Review' : 'Mark for Review'}</span>
+                  <Bookmark size={13} className={currentQ && markedQuestions[currentQ.id] ? 'fill-amber-600 text-amber-600' : ''} />
+                  <span>{currentQ && markedQuestions[currentQ.id] ? 'Marked' : 'Mark for Review'}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => currentQ && handleClearAnswer(currentQ.id)}
-                  className="px-4 py-2.5 bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-800 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-3.5 py-2 bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-800 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5"
                 >
-                  <RotateCcw size={14} />
-                  <span>Clear Response</span>
+                  <RotateCcw size={13} />
+                  <span>Clear</span>
                 </button>
               </div>
 
-              {/* Right Navigation Buttons */}
+              {/* Right Navigation */}
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -915,9 +1026,9 @@ export default function StudentTestSeries() {
                   onClick={() => {
                     if (currentQIndex > 0) setCurrentQIndex(prev => prev - 1);
                   }}
-                  className="px-5 py-2.5 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-xl text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1 transition-all"
+                  className="px-4 py-2 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-lg text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1 transition-all"
                 >
-                  <ChevronLeft size={16} />
+                  <ChevronLeft size={15} />
                   <span>Previous</span>
                 </button>
 
@@ -930,110 +1041,91 @@ export default function StudentTestSeries() {
                       setShowConfirmSubmit(true);
                     }
                   }}
-                  className="px-6 sm:px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs active:scale-98 transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   {currentQIndex < totalQCount - 1 ? (
                     <>
                       <span>Save & Next</span>
-                      <ChevronRight size={16} />
+                      <ChevronRight size={15} />
                     </>
                   ) : (
                     <>
                       <span>Review & Submit</span>
-                      <CheckCircle2 size={16} />
+                      <CheckCircle2 size={15} />
                     </>
                   )}
                 </button>
               </div>
-            </div>
+            </footer>
           </main>
 
-          {/* Right Question Palette & Candidate Hub Sidebar */}
-          <aside className="w-80 lg:w-92 bg-white border-l border-slate-200/90 p-5 flex flex-col justify-between hidden md:flex shadow-xs select-none shrink-0">
-            <div className="space-y-4">
-              {/* Candidate Info Card */}
-              <div className="bg-[#0f172a] text-white rounded-2xl p-4 shadow-md border border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white font-black text-base flex items-center justify-center shadow-md shrink-0 border border-indigo-400/30">
-                    {candidateName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-xs font-bold text-white truncate">{candidateName}</h3>
-                    <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">Roll: {candidateEnroll}</p>
-                    <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                      <span>Live Proctored Session</span>
-                    </div>
-                  </div>
+          {/* Right Question Palette Sidebar */}
+          <aside className="w-76 lg:w-84 bg-white border-l border-slate-200 p-4 flex flex-col justify-between hidden md:flex select-none shrink-0 h-full overflow-hidden">
+            {/* Top Candidate & Legend Area */}
+            <div className="space-y-3 shrink-0">
+              {/* Candidate Info Header */}
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">
+                  {candidateName.charAt(0).toUpperCase()}
                 </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-xs font-semibold text-slate-800 truncate">{candidateName}</h3>
+                  <p className="text-[10px] text-slate-400 font-mono truncate">{candidateEnroll}</p>
+                </div>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Proctored Session" />
               </div>
 
-              {/* Status Legend Tiles */}
-              <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 space-y-2.5">
-                <div className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                  <span>Question Legend</span>
-                  <span className="text-indigo-600 font-black">{totalQCount} Total Questions</span>
+              {/* Status Legend Pills */}
+              <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                <div
+                  onClick={() => setPaletteFilter(paletteFilter === 'ANSWERED' ? 'ALL' : 'ANSWERED')}
+                  className={`flex items-center gap-1.5 p-1.5 rounded-lg border transition-all cursor-pointer ${
+                    paletteFilter === 'ANSWERED'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-semibold'
+                      : 'bg-white hover:bg-emerald-50/50 border-slate-200 text-slate-600'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>Answered ({answeredCount})</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  <div
-                    onClick={() => setPaletteFilter(paletteFilter === 'ANSWERED' ? 'ALL' : 'ANSWERED')}
-                    className={`flex items-center gap-2 p-2 rounded-xl border transition-all cursor-pointer ${
-                      paletteFilter === 'ANSWERED'
-                        ? 'bg-emerald-100/90 border-emerald-300 ring-2 ring-emerald-500/20 shadow-2xs'
-                        : 'bg-white hover:bg-emerald-50/60 border-slate-200'
-                    }`}
-                  >
-                    <span className="w-5 h-5 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-[10px] shadow-xs">
-                      {answeredCount}
-                    </span>
-                    <span className="text-slate-700 font-bold">Answered</span>
-                  </div>
+                <div
+                  onClick={() => setPaletteFilter(paletteFilter === 'UNANSWERED' ? 'ALL' : 'UNANSWERED')}
+                  className={`flex items-center gap-1.5 p-1.5 rounded-lg border transition-all cursor-pointer ${
+                    paletteFilter === 'UNANSWERED'
+                      ? 'bg-slate-100 border-slate-300 text-slate-800 font-semibold'
+                      : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-600'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-slate-300" />
+                  <span>Left ({unansweredCount})</span>
+                </div>
 
-                  <div
-                    onClick={() => setPaletteFilter(paletteFilter === 'UNANSWERED' ? 'ALL' : 'UNANSWERED')}
-                    className={`flex items-center gap-2 p-2 rounded-xl border transition-all cursor-pointer ${
-                      paletteFilter === 'UNANSWERED'
-                        ? 'bg-slate-200 border-slate-400 ring-2 ring-slate-400/20 shadow-2xs'
-                        : 'bg-white hover:bg-slate-50 border-slate-200'
-                    }`}
-                  >
-                    <span className="w-5 h-5 rounded-lg bg-slate-100 border border-slate-300 text-slate-700 flex items-center justify-center font-black text-[10px]">
-                      {unansweredCount}
-                    </span>
-                    <span className="text-slate-700 font-bold">Unanswered</span>
-                  </div>
+                <div
+                  onClick={() => setPaletteFilter(paletteFilter === 'MARKED' ? 'ALL' : 'MARKED')}
+                  className={`flex items-center gap-1.5 p-1.5 rounded-lg border transition-all cursor-pointer ${
+                    paletteFilter === 'MARKED'
+                      ? 'bg-amber-50 border-amber-300 text-amber-800 font-semibold'
+                      : 'bg-white hover:bg-amber-50/50 border-slate-200 text-slate-600'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span>Marked ({markedCount})</span>
+                </div>
 
-                  <div
-                    onClick={() => setPaletteFilter(paletteFilter === 'MARKED' ? 'ALL' : 'MARKED')}
-                    className={`flex items-center gap-2 p-2 rounded-xl border transition-all cursor-pointer ${
-                      paletteFilter === 'MARKED'
-                        ? 'bg-purple-100/90 border-purple-300 ring-2 ring-purple-500/20 shadow-2xs'
-                        : 'bg-white hover:bg-purple-50/60 border-slate-200'
-                    }`}
-                  >
-                    <span className="w-5 h-5 rounded-lg bg-purple-600 text-white flex items-center justify-center font-black text-[10px] shadow-xs">
-                      {markedCount}
-                    </span>
-                    <span className="text-slate-700 font-bold">Marked</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 p-2 rounded-xl border bg-white border-slate-200">
-                    <span className="w-5 h-5 rounded-lg bg-indigo-600 text-white font-black text-[10px] flex items-center justify-center shadow-xs ring-1 ring-indigo-400">
-                      ★
-                    </span>
-                    <span className="text-slate-700 font-bold">Current</span>
-                  </div>
+                <div className="flex items-center gap-1.5 p-1.5 rounded-lg border bg-white border-slate-200 text-slate-600">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600" />
+                  <span>Current Q</span>
                 </div>
               </div>
 
               {/* Question Palette Filter Tabs */}
-              <div className="flex items-center bg-slate-100 p-1 rounded-xl gap-1 text-[11px] font-bold">
+              <div className="flex items-center bg-slate-100 p-0.5 rounded-lg gap-0.5 text-[11px] font-medium">
                 <button
                   type="button"
                   onClick={() => setPaletteFilter('ALL')}
-                  className={`flex-1 py-1 rounded-lg text-center transition-all cursor-pointer ${
-                    paletteFilter === 'ALL' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                  className={`flex-1 py-1 rounded text-center transition-all cursor-pointer ${
+                    paletteFilter === 'ALL' ? 'bg-white text-indigo-700 shadow-2xs font-semibold' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   All ({totalQCount})
@@ -1041,8 +1133,8 @@ export default function StudentTestSeries() {
                 <button
                   type="button"
                   onClick={() => setPaletteFilter('ANSWERED')}
-                  className={`flex-1 py-1 rounded-lg text-center transition-all cursor-pointer ${
-                    paletteFilter === 'ANSWERED' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                  className={`flex-1 py-1 rounded text-center transition-all cursor-pointer ${
+                    paletteFilter === 'ANSWERED' ? 'bg-white text-emerald-700 shadow-2xs font-semibold' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   Done ({answeredCount})
@@ -1050,8 +1142,8 @@ export default function StudentTestSeries() {
                 <button
                   type="button"
                   onClick={() => setPaletteFilter('UNANSWERED')}
-                  className={`flex-1 py-1 rounded-lg text-center transition-all cursor-pointer ${
-                    paletteFilter === 'UNANSWERED' ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                  className={`flex-1 py-1 rounded text-center transition-all cursor-pointer ${
+                    paletteFilter === 'UNANSWERED' ? 'bg-white text-slate-800 shadow-2xs font-semibold' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   Left ({unansweredCount})
@@ -1059,32 +1151,37 @@ export default function StudentTestSeries() {
                 <button
                   type="button"
                   onClick={() => setPaletteFilter('MARKED')}
-                  className={`flex-1 py-1 rounded-lg text-center transition-all cursor-pointer ${
-                    paletteFilter === 'MARKED' ? 'bg-white text-purple-700 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                  className={`flex-1 py-1 rounded text-center transition-all cursor-pointer ${
+                    paletteFilter === 'MARKED' ? 'bg-white text-amber-700 shadow-2xs font-semibold' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   Mark ({markedCount})
                 </button>
               </div>
+            </div>
 
-              {/* 50-Questions Palette Grid */}
-              <div className="bg-slate-50/70 p-3 rounded-2xl border border-slate-200/80">
-                <div className="grid grid-cols-5 gap-2 max-h-72 overflow-y-auto pr-1 p-0.5">
+            {/* Middle Section: Full-height Flex Questions Palette */}
+            <div className="flex-1 min-h-0 my-3 flex flex-col bg-slate-50/70 p-2.5 rounded-xl border border-slate-200/80 overflow-hidden">
+              <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 mb-2 px-0.5 shrink-0">
+                <span>Question Palette</span>
+                <span className="text-indigo-600 font-semibold">{filteredPalette.length} shown</span>
+              </div>
+              <div className="flex-1 overflow-y-auto pr-1">
+                <div className="grid grid-cols-5 gap-1.5">
                   {filteredPalette.map(({ q, idx }) => {
                     const isAnswered = selectedAnswers[q.id] !== undefined;
                     const isMarked = markedQuestions[q.id];
                     const isCurrent = currentQIndex === idx;
 
-                    // Compute solid styling
-                    let tileClasses = 'bg-white text-slate-700 hover:bg-indigo-50/60 hover:text-indigo-700 border border-slate-200/90 hover:border-indigo-300 shadow-2xs';
+                    let tileClasses = 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200';
                     if (isCurrent) {
-                      tileClasses = 'bg-indigo-600 text-white font-black shadow-md ring-3 ring-indigo-500 ring-offset-2 ring-offset-white scale-110 z-10';
+                      tileClasses = 'border-2 border-indigo-600 text-indigo-700 font-bold bg-indigo-50 shadow-xs';
                     } else if (isAnswered && isMarked) {
-                      tileClasses = 'bg-purple-700 text-amber-300 border border-purple-500 shadow-xs hover:brightness-105';
+                      tileClasses = 'bg-purple-600 text-white border border-purple-600 font-medium';
                     } else if (isAnswered) {
-                      tileClasses = 'bg-emerald-600 text-white border border-emerald-600 shadow-xs hover:brightness-105';
+                      tileClasses = 'bg-emerald-600 text-white border border-emerald-600 font-medium';
                     } else if (isMarked) {
-                      tileClasses = 'bg-purple-600 text-white border border-purple-600 shadow-xs hover:brightness-105';
+                      tileClasses = 'bg-amber-500 text-white border border-amber-500 font-medium';
                     }
 
                     return (
@@ -1092,21 +1189,10 @@ export default function StudentTestSeries() {
                         key={q.id}
                         type="button"
                         onClick={() => setCurrentQIndex(idx)}
-                        className={`h-10 rounded-xl font-black text-xs flex items-center justify-center transition-all cursor-pointer relative ${tileClasses} active:scale-95`}
-                        title={`Question ${idx + 1}: ${isAnswered ? 'Answered' : 'Unanswered'}${isMarked ? ' (Marked for review)' : ''}`}
+                        className={`h-8 rounded-lg text-xs flex items-center justify-center transition-all cursor-pointer relative ${tileClasses} active:scale-95`}
+                        title={`Question ${idx + 1}`}
                       >
                         <span>{idx + 1}</span>
-
-                        {/* Top-Right Micro Status Indicators */}
-                        {isCurrent && (
-                          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-cyan-400 rounded-full ring-2 ring-white animate-ping" />
-                        )}
-                        {!isCurrent && isAnswered && !isMarked && (
-                          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-white rounded-full opacity-90" />
-                        )}
-                        {!isCurrent && isMarked && (
-                          <span className="absolute top-0.5 right-0.5 text-[8px] leading-none opacity-90">★</span>
-                        )}
                       </button>
                     );
                   })}
@@ -1115,13 +1201,13 @@ export default function StudentTestSeries() {
             </div>
 
             {/* Bottom Proctor Status & Final Submit Button */}
-            <div className="pt-4 border-t border-slate-100 space-y-3">
-              <div className="flex items-center justify-between text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                  <ShieldCheck size={14} className={antiCheatWarnings > 0 ? 'text-amber-500' : 'text-emerald-600'} />
+            <div className="pt-2 border-t border-slate-100 space-y-2 shrink-0">
+              <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck size={13} className="text-emerald-600" />
                   Anti-Cheat Active
                 </span>
-                <span className={`font-black ${antiCheatWarnings > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                <span className="font-medium text-slate-600">
                   {antiCheatWarnings === 0 ? '0 Violations' : `${antiCheatWarnings} Warning(s)`}
                 </span>
               </div>
@@ -1129,9 +1215,9 @@ export default function StudentTestSeries() {
               <button
                 type="button"
                 onClick={() => setShowConfirmSubmit(true)}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-xl shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
               >
-                <CheckCheck size={16} />
+                <CheckCheck size={15} />
                 <span>Submit Final Exam</span>
               </button>
             </div>
@@ -1271,10 +1357,53 @@ export default function StudentTestSeries() {
     );
   }
 
+  const renderNavTabs = (isMobile = false) => (
+    <div className={`bg-slate-100/90 p-1 rounded-xl flex items-center gap-1 border border-slate-200/60 shadow-2xs ${isMobile ? 'w-full justify-between' : ''}`}>
+      <button
+        type="button"
+        onClick={() => setActiveTab('discover')}
+        className={`px-3 sm:px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+          activeTab === 'discover'
+            ? 'bg-white text-indigo-700 shadow-2xs font-black'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+        } ${isMobile ? 'flex-1 text-center' : ''}`}
+      >
+        Explore Series
+      </button>
+      <button
+        type="button"
+        onClick={() => setActiveTab('my_series')}
+        className={`px-3 sm:px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+          activeTab === 'my_series'
+            ? 'bg-white text-indigo-700 shadow-2xs font-black'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+        } ${isMobile ? 'flex-1' : ''}`}
+      >
+        <span>My Series</span>
+        {mySeries.length > 0 && (
+          <span className="px-1.5 py-0.2 bg-indigo-100 text-indigo-700 font-bold rounded-full text-[10px]">
+            {mySeries.length}
+          </span>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => setActiveTab('achievements')}
+        className={`px-3 sm:px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+          activeTab === 'achievements'
+            ? 'bg-white text-indigo-700 shadow-2xs font-black'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+        } ${isMobile ? 'flex-1 text-center' : ''}`}
+      >
+        Achievements
+      </button>
+    </div>
+  );
+
   return (
     <div className="w-full space-y-6 pb-16 font-sans">
       {/* Minimalist Header Banner */}
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-xs">
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-lg text-xs font-semibold border border-indigo-100">
             <Trophy size={14} className="text-indigo-600" /> Online Examination & Test Series
@@ -1285,43 +1414,9 @@ export default function StudentTestSeries() {
           </p>
         </div>
 
-        {/* Minimalist Tabs Navigation */}
-        <div className="bg-slate-100 p-1 rounded-xl flex flex-wrap items-center gap-1 shrink-0">
-          <button
-            onClick={() => setActiveTab('discover')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all cursor-pointer ${
-              activeTab === 'discover'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Explore Series
-          </button>
-          <button
-            onClick={() => setActiveTab('my_series')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'my_series'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <span>My Series</span>
-            {mySeries.length > 0 && (
-              <span className="px-1.5 py-0.2 bg-indigo-100 text-indigo-700 font-bold rounded-full text-[10px]">
-                {mySeries.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('achievements')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all cursor-pointer ${
-              activeTab === 'achievements'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Achievements
-          </button>
+        {/* Mobile Navigation Sub-Tabs (< sm screens) */}
+        <div className="sm:hidden mt-4 pt-3 border-t border-slate-100">
+          {renderNavTabs(true)}
         </div>
       </div>
 
@@ -1714,28 +1809,38 @@ export default function StudentTestSeries() {
                                     </span>
                                   )}
 
-                                  <button
-                                    type="button"
-                                    disabled={!canAttempt}
-                                    onClick={() => handleStartTest(test)}
-                                    className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs ${
-                                      canAttempt
-                                        ? hasAttempt
-                                          ? 'bg-slate-900 hover:bg-slate-800 text-white'
-                                          : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                                        : 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200 shadow-none'
-                                    }`}
-                                  >
-                                    {hasAttempt ? (
-                                      <>
-                                        <RotateCcw size={13} /> Retake
-                                      </>
-                                    ) : (
-                                      <>
-                                        <PlayCircle size={14} /> Start Test
-                                      </>
-                                    )}
-                                  </button>
+                                  {(() => {
+                                    const isStartingThis = startingTest?.id === test.id;
+                                    return (
+                                      <button
+                                        type="button"
+                                        disabled={!canAttempt || isStartingThis || Boolean(startingTest)}
+                                        onClick={() => handleStartTest(test)}
+                                        className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs ${
+                                          canAttempt && !startingTest
+                                            ? hasAttempt
+                                              ? 'bg-slate-900 hover:bg-slate-800 text-white'
+                                              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                                            : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
+                                        }`}
+                                      >
+                                        {isStartingThis ? (
+                                          <>
+                                            <Loader2 size={13} className="animate-spin text-indigo-600" />
+                                            <span>Starting...</span>
+                                          </>
+                                        ) : hasAttempt ? (
+                                          <>
+                                            <RotateCcw size={13} /> Retake
+                                          </>
+                                        ) : (
+                                          <>
+                                            <PlayCircle size={14} /> Start Test
+                                          </>
+                                        )}
+                                      </button>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             );
@@ -1797,9 +1902,10 @@ export default function StudentTestSeries() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {achievements.length > 0 ? (
-              achievements.map((ach, idx) => {
-                const isEarned = !ach.earned_at;
+            {Array.isArray(achievements) && achievements.length > 0 ? (
+              achievements.map((ach: any, idx: number) => {
+                const isEarned = Boolean(ach.is_unlocked || ach.earned_at);
+                const starCount = Math.max(1, Math.min(5, Number(ach.star_count || ach.stars_count || 1)));
                 return (
                   <div
                     key={ach.id || idx}
@@ -1819,7 +1925,7 @@ export default function StudentTestSeries() {
                           {isEarned ? <Star size={20} className="fill-amber-400 text-amber-500" /> : <Lock size={18} />}
                         </div>
                         <div className="flex items-center gap-1">
-                          {Array.from({ length: ach.stars_count || 1 }).map((_, sIdx) => (
+                          {Array.from({ length: starCount }).map((_, sIdx) => (
                             <Star
                               key={sIdx}
                               size={16}
@@ -1838,10 +1944,12 @@ export default function StudentTestSeries() {
                     <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                       {isEarned ? (
                         <span className="text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1 text-[11px] font-semibold">
-                          <CheckCircle2 size={13} /> Unlocked on {new Date(ach.earned_at).toLocaleDateString('en-GB')}
+                          <CheckCircle2 size={13} /> Unlocked {ach.earned_at ? `on ${new Date(ach.earned_at).toLocaleDateString('en-GB')}` : ''}
                         </span>
                       ) : (
-                        <span className="text-slate-400 font-medium text-[11px]">Locked</span>
+                        <span className="text-slate-400 font-medium text-[11px] flex items-center gap-1">
+                          <Lock size={12} /> Locked
+                        </span>
                       )}
                     </div>
                   </div>
@@ -2163,12 +2271,22 @@ export default function StudentTestSeries() {
                 <h3 className="text-xl font-bold text-slate-900 mt-2 tracking-tight">{scorecardData.test_title || 'Mock Examination'}</h3>
                 <p className="text-xs text-slate-500 mt-0.5">Submitted on {new Date(scorecardData.submitted_at).toLocaleString()}</p>
               </div>
-              <button
-                onClick={() => setShowScorecardModal(false)}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDownloadScorecardPdf}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium text-xs rounded-lg border border-indigo-200 transition-colors cursor-pointer shadow-2xs"
+                  title="Download Official PDF Marksheet"
+                >
+                  <Download size={14} />
+                  <span>Download PDF</span>
+                </button>
+                <button
+                  onClick={() => setShowScorecardModal(false)}
+                  className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Score Banner */}
@@ -2196,8 +2314,10 @@ export default function StudentTestSeries() {
                     const sec = Number(scorecardData.duration_seconds || 0);
                     if (sec <= 0) return '0s';
                     if (sec < 60) return `${sec}s`;
-                    const m = Math.floor(sec / 60);
+                    const h = Math.floor(sec / 3600);
+                    const m = Math.floor((sec % 3600) / 60);
                     const s = sec % 60;
+                    if (h > 0) return `${h}h ${m}m ${s > 0 ? `${s}s` : ''}`.trim();
                     return s > 0 ? `${m}m ${s}s` : `${m}m`;
                   })()}
                 </div>
@@ -2219,6 +2339,98 @@ export default function StudentTestSeries() {
                 <div className="text-[11px] font-semibold">Unanswered</div>
               </div>
             </div>
+
+            {/* Topic & Weak Area Performance Analytics */}
+            {topicAnalytics.length > 0 && (
+              <div className="bg-slate-50/80 rounded-xl border border-slate-200/80 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <BarChart2 size={14} className="text-indigo-600" />
+                      Topic & Module Performance Analytics
+                    </h4>
+                    <p className="text-[11px] text-slate-500">Breakdown of accuracy and weak areas to target for revision.</p>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    {topicAnalytics.length} {topicAnalytics.length === 1 ? 'Topic' : 'Topics'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {topicAnalytics.map((topic, tIdx) => {
+                    const acc = Math.round(topic.accuracy);
+                    const isStrong = topic.status === 'Strong';
+                    const isModerate = topic.status === 'Moderate';
+
+                    return (
+                      <div
+                        key={tIdx}
+                        className="p-3 bg-white rounded-lg border border-slate-200 shadow-2xs space-y-2"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-semibold text-xs text-slate-900 truncate" title={topic.topicName}>
+                            {topic.topicName}
+                          </span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                              isStrong
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : isModerate
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-rose-100 text-rose-800'
+                            }`}
+                          >
+                            {isStrong ? 'Strong Area' : isModerate ? 'Moderate' : 'Needs Practice'}
+                          </span>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="space-y-1">
+                          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                isStrong ? 'bg-emerald-500' : isModerate ? 'bg-amber-500' : 'bg-rose-500'
+                              }`}
+                              style={{ width: `${Math.max(acc, 5)}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                            <span>{topic.correct} of {topic.total} correct</span>
+                            <span className="font-bold text-slate-800">{acc}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* AI / Smart Guidance Note */}
+                {(() => {
+                  const weakTopics = topicAnalytics.filter(t => t.status === 'Weak');
+                  if (weakTopics.length > 0) {
+                    return (
+                      <div className="p-2.5 bg-amber-50/80 border border-amber-200 rounded-lg flex items-start gap-2 text-xs text-amber-900">
+                        <Sparkles size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">Targeted Revision Suggestion:</span> You have scope for improvement in{' '}
+                          <span className="font-semibold underline decoration-amber-400">
+                            {weakTopics.map(w => w.topicName).join(', ')}
+                          </span>. Review incorrect questions below before retaking!
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="p-2.5 bg-emerald-50/80 border border-emerald-200 rounded-lg flex items-start gap-2 text-xs text-emerald-900">
+                      <Sparkles size={14} className="text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold">Excellent Performance:</span> You demonstrated balanced mastery across all assessed topics!
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Detailed Question Review */}
             {scorecardData.question_analysis && (
@@ -2307,6 +2519,46 @@ export default function StudentTestSeries() {
             <button onClick={() => setToast(null)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer">
               <X size={14} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* EXAMINATION INITIALIZING SCREEN */}
+      {startingTest && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 animate-in fade-in duration-150 select-none">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-7 shadow-2xl border border-slate-100 text-center space-y-5 animate-in zoom-in-95 duration-200">
+            {/* Animated Logo / Icon */}
+            <div className="relative mx-auto w-16 h-16 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-2xl bg-indigo-500/20 animate-ping" />
+              <div className="relative w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/30">
+                <Zap size={28} className="animate-pulse" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 font-bold text-[11px] rounded-md uppercase tracking-wider inline-block">
+                CBT Examination
+              </span>
+              <h3 className="text-base font-bold text-slate-900">
+                Starting Examination
+              </h3>
+              <p className="text-xs font-semibold text-indigo-600 truncate px-2">
+                {startingTest.title}
+              </p>
+              <p className="text-[11px] text-slate-500 leading-relaxed pt-1">
+                Setting up proctoring & loading questions...
+              </p>
+            </div>
+
+            {/* Animated Progress Bar */}
+            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
+              <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-700 rounded-full w-3/4 animate-pulse transition-all" />
+            </div>
+
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 font-medium pt-1">
+              <ShieldCheck size={14} className="text-emerald-500" />
+              <span>Secure Proctored Environment</span>
+            </div>
           </div>
         </div>
       )}

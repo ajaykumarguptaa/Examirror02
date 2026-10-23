@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2,
@@ -40,9 +40,13 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { QrCameraScannerModal } from '../../components/QrCameraScannerModal';
 import SEO from '../../components/SEO';
 import { downloadOfficialVerificationPdf } from '../../utils/verificationPdf';
+
+// Lazy-loaded modals (saves bundle weight)
+const QrCameraScannerModal = lazy(() => import('../../components/QrCameraScannerModal').then(m => ({ default: m.QrCameraScannerModal })));
+const DirectStudentRegisterModal = lazy(() => import('../../components/DirectStudentRegisterModal').then(m => ({ default: m.DirectStudentRegisterModal })));
+import HeroVisualSlider from '../../components/home/HeroVisualSlider';
 import {
   DEFAULT_HOME_SETTINGS,
   computeImageStyles,
@@ -202,11 +206,30 @@ const Home = () => {
   const [dragStartX, setDragStartX] = useState(0);
   const [dragScrollLeft, setDragScrollLeft] = useState(0);
 
+  // Slider State for Test Series Categories Slideshow
+  const testsScrollRef = useRef<HTMLDivElement>(null);
+  const [activeTestIdx, setActiveTestIdx] = useState(0);
+  const [isTestAutoSlide, setIsTestAutoSlide] = useState(true);
+  const [isTestHovered, setIsTestHovered] = useState(false);
+  const [isDraggingTest, setIsDraggingTest] = useState(false);
+  const [dragStartTestX, setDragStartTestX] = useState(0);
+  const [dragScrollLeftTest, setDragScrollLeftTest] = useState(0);
+  const testAutoResumeTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const pauseAndResumeTestAutoSlide = () => {
+    setIsTestAutoSlide(false);
+    if (testAutoResumeTimeout.current) clearTimeout(testAutoResumeTimeout.current);
+    testAutoResumeTimeout.current = setTimeout(() => {
+      setIsTestAutoSlide(true);
+    }, 5000);
+  };
+
   // Real-Time Online Verification Gateway State
   const [centerInput, setCenterInput] = useState('');
   const [studentInput, setStudentInput] = useState('');
   const [certInput, setCertInput] = useState('');
   const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false);
+  const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
   const [mobileVerifyTab, setMobileVerifyTab] = useState<'center' | 'student' | 'cert'>('student');
   const [verificationLoading, setVerificationLoading] = useState<'center' | 'student' | 'cert' | null>(null);
   const [verificationResult, setVerificationResult] = useState<{
@@ -314,9 +337,9 @@ const Home = () => {
     }
     return Array.isArray(coursesSection?.categories)
       ? coursesSection.categories.filter((c: CourseCategoryItem) => !c.hidden).map((c: CourseCategoryItem) => ({
-          ...c,
-          image: c.image || getCourseFallbackImage(c.name, c.tag)
-        }))
+        ...c,
+        image: c.image || getCourseFallbackImage(c.name, c.tag)
+      }))
       : DEFAULT_HOME_SETTINGS.coursesSection.categories;
   }, [publicCourses, coursesSection]);
 
@@ -412,6 +435,107 @@ const Home = () => {
     }, 4500);
     return () => clearInterval(timer);
   }, [isCourseAutoSlide, isDraggingCourse, allDisplayCourses.length]);
+
+  // ==========================================
+  // Test Series Categories Slideshow Handlers
+  // ==========================================
+  const testsScrollRafRef = useRef<number | null>(null);
+  const testsDragRafRef = useRef<number | null>(null);
+
+  const handleTestsScroll = () => {
+    if (testsScrollRafRef.current) return;
+    testsScrollRafRef.current = requestAnimationFrame(() => {
+      testsScrollRafRef.current = null;
+      if (!testsScrollRef.current) return;
+      const el = testsScrollRef.current;
+      const card = el.querySelector<HTMLElement>('.test-card-item');
+      const cardWidth = (card?.offsetWidth || 340) + 24;
+      const newIdx = Math.round(el.scrollLeft / cardWidth);
+      setActiveTestIdx((prev) => (prev !== newIdx ? Math.min(Math.max(newIdx, 0), publicTestCategories.length - 1) : prev));
+    });
+  };
+
+  const handleTestMouseDown = (e: React.MouseEvent) => {
+    if (!testsScrollRef.current) return;
+    setIsDraggingTest(true);
+    setIsTestAutoSlide(false);
+    setDragStartTestX(e.pageX - testsScrollRef.current.offsetLeft);
+    setDragScrollLeftTest(testsScrollRef.current.scrollLeft);
+  };
+
+  const handleTestMouseLeaveOrUp = () => {
+    setIsDraggingTest(false);
+  };
+
+  const handleTestMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingTest || !testsScrollRef.current) return;
+    e.preventDefault();
+    const clientX = e.pageX;
+    if (testsDragRafRef.current) return;
+    testsDragRafRef.current = requestAnimationFrame(() => {
+      testsDragRafRef.current = null;
+      if (!testsScrollRef.current) return;
+      const x = clientX - testsScrollRef.current.offsetLeft;
+      const walk = (x - dragStartTestX) * 1.3;
+      testsScrollRef.current.scrollLeft = dragScrollLeftTest - walk;
+    });
+  };
+
+  const handleScrollTests = (direction: 'left' | 'right') => {
+    if (!testsScrollRef.current) return;
+    const el = testsScrollRef.current;
+    const card = el.querySelector<HTMLElement>('.test-card-item');
+    const cardWidth = (card?.offsetWidth || 340) + 24;
+    if (direction === 'left') {
+      if (el.scrollLeft <= 15) {
+        el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+      }
+    } else {
+      if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 25) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: cardWidth, behavior: 'smooth' });
+      }
+    }
+  };
+
+  const scrollToTestIndex = (idx: number) => {
+    if (!testsScrollRef.current) return;
+    const el = testsScrollRef.current;
+    const card = el.querySelector<HTMLElement>('.test-card-item');
+    const cardWidth = (card?.offsetWidth || 340) + 24;
+    el.scrollTo({ left: idx * cardWidth, behavior: 'smooth' });
+  };
+
+  // Test categories auto-slide timer (every 3.5s) - smooth, continuous and auto-resuming
+  useEffect(() => {
+    if (!isTestAutoSlide || isTestHovered || isDraggingTest || publicTestCategories.length <= 1) return;
+    const timer = setInterval(() => {
+      if (testsScrollRef.current) {
+        const el = testsScrollRef.current;
+        const card = el.querySelector<HTMLElement>('.test-card-item');
+        const cardWidth = (card?.offsetWidth || 340) + 24;
+        if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 30) {
+          el.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          el.scrollBy({ left: cardWidth, behavior: 'smooth' });
+        }
+      }
+    }, 3500);
+    return () => clearInterval(timer);
+  }, [isTestAutoSlide, isTestHovered, isDraggingTest, publicTestCategories.length]);
+
+  // Handle direct scroll to #test-series if URL has hash
+  useEffect(() => {
+    if (window.location.hash === '#test-series') {
+      setTimeout(() => {
+        const el = document.getElementById('test-series');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 350);
+    }
+  }, []);
 
   // Dynamic Recent Center Codes list
   const dynamicRecentCenters = React.useMemo(() => {
@@ -743,83 +867,12 @@ const Home = () => {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="lg:col-span-6 relative flex justify-center lg:justify-end w-full"
               >
-                {/* Main Hero Card Frame with GSAP 3D Interactive Tilt & Glossy Sheen */}
-                <Tilt3DCard maxTilt={7} scale={1.01} glare={true} className="w-full max-w-xl">
-                  <div className="relative w-full bg-white rounded-3xl border border-slate-200 shadow-2xl p-3 sm:p-4">
-
-                    {/* High Quality Education & Computer Lab Visual */}
-                    <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-slate-900">
-                      <img
-                        src={homeData?.hero?.heroImage || homeData?.hero?.image || "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80"}
-                        alt="Modern Computer Academy Training Lab"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-slate-950/20" />
-                    </div>
-
-                    {/* Floating Badge: Top-Right (Government Recognized) */}
-                    <motion.div
-                      animate={{ y: [0, -6, 0] }}
-                      transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                      className="absolute -top-3 right-2 sm:-top-4 sm:-right-4 bg-white text-slate-900 border border-slate-200 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-xl flex items-center gap-2 sm:gap-2.5 z-20"
-                    >
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xs font-black shadow-sm">
-                        ✓
-                      </div>
-                      <div className="text-left">
-                        <div className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Government</div>
-                        <div className="text-[11px] sm:text-xs font-black text-emerald-600">Recognized</div>
-                      </div>
-                    </motion.div>
-
-                    {/* Floating Badge: Bottom-Left (Student Portal & QR Verification - Desktop/Tablet only to avoid mobile overlap) */}
-                    <motion.div
-                      animate={{ y: [0, 6, 0] }}
-                      transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-                      className="hidden sm:flex absolute -bottom-4 -left-2 sm:-left-4 bg-white text-slate-900 border border-slate-200 px-3.5 py-2.5 rounded-2xl shadow-xl items-center gap-3 z-20"
-                    >
-                      <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center text-sm font-black shadow-sm">
-                        ★
-                      </div>
-                      <div className="text-left">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Student Portal</div>
-                        <div className="text-xs font-black text-amber-600">Instant QR Verify</div>
-                      </div>
-                    </motion.div>
-
-                    {/* Bottom Stats Ribbon */}
-                    <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-xl grid grid-cols-3 gap-2 text-center text-xs">
-                      <div>
-                        <div className="font-black text-slate-900 text-sm">
-                          <NumberCounter 
-                            value={publicStats ? `${(publicStats.certifiedStudentsCount ?? publicStats.studentsCount).toLocaleString('en-IN')}+` : '0+'} 
-                            durationMs={1200} 
-                          />
-                        </div>
-                        <div className="text-[10px] font-bold text-slate-500">Certified</div>
-                      </div>
-                      <div className="border-x border-slate-200">
-                        <div className="font-black text-slate-900 text-sm">
-                          <NumberCounter 
-                            value={publicStats ? `${publicStats.centersCount.toLocaleString('en-IN')}+` : '0+'} 
-                            durationMs={1200} 
-                          />
-                        </div>
-                        <div className="text-[10px] font-bold text-slate-500">Study Centers</div>
-                      </div>
-                      <div>
-                        <div className="font-black text-slate-900 text-sm">
-                          <NumberCounter 
-                            value={publicStats ? `${publicStats.coursesCount}+` : '0+'} 
-                            durationMs={1200} 
-                          />
-                        </div>
-                        <div className="text-[10px] font-bold text-slate-500">Courses</div>
-                      </div>
-                    </div>
-
-                  </div>
-                </Tilt3DCard>
+                {/* Main Hero Card Frame with GSAP 3D Interactive Tilt & Multi-Image Slider */}
+                <HeroVisualSlider
+                  config={homeData?.hero}
+                  publicStats={publicStats}
+                  className="w-full max-w-xl"
+                />
               </motion.div>
 
             </div>
@@ -960,7 +1013,7 @@ const Home = () => {
       {verification?.enabled !== false && (
         <section id="verify-gateway" className="bg-slate-100/90 py-14 lg:py-20 border-t-2 border-b-2 border-slate-200 relative w-full overflow-hidden">
           <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 relative z-10">
-            
+
             {/* Section Header */}
             <div className="text-center max-w-3xl mx-auto mb-10">
               <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200/80 px-4 py-1.5 rounded-full shadow-xs mb-3">
@@ -984,33 +1037,30 @@ const Home = () => {
               <button
                 type="button"
                 onClick={() => setMobileVerifyTab('center')}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  mobileVerifyTab === 'center'
-                    ? 'bg-white text-blue-700 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${mobileVerifyTab === 'center'
+                  ? 'bg-white text-blue-700 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 Center
               </button>
               <button
                 type="button"
                 onClick={() => setMobileVerifyTab('student')}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  mobileVerifyTab === 'student'
-                    ? 'bg-amber-400 text-slate-950 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${mobileVerifyTab === 'student'
+                  ? 'bg-amber-400 text-slate-950 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 Student
               </button>
               <button
                 type="button"
                 onClick={() => setMobileVerifyTab('cert')}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  mobileVerifyTab === 'cert'
-                    ? 'bg-emerald-700 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${mobileVerifyTab === 'cert'
+                  ? 'bg-emerald-700 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 Certificate
               </button>
@@ -1018,7 +1068,7 @@ const Home = () => {
 
             {/* 3-Column Verification Feature Grid (Desktop: 3-Col, Mobile: Active Tab Card) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
-              
+
               {/* Card 1: Center Verification */}
               <div className={`${mobileVerifyTab === 'center' ? 'block' : 'hidden'} md:block bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden group`}>
                 <div>
@@ -1040,7 +1090,7 @@ const Home = () => {
                   <p className="text-xs text-slate-500 mb-4 font-normal">
                     Enter official Center Registration / Affiliation Code
                   </p>
-                  
+
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -1147,7 +1197,7 @@ const Home = () => {
                   <p className="text-xs text-amber-950 mb-4 font-medium opacity-90">
                     Enter Student Roll No. or Enrollment ID
                   </p>
-                  
+
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -1254,7 +1304,7 @@ const Home = () => {
                   <p className="text-xs text-slate-500 mb-4 font-normal">
                     Enter Certified Marksheet or Diploma Number
                   </p>
-                  
+
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -1462,6 +1512,8 @@ const Home = () => {
                             <img
                               src={verificationResult.data.photo_url.startsWith('http://localhost:3000') ? verificationResult.data.photo_url.replace('http://localhost:3000', '') : verificationResult.data.photo_url}
                               alt={verificationResult.data.firstName}
+                              loading="lazy"
+                              decoding="async"
                               className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-xs"
                               onError={(e) => {
                                 (e.target as HTMLElement).style.display = 'none';
@@ -1631,9 +1683,8 @@ const Home = () => {
               onMouseUp={handleCourseMouseLeaveOrUp}
               onMouseMove={handleCourseMouseMove}
               onMouseEnter={() => setIsCourseAutoSlide(false)}
-              className={`flex items-stretch gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory py-4 px-1 no-scrollbar select-none ${
-                isDraggingCourse ? 'cursor-grabbing' : 'cursor-grab'
-              }`}
+              className={`flex items-stretch gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory py-4 px-1 no-scrollbar select-none ${isDraggingCourse ? 'cursor-grabbing' : 'cursor-grab'
+                }`}
             >
               {allDisplayCourses.map((cat: any, idx: number) => (
                 <motion.div
@@ -1652,6 +1703,7 @@ const Home = () => {
                       alt={cat.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out opacity-95 pointer-events-none"
                       loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute inset-0 bg-slate-950/45 pointer-events-none" />
 
@@ -1707,21 +1759,21 @@ const Home = () => {
         </section>
       )}
 
-      {/* 6.5. Dynamic Test Series & Exam Categories Showcase */}
+      {/* 6.5. Dynamic Test Series & Exam Categories Showcase (Modern Stylish Fluid Slideshow) */}
       {publicTestCategories && publicTestCategories.length > 0 && (
-        <section className="py-20 bg-white border-t border-slate-200/80 relative w-full overflow-hidden">
+        <section id="test-series" className="py-20 bg-gradient-to-b from-white via-indigo-50/25 to-white border-t border-slate-200/80 relative w-full overflow-hidden scroll-mt-14">
           <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
-            
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+
+            {/* Header with Title and Modern Controls */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
               <FadeUp>
                 <div className="text-left max-w-2xl">
-                  <span className="text-xs font-black text-blue-700 bg-blue-50 border border-blue-200 px-3.5 py-1 rounded-full uppercase tracking-wider inline-flex items-center gap-1.5 shadow-xs">
+                  <span className="text-xs font-black text-blue-700 bg-blue-50 border border-blue-200/90 px-3.5 py-1 rounded-full uppercase tracking-wider inline-flex items-center gap-1.5 shadow-2xs">
                     <Sparkles size={13} className="text-blue-600 animate-pulse" />
                     <span>Live Mock Tests & Assessments</span>
                   </span>
                   <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 mt-3.5 mb-2 tracking-tight">
-                    National Test Series Categories
+                    Best Test Series Categories
                   </h2>
                   <p className="text-slate-600 text-xs sm:text-sm font-normal">
                     Practice with live timed exams, instant scoring, question explanations, and all-India percentile rankings.
@@ -1729,25 +1781,86 @@ const Home = () => {
                 </div>
               </FadeUp>
 
-              <div className="shrink-0 self-start md:self-auto">
-                <Link
-                  to="/student/test-series"
-                  className="btn-glow-primary btn-shimmer btn-elastic px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black inline-flex items-center gap-2 shadow-md cursor-pointer"
+              {/* Slider Controls, Stepper & CTAs */}
+              <div className="flex flex-wrap items-center gap-3 shrink-0 self-start md:self-auto">
+                {publicTestCategories.length > 1 && (
+                  <>
+                    <div className="text-xs font-black text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
+                      <span className="text-blue-600 font-extrabold">{activeTestIdx + 1}</span> / {publicTestCategories.length}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        pauseAndResumeTestAutoSlide();
+                        handleScrollTests('left');
+                      }}
+                      className="btn-icon-bounce w-10 h-10 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 flex items-center justify-center shadow-2xs cursor-pointer transition-all active:scale-95"
+                      title="Previous Slide"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        pauseAndResumeTestAutoSlide();
+                        handleScrollTests('right');
+                      }}
+                      className="btn-icon-bounce w-10 h-10 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 flex items-center justify-center shadow-2xs cursor-pointer transition-all active:scale-95"
+                      title="Next Slide"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setIsCandidateModalOpen(true)}
+                  className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500 hover:bg-amber-600 active:scale-95 text-white inline-flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
                 >
-                  <span>Explore All Test Series</span>
-                  <ArrowRight size={15} />
+                  <Sparkles size={14} className="text-amber-200" />
+                  <span>Register Now</span>
+                </button>
+
+                <Link
+                  to="/test-series"
+                  className="btn-glow-primary btn-shimmer btn-elastic px-4.5 py-2.5 rounded-xl text-xs sm:text-sm font-black inline-flex items-center gap-2 shadow-md cursor-pointer"
+                >
+                  <span>Explore All</span>
+                  <ArrowRight size={14} />
                 </Link>
               </div>
             </div>
 
-            {/* Categories Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 text-left">
-              {publicTestCategories.map((cat: any) => (
+            {/* Continuous Modern Drag & Scroll Track */}
+            <div
+              ref={testsScrollRef}
+              onScroll={handleTestsScroll}
+              onMouseDown={handleTestMouseDown}
+              onMouseLeave={() => {
+                handleTestMouseLeaveOrUp();
+                setIsTestHovered(false);
+              }}
+              onMouseUp={() => {
+                handleTestMouseLeaveOrUp();
+                pauseAndResumeTestAutoSlide();
+              }}
+              onMouseMove={handleTestMouseMove}
+              onMouseEnter={() => setIsTestHovered(true)}
+              className={`flex items-stretch gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory py-4 px-1 no-scrollbar select-none ${isDraggingTest ? 'cursor-grabbing' : 'cursor-grab'
+                }`}
+            >
+              {publicTestCategories.map((cat: any, idx: number) => (
                 <motion.div
-                  key={cat.id}
-                  whileHover={{ y: -6, scale: 1.01 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="card-3d rounded-2xl flex flex-col justify-between group relative overflow-hidden bg-white shadow-md hover:shadow-2xl transition-all duration-300 border border-slate-200/90"
+                  key={cat.id || idx}
+                  initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  viewport={{ once: true, margin: '-40px' }}
+                  transition={{ duration: 0.5, delay: Math.min(idx * 0.07, 0.35) }}
+                  whileHover={{ y: -6 }}
+                  className="test-card-item snap-start shrink-0 w-[290px] sm:w-[330px] lg:w-[calc(33.333%-16px)] rounded-3xl flex flex-col justify-between group relative overflow-hidden bg-white shadow-md hover:shadow-2xl hover:shadow-blue-500/15 transition-all duration-300 border border-slate-200 hover:border-blue-400"
                 >
                   {/* Category Thumbnail Image Banner */}
                   <div className="h-44 sm:h-48 w-full relative overflow-hidden bg-slate-900 shrink-0">
@@ -1756,55 +1869,96 @@ const Home = () => {
                       alt={cat.name}
                       className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 opacity-95"
                       loading="lazy"
+                      decoding="async"
                       onError={(e: any) => {
                         e.target.onerror = null;
                         e.target.src = getCategoryFallbackImage(cat.name);
                       }}
                     />
-                    <div className="absolute inset-0 bg-slate-950/45" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent" />
 
-                    {/* Series Count Badge Overlay */}
+                    {/* Top Floating Badges */}
+                    <div className="absolute top-3 left-3">
+                      <span className="text-[10px] font-bold text-blue-200 bg-blue-900/70 backdrop-blur-md px-2.5 py-1 rounded-full border border-blue-400/30 uppercase tracking-wider inline-flex items-center gap-1 shadow-sm">
+                        <Zap size={11} className="text-amber-400" />
+                        <span>Live Assessment</span>
+                      </span>
+                    </div>
+
                     <div className="absolute top-3 right-3">
-                      <span className="text-[11px] font-black text-white bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-full inline-flex items-center gap-1.5 shadow-sm border border-white/20">
+                      <span className="text-[11px] font-black text-amber-300 bg-slate-900/85 backdrop-blur-md px-3 py-1 rounded-full inline-flex items-center gap-1.5 shadow-sm border border-amber-400/30">
                         <Award size={12} className="text-amber-400" />
                         <span>{cat.test_series_count || 0} Test Series</span>
                       </span>
                     </div>
 
-                    {/* Bottom Category Badge Overlay */}
+                    {/* Bottom Category Title Overlay */}
                     <div className="absolute bottom-3 left-4 right-4">
-                      <span className="text-[10px] font-bold text-blue-200 uppercase tracking-wider block mb-1">
+                      <span className="text-[10px] font-bold text-blue-200 uppercase tracking-wider block mb-0.5">
                         Exam Category
                       </span>
-                      <h3 className="font-black text-white text-lg sm:text-xl line-clamp-1 group-hover:text-blue-300 transition-colors drop-shadow-sm">
+                      <h3 className="font-black text-white text-base sm:text-lg line-clamp-1 group-hover:text-blue-300 transition-colors drop-shadow-sm">
                         {cat.name}
                       </h3>
                     </div>
                   </div>
 
-                  {/* Card Body & Action */}
+                  {/* Card Body & Feature Highlights */}
                   <div className="p-5 flex-1 flex flex-col justify-between">
-                    <p className="text-slate-600 text-xs sm:text-sm line-clamp-2 leading-relaxed">
-                      {cat.description || 'Comprehensive national mock tests, topic quizzes and speed tests.'}
-                    </p>
+                    <div>
+                      <p className="text-slate-600 text-xs line-clamp-2 leading-relaxed mb-4">
+                        {cat.description || 'Comprehensive national mock tests, topic quizzes, speed drills, and official syllabus assessments.'}
+                      </p>
 
-                    <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
-                        <CheckCircle2 size={13} className="text-emerald-500" />
-                        <span>Instant Solutions & Ranking</span>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md border border-slate-200/80 inline-flex items-center gap-1">
+                          <CheckCircle2 size={11} className="text-emerald-500" />
+                          <span>Instant Solutions</span>
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md border border-indigo-200/80 inline-flex items-center gap-1">
+                          <Sparkles size={11} className="text-indigo-500" />
+                          <span>All-India Rank</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-3.5 mt-2 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-slate-500">
+                        Self-Paced / Timed
                       </span>
                       <Link
                         to="/student/test-series"
-                        className="btn-elastic inline-flex items-center gap-1.5 text-xs font-black text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                        className="btn-elastic inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white text-xs font-black transition-all cursor-pointer shadow-2xs group-hover:bg-blue-600 group-hover:text-white"
                       >
                         <span>Start Test</span>
-                        <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                       </Link>
                     </div>
                   </div>
                 </motion.div>
               ))}
             </div>
+
+            {/* Bottom Interactive Progress Dots */}
+            {publicTestCategories.length > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                {publicTestCategories.map((_, dotIdx: number) => (
+                  <button
+                    key={dotIdx}
+                    type="button"
+                    onClick={() => {
+                      pauseAndResumeTestAutoSlide();
+                      scrollToTestIndex(dotIdx);
+                    }}
+                    className={`transition-all duration-300 rounded-full cursor-pointer ${activeTestIdx === dotIdx
+                        ? 'w-7 h-2 bg-blue-600 shadow-xs'
+                        : 'w-2 h-2 bg-slate-300 hover:bg-slate-400'
+                      }`}
+                    title={`Go to slide ${dotIdx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
 
           </div>
         </section>
@@ -2032,12 +2186,26 @@ const Home = () => {
         </section>
       )}
 
-      {/* Camera QR Scanner Modal */}
-      <QrCameraScannerModal
-        isOpen={isCameraScannerOpen}
-        onClose={() => setIsCameraScannerOpen(false)}
-        onScanSuccess={handleQrScanSuccess}
-      />
+      {/* Camera QR Scanner Modal (Lazy-Loaded) */}
+      {isCameraScannerOpen && (
+        <Suspense fallback={null}>
+          <QrCameraScannerModal
+            isOpen={isCameraScannerOpen}
+            onClose={() => setIsCameraScannerOpen(false)}
+            onScanSuccess={handleQrScanSuccess}
+          />
+        </Suspense>
+      )}
+
+      {/* Direct Candidate Registration Modal (Brevo OTP) */}
+      {isCandidateModalOpen && (
+        <Suspense fallback={null}>
+          <DirectStudentRegisterModal
+            isOpen={isCandidateModalOpen}
+            onClose={() => setIsCandidateModalOpen(false)}
+          />
+        </Suspense>
+      )}
 
     </div>
   );

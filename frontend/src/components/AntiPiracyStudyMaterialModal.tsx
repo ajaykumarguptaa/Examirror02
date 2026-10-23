@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { getAssetUrl } from '../utils/axiosSetup';
+import { prepareSafeHtmlContent } from '../utils/htmlNoteSecurity';
 
 interface AntiPiracyStudyMaterialModalProps {
   materialId: number | string;
@@ -154,82 +155,9 @@ export const AntiPiracyStudyMaterialModal: React.FC<AntiPiracyStudyMaterialModal
 
   const pdfSource = getAssetUrl(materialData?.file_url);
 
-  // Prepare full-view interactive HTML document with anti-copy style injection
+  // Prepare full-view interactive HTML document with anti-copy style injection and anchor link interceptor
   const preparedHtmlDoc = useMemo(() => {
-    if (!materialData?.content_text) return '';
-    let raw = materialData.content_text;
-
-    const antiNavigationScript = `
-      <script>
-        document.addEventListener('DOMContentLoaded', () => {
-          document.addEventListener('click', function(e) {
-            const link = e.target.closest('a');
-            if (link) {
-              const href = link.getAttribute('href');
-              // Allow hash links for same-page scrolling
-              if (href && href.startsWith('#')) return;
-              
-              e.preventDefault();
-              console.warn('Navigation blocked inside secure reader: ' + href);
-              // Optionally we can open external links in a new tab:
-              // if (link.href && !link.href.includes(window.location.origin)) {
-              //   window.open(link.href, '_blank', 'noopener,noreferrer');
-              // }
-            }
-          });
-        });
-      </script>
-    `;
-
-    // If raw doesn't contain a full html wrapper, wrap it
-    if (!raw.includes('<html') && !raw.includes('<!DOCTYPE')) {
-      raw = `
-        <!DOCTYPE html>
-        <html lang="en">
-          <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>${materialData.title || 'E-Note'}</title>
-            <link rel="preconnect" href="https://fonts.googleapis.com">
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-            <style>
-              body {
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-                margin: 0;
-                padding: 24px;
-                color: #1e293b;
-                line-height: 1.6;
-                background-color: #ffffff;
-                user-select: none;
-                -webkit-user-select: none;
-              }
-              h1, h2, h3, h4 { color: #0f172a; font-weight: 800; }
-              code { font-family: 'JetBrains Mono', monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
-              pre { background: #0f172a; color: #f8fafc; padding: 16px; border-radius: 12px; overflow-x: auto; }
-              table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-              th, td { border: 1px solid #cbd5e1; padding: 10px 14px; text-align: left; }
-              th { background: #f8fafc; font-weight: 700; }
-            </style>
-            ${antiNavigationScript}
-          </head>
-          <body>
-            ${raw}
-          </body>
-        </html>
-      `;
-    } else {
-      // It's a full HTML document, inject script before </head> or </body>
-      if (raw.includes('</head>')) {
-        raw = raw.replace('</head>', `${antiNavigationScript}</head>`);
-      } else if (raw.includes('</body>')) {
-        raw = raw.replace('</body>', `${antiNavigationScript}</body>`);
-      } else {
-        raw += antiNavigationScript;
-      }
-    }
-
-    return raw;
+    return prepareSafeHtmlContent(materialData?.content_text || '', materialData?.title || 'E-Note');
   }, [materialData?.content_text, materialData?.title]);
 
   return (

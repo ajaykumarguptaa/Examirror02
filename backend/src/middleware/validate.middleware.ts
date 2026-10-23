@@ -59,5 +59,6 @@ export const announcementSchema = z.object({
   message: z.string().trim().min(1, 'Message is required').max(5000),
   expiryDate: z.string().optional().nullable(),
   target: z.enum(['center', 'student', 'both']).optional(),
-  type: z.string().max(50).optional()
+  type: z.string().max(50).optional(),
+  linkUrl: z.string().max(255).optional().nullable()
 });

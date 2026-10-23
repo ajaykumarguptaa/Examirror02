@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
   RefreshCw,
@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
+import { useDebounce } from '../../hooks/useDebounce';
+import { throttle } from '../../utils/throttleDebounce';
 
 interface ContactQuery {
   id: number;
@@ -40,6 +42,7 @@ const ContactQueries = () => {
   const [queries, setQueries] = useState<ContactQuery[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 250);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [activeModalQuery, setActiveModalQuery] = useState<ContactQuery | null>(null);
   const [modalAdminNotes, setModalAdminNotes] = useState('');
@@ -52,7 +55,7 @@ const ContactQueries = () => {
   const fetchQueries = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:3000/api/admin/contact-queries');
+      const res = await axios.get('/api/admin/contact-queries').catch(() => axios.get('http://localhost:3000/api/admin/contact-queries'));
       if (res.data?.success) {
         setQueries(res.data.data || []);
       }
@@ -66,7 +69,8 @@ const ContactQueries = () => {
   useEffect(() => {
     fetchQueries();
 
-    const handleSync = () => fetchQueries();
+    // Throttled real-time sync handler (at most once every 2 seconds)
+    const handleSync = throttle(() => fetchQueries(), 2000);
     window.addEventListener('contact-updated', handleSync);
     window.addEventListener('focus', handleSync);
 
@@ -111,6 +115,7 @@ const ContactQueries = () => {
     try {
       await handleUpdateStatus(activeModalQuery.id, modalStatus, modalAdminNotes);
       setIsUpdatingNotes(false);
+      setActiveModalQuery(null);
       showToast('success', 'Changes saved successfully');
     } catch {
       setIsUpdatingNotes(false);
@@ -150,24 +155,35 @@ const ContactQueries = () => {
     setModalStatus(query.status || 'Pending');
   };
 
-  // Filter queries
-  const filteredQueries = queries.filter(q => {
-    const matchesStatus = selectedStatus === 'all' || q.status.toLowerCase() === selectedStatus.toLowerCase();
-    const searchLower = searchQuery.toLowerCase().trim();
-    const matchesSearch =
-      !searchLower ||
-      (q.full_name && q.full_name.toLowerCase().includes(searchLower)) ||
-      (q.phone && q.phone.includes(searchLower)) ||
-      (q.email && q.email.toLowerCase().includes(searchLower)) ||
-      (q.course && q.course.toLowerCase().includes(searchLower)) ||
-      (q.message && q.message.toLowerCase().includes(searchLower));
+  // Filter queries with debounced search and memoization
+  const filteredQueries = useMemo(() => {
+    const searchLower = debouncedSearchQuery.toLowerCase().trim();
+    return queries.filter(q => {
+      const matchesStatus = selectedStatus === 'all' || q.status.toLowerCase() === selectedStatus.toLowerCase();
+      const matchesSearch =
+        !searchLower ||
+        (q.full_name && q.full_name.toLowerCase().includes(searchLower)) ||
+        (q.phone && q.phone.includes(searchLower)) ||
+        (q.email && q.email.toLowerCase().includes(searchLower)) ||
+        (q.course && q.course.toLowerCase().includes(searchLower)) ||
+        (q.message && q.message.toLowerCase().includes(searchLower));
 
-    return matchesStatus && matchesSearch;
-  });
+      return matchesStatus && matchesSearch;
+    });
+  }, [queries, selectedStatus, debouncedSearchQuery]);
 
-  const pendingCount = queries.filter(q => q.status.toLowerCase() === 'pending').length;
-  const contactedCount = queries.filter(q => q.status.toLowerCase() === 'contacted').length;
-  const resolvedCount = queries.filter(q => q.status.toLowerCase() === 'resolved').length;
+  const { pendingCount, contactedCount, resolvedCount } = useMemo(() => {
+    let pending = 0;
+    let contacted = 0;
+    let resolved = 0;
+    for (const q of queries) {
+      const s = q.status.toLowerCase();
+      if (s === 'pending') pending++;
+      else if (s === 'contacted') contacted++;
+      else if (s === 'resolved') resolved++;
+    }
+    return { pendingCount: pending, contactedCount: contacted, resolvedCount: resolved };
+  }, [queries]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 font-sans text-slate-800">

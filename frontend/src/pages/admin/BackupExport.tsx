@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Download,
   FileSpreadsheet,
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useDebounce } from '../../hooks/useDebounce';
 
 interface CenterSummary {
   id: number;
@@ -53,6 +54,7 @@ const BackupExport = () => {
   const [downloadingCenterId, setDownloadingCenterId] = useState<number | null>(null);
   const [selectedCenterIds, setSelectedCenterIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 250);
   const [batchDownloading, setBatchDownloading] = useState(false);
   const [isBackingUpDb, setIsBackingUpDb] = useState(false);
   const [dbBackupResult, setDbBackupResult] = useState<{
@@ -69,18 +71,28 @@ const BackupExport = () => {
     message?: string;
   } | null>(null);
 
+  // Helper to ensure genuine Super Admin token is used (never fall back to center 'token')
+  const getAdminToken = () => {
+    return localStorage.getItem('adminToken') || 
+           sessionStorage.getItem('adminToken') || 
+           localStorage.getItem('admin_token') || 
+           '';
+  };
+
   const fetchData = async () => {
     setLoading(true);
+    const token = getAdminToken();
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
     try {
       const [statsRes, centersRes] = await Promise.all([
-        axios.get('http://localhost:3000/api/admin/stats'),
-        axios.get('http://localhost:3000/api/admin/centers')
+        axios.get('/api/admin/stats', config).catch(() => axios.get('http://localhost:3000/api/admin/stats', config)),
+        axios.get('/api/admin/centers', config).catch(() => axios.get('http://localhost:3000/api/admin/centers', config))
       ]);
 
       if (statsRes.data?.success) setStats(statsRes.data.data);
       if (centersRes.data?.success) setCenters(centersRes.data.data);
     } catch (err: any) {
-      toast.error('Failed to load backup stats: ' + err.message);
+      toast.error('Failed to load backup stats: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
@@ -93,11 +105,17 @@ const BackupExport = () => {
   // Master system backup download
   const handleDownloadMaster = async () => {
     setDownloadingMaster(true);
+    const token = getAdminToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     try {
       const dateStr = new Date().toISOString().slice(0, 10);
-      const res = await axios.get('http://localhost:3000/api/admin/export/master', {
-        responseType: 'blob'
-      });
+      const res = await axios.get('/api/admin/export/master', {
+        responseType: 'blob',
+        headers
+      }).catch(() => axios.get('http://localhost:3000/api/admin/export/master', {
+        responseType: 'blob',
+        headers
+      }));
 
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
@@ -110,7 +128,7 @@ const BackupExport = () => {
 
       toast.success('Complete Master System Backup (.xlsx) downloaded successfully!');
     } catch (err: any) {
-      toast.error('Error generating master backup: ' + err.message);
+      toast.error('Error generating master backup: ' + (err.response?.data?.message || err.message));
     } finally {
       setDownloadingMaster(false);
     }
@@ -119,13 +137,18 @@ const BackupExport = () => {
   // On-demand MySQL Database Backup to AWS S3
   const handleBackupDatabaseS3 = async () => {
     setIsBackingUpDb(true);
-    const adminToken = localStorage.getItem('token') || localStorage.getItem('adminToken') || '';
+    const adminToken = getAdminToken();
+    const headers = adminToken ? { Authorization: `Bearer ${adminToken}` } : {};
     try {
       const res = await axios.post(
+        '/api/admin/backup/database-s3',
+        {},
+        { headers }
+      ).catch(() => axios.post(
         'http://localhost:3000/api/admin/backup/database-s3',
         {},
-        { headers: { Authorization: `Bearer ${adminToken}` } }
-      );
+        { headers }
+      ));
       if (res.data?.success) {
         setDbBackupResult(res.data.data);
         toast.success(res.data.message || 'Database backed up to AWS S3 successfully!');
@@ -142,13 +165,18 @@ const BackupExport = () => {
   // 1-Click Database Space Defragmenter & Table Optimizer
   const handleOptimizeDatabase = async () => {
     setIsOptimizingDb(true);
-    const adminToken = localStorage.getItem('token') || localStorage.getItem('adminToken') || '';
+    const adminToken = getAdminToken();
+    const headers = adminToken ? { Authorization: `Bearer ${adminToken}` } : {};
     try {
       const res = await axios.post(
+        '/api/admin/system/optimize-database',
+        {},
+        { headers }
+      ).catch(() => axios.post(
         'http://localhost:3000/api/admin/system/optimize-database',
         {},
-        { headers: { Authorization: `Bearer ${adminToken}` } }
-      );
+        { headers }
+      ));
       if (res.data?.success) {
         setOptimizeResult(res.data);
         toast.success(res.data.message || 'Database tables optimized successfully!');
@@ -165,11 +193,17 @@ const BackupExport = () => {
   // Center-specific backup download
   const handleDownloadCenter = async (centerId: number, centerCode: string, centerName: string) => {
     setDownloadingCenterId(centerId);
+    const token = getAdminToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     try {
       const dateStr = new Date().toISOString().slice(0, 10);
-      const res = await axios.get(`http://localhost:3000/api/admin/export/center/${centerId}`, {
-        responseType: 'blob'
-      });
+      const res = await axios.get(`/api/admin/export/center/${centerId}`, {
+        responseType: 'blob',
+        headers
+      }).catch(() => axios.get(`http://localhost:3000/api/admin/export/center/${centerId}`, {
+        responseType: 'blob',
+        headers
+      }));
 
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
@@ -182,7 +216,7 @@ const BackupExport = () => {
 
       toast.success(`Center backup for ${centerName} (${centerCode}) downloaded!`);
     } catch (err: any) {
-      toast.error('Error downloading center backup: ' + err.message);
+      toast.error('Error downloading center backup: ' + (err.response?.data?.message || err.message));
     } finally {
       setDownloadingCenterId(null);
     }
@@ -192,6 +226,8 @@ const BackupExport = () => {
   const handleBatchDownload = async () => {
     if (selectedCenterIds.length === 0) return;
     setBatchDownloading(true);
+    const token = getAdminToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
     let successCount = 0;
     for (const cId of selectedCenterIds) {
@@ -199,9 +235,13 @@ const BackupExport = () => {
       if (c) {
         try {
           const dateStr = new Date().toISOString().slice(0, 10);
-          const res = await axios.get(`http://localhost:3000/api/admin/export/center/${cId}`, {
-            responseType: 'blob'
-          });
+          const res = await axios.get(`/api/admin/export/center/${cId}`, {
+            responseType: 'blob',
+            headers
+          }).catch(() => axios.get(`http://localhost:3000/api/admin/export/center/${cId}`, {
+            responseType: 'blob',
+            headers
+          }));
           const url = window.URL.createObjectURL(new Blob([res.data]));
           const link = document.createElement('a');
           link.href = url;
@@ -237,12 +277,17 @@ const BackupExport = () => {
     );
   };
 
-  const filteredCenters = centers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.center_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.email && c.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Memoized & Debounced Search Filtering
+  const filteredCenters = useMemo(() => {
+    const q = debouncedSearchQuery.toLowerCase().trim();
+    if (!q) return centers;
+    return centers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.center_code.toLowerCase().includes(q) ||
+        (c.email && c.email.toLowerCase().includes(q))
+    );
+  }, [centers, debouncedSearchQuery]);
 
   return (
     <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">

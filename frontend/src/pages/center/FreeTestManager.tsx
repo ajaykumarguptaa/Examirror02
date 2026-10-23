@@ -150,7 +150,7 @@ const FreeTestManager: React.FC = () => {
     try {
       const u = JSON.parse(localStorage.getItem('centerUser') || '{}');
       if (u && (u.id || u.centerId)) return Number(u.id || u.centerId);
-    } catch (_) {}
+    } catch (_) { }
     return 1;
   };
   const centerId = getCenterId();
@@ -445,15 +445,15 @@ const FreeTestManager: React.FC = () => {
             : 'Test Un-published (Draft Mode)'
         );
         fetchTests();
-        if (publishModalTest) {
-          setPublishModalTest((prev) => prev ? { 
-            ...prev, 
-            is_published: publishState ? 1 : 0, 
-            status: publishState ? 'published' : 'draft', 
-            test_uid: res.data.data.test_uid,
-            has_been_published: publishState ? 1 : prev.has_been_published 
-          } : null);
-        }
+        const updatedUid = res.data.data?.test_uid || publishModalTest.test_uid;
+        setActiveTest((prev) => prev && prev.id === publishModalTest.id ? {
+          ...prev,
+          is_published: publishState ? 1 : 0,
+          status: publishState ? 'published' : 'draft',
+          test_uid: updatedUid,
+          has_been_published: publishState ? 1 : prev.has_been_published
+        } : prev);
+        setPublishModalTest(null);
         setShowConfirmPublishModal(false);
       }
     } catch (err: any) {
@@ -602,10 +602,10 @@ const FreeTestManager: React.FC = () => {
     }
 
     // Active test expiration timestamp (72 hours from creation/recovery)
-    const expTime = test.expires_at 
-      ? new Date(test.expires_at).getTime() 
+    const expTime = test.expires_at
+      ? new Date(test.expires_at).getTime()
       : (test.created_at ? new Date(test.created_at).getTime() + 72 * 3600 * 1000 : 0);
-    
+
     const diffMs = expTime - Date.now();
 
     if (diffMs <= 0 || test.is_expired) {
@@ -848,14 +848,27 @@ const FreeTestManager: React.FC = () => {
     showToast('success', 'Complete Enrolled Candidate Register exported to CSV!');
   };
 
-  // ----------------------------------------------------
-  // RENDER: VIEW 2 - ADD / EDIT QUESTIONS SCREEN
-  // ----------------------------------------------------
-  if (viewMode === 'add-questions' && activeTest) {
-    const questionLimitReached = questions.length >= 150;
+  const questionLimitReached = questions.length >= 150;
 
-    return (
-      <div className="p-4 sm:p-6 max-w-[1600px] mx-auto font-sans space-y-6 animate-in fade-in duration-150">
+  return (
+    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto font-sans space-y-6">
+
+      {/* Toast Notification */}
+      {notification && (
+        <div
+          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-2 text-xs font-bold animate-in slide-in-from-top duration-200 ${notification.type === 'success'
+            ? 'bg-emerald-600 text-white border-emerald-500'
+            : 'bg-rose-600 text-white border-rose-500'
+            }`}
+        >
+          {notification.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+          <span>{notification.message}</span>
+        </div>
+      )}
+
+      {/* RENDER: VIEW 2 (ADD / EDIT QUESTIONS) OR VIEW 1 (DASHBOARD) */}
+      {viewMode === 'add-questions' && activeTest ? (
+        <div className="space-y-6 animate-in fade-in duration-150">
 
         {/* Top Breadcrumb & Actions */}
         <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl shadow-xs border border-slate-200">
@@ -878,8 +891,8 @@ const FreeTestManager: React.FC = () => {
 
           <div className="flex items-center gap-2">
             <div className={`px-3 py-1.5 rounded-xl font-bold text-xs border ${questionLimitReached
-                ? 'bg-amber-50 text-amber-800 border-amber-200'
-                : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+              ? 'bg-amber-50 text-amber-800 border-amber-200'
+              : 'bg-indigo-50 text-indigo-700 border-indigo-200'
               }`}>
               {questions.length} / 150 Qs • {questions.reduce((sum, q) => sum + (Number(q.marks) || 1), 0)} Total Marks
             </div>
@@ -908,10 +921,11 @@ const FreeTestManager: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsBulkJsonModalOpen(true)}
-                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-xs active:scale-95"
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-xs active:scale-95"
+                  title="Import Questions via AI or Bulk JSON"
                 >
-                  <Sparkles size={12} className="text-amber-300" />
-                  <span>⚡ AI / Bulk JSON</span>
+                  <Sparkles size={13} className="text-amber-300" />
+                  <span>AI / Bulk JSON</span>
                 </button>
                 {editingQuestionId && (
                   <button
@@ -995,8 +1009,8 @@ const FreeTestManager: React.FC = () => {
                         type="button"
                         onClick={() => setCorrectOption(key)}
                         className={`text-[10px] font-bold px-2 py-1 rounded-md cursor-pointer ${isCorrect
-                            ? 'bg-emerald-600 text-white'
-                            : 'text-slate-400 hover:text-emerald-700 hover:bg-emerald-50'
+                          ? 'bg-emerald-600 text-white'
+                          : 'text-slate-400 hover:text-emerald-700 hover:bg-emerald-50'
                           }`}
                       >
                         {isCorrect ? 'Correct ✓' : 'Mark Correct'}
@@ -1097,8 +1111,8 @@ const FreeTestManager: React.FC = () => {
                           <div
                             key={key}
                             className={`p-2 rounded-lg border text-[11px] font-medium flex items-center gap-2 ${isCorrect
-                                ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
-                                : 'bg-slate-50 border-slate-200 text-slate-700'
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
+                              : 'bg-slate-50 border-slate-200 text-slate-700'
                               }`}
                           >
                             <span className={`w-4 h-4 rounded text-[9px] font-black flex items-center justify-center shrink-0 ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
@@ -1120,29 +1134,9 @@ const FreeTestManager: React.FC = () => {
         </div>
 
       </div>
-    );
-  }
-
-  // ----------------------------------------------------
-  // RENDER: VIEW 1 - MAIN TEST MANAGEMENT DASHBOARD
-  // ----------------------------------------------------
-  return (
-    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto font-sans space-y-6">
-
-      {/* Toast Notification */}
-      {notification && (
-        <div
-          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-2 text-xs font-bold animate-in slide-in-from-top duration-200 ${notification.type === 'success'
-              ? 'bg-emerald-600 text-white border-emerald-500'
-              : 'bg-rose-600 text-white border-rose-500'
-            }`}
-        >
-          {notification.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-          <span>{notification.message}</span>
-        </div>
-      )}
-
-      {/* Header Banner */}
+    ) : (
+      <>
+          {/* Header Banner */}
       <div className="bg-[#1e1b4b] rounded-3xl p-5 sm:p-8 text-white shadow-xl flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-indigo-300 text-[11px] font-bold backdrop-blur-xs mb-2">
@@ -1174,17 +1168,15 @@ const FreeTestManager: React.FC = () => {
           <button
             type="button"
             onClick={() => handleTabChange('tests')}
-            className={`px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'tests'
+            className={`px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'tests'
                 ? 'bg-[#1e1b4b] text-white shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100'
-            }`}
+              }`}
           >
             <BookOpen size={15} />
             <span>Online Tests & Question Bank</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-              activeTab === 'tests' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${activeTab === 'tests' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
               {tests.length}
             </span>
           </button>
@@ -1192,17 +1184,15 @@ const FreeTestManager: React.FC = () => {
           <button
             type="button"
             onClick={() => handleTabChange('candidates')}
-            className={`px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'candidates'
+            className={`px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'candidates'
                 ? 'bg-[#1e1b4b] text-white shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100'
-            }`}
+              }`}
           >
             <GraduationCap size={16} />
             <span>Live Enrolled Candidates Register</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-              activeTab === 'candidates' ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-800'
-            }`}>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${activeTab === 'candidates' ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-800'
+              }`}>
               {allSubmissions.length}
             </span>
           </button>
@@ -1232,19 +1222,17 @@ const FreeTestManager: React.FC = () => {
 
           {/* Super Admin Monthly Quota & Wallet Status Widget */}
           {quota && (
-            <div className={`rounded-3xl p-5 sm:p-6 border transition-all ${
-              quota.requires_charge
+            <div className={`rounded-3xl p-5 sm:p-6 border transition-all ${quota.requires_charge
                 ? 'bg-amber-50 border-amber-300'
                 : 'bg-indigo-50/70 border-indigo-100'
-            }`}>
+              }`}>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                      quota.requires_charge
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${quota.requires_charge
                         ? 'bg-amber-500 text-white'
                         : 'bg-indigo-600 text-white'
-                    }`}>
+                      }`}>
                       {quota.requires_charge ? 'Paid Creation Mode' : 'Free Quota Active'}
                     </span>
                     <span className="text-xs font-bold text-slate-600">
@@ -1402,11 +1390,10 @@ const FreeTestManager: React.FC = () => {
                   <button
                     type="submit"
                     disabled={creatingTest}
-                    className={`px-6 py-2.5 font-bold rounded-xl text-xs shadow-md transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${
-                      quota?.requires_charge
+                    className={`px-6 py-2.5 font-bold rounded-xl text-xs shadow-md transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${quota?.requires_charge
                         ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-200'
                         : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200'
-                    }`}
+                      }`}
                   >
                     {quota?.requires_charge ? <Coins size={16} /> : <Plus size={16} />}
                     <span>
@@ -1655,8 +1642,8 @@ const FreeTestManager: React.FC = () => {
                                   type="button"
                                   onClick={() => handleOpenPublishModal(test)}
                                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-1 ${isPublished
-                                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
-                                      : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs'
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                                    : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs'
                                     }`}
                                   title="Configure Publish & Get Link"
                                 >
@@ -1759,7 +1746,7 @@ const FreeTestManager: React.FC = () => {
           {/* Filter & Action Bar */}
           <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
-              
+
               {/* Search Bar */}
               <div className="relative flex-1 min-w-[260px]">
                 <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -1847,7 +1834,7 @@ const FreeTestManager: React.FC = () => {
             </div>
           </div>
 
-            {/* Candidate Register Table */}
+          {/* Candidate Register Table */}
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left border-collapse min-w-[1100px]">
@@ -1888,7 +1875,7 @@ const FreeTestManager: React.FC = () => {
                       const isPass = sub.status === 'PASSED';
                       return (
                         <tr key={sub.id} className="hover:bg-slate-50/80 transition-colors">
-                          
+
                           {/* Sr */}
                           <td className="py-3.5 px-4 text-center font-bold text-slate-500 align-middle">
                             {(candidatePage - 1) * candidatePageSize + index + 1}
@@ -1935,9 +1922,8 @@ const FreeTestManager: React.FC = () => {
 
                           {/* Status */}
                           <td className="py-3.5 px-4 text-center align-middle">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 ${
-                              isPass ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'
-                            }`}>
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 ${isPass ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'
+                              }`}>
                               {isPass ? '✓ PASSED' : '✗ FAILED'}
                             </span>
                           </td>
@@ -1985,7 +1971,7 @@ const FreeTestManager: React.FC = () => {
 
                           {/* Actions */}
                           <td className="py-3.5 px-4 text-right pr-6 align-middle space-x-1.5 whitespace-nowrap">
-                            
+
                             {/* Official Marksheet PDF Modal */}
                             <button
                               type="button"
@@ -2109,9 +2095,8 @@ const FreeTestManager: React.FC = () => {
                     return parsed.map((item: any, qIdx: number) => (
                       <div
                         key={item.questionId || qIdx}
-                        className={`p-3 rounded-2xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
-                          item.isCorrect ? 'bg-emerald-50/70 border-emerald-200' : 'bg-rose-50/70 border-rose-200'
-                        }`}
+                        className={`p-3 rounded-2xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${item.isCorrect ? 'bg-emerald-50/70 border-emerald-200' : 'bg-rose-50/70 border-rose-200'
+                          }`}
                       >
                         <div className="font-medium text-slate-900 pr-2">
                           <strong className="text-slate-950 font-bold">Q{item.questionNumber || qIdx + 1}.</strong> {item.question}
@@ -2123,9 +2108,8 @@ const FreeTestManager: React.FC = () => {
                           <span className="px-2 py-1 rounded bg-emerald-100/70 text-emerald-900 border border-emerald-300">
                             Correct: <strong>{item.correctAnswer}</strong>
                           </span>
-                          <span className={`px-2 py-1 rounded font-bold uppercase text-[10px] ${
-                            item.isCorrect ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
-                          }`}>
+                          <span className={`px-2 py-1 rounded font-bold uppercase text-[10px] ${item.isCorrect ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                            }`}>
                             {item.isCorrect ? '✓ Correct' : '✗ Wrong'}
                           </span>
                         </div>
@@ -2140,6 +2124,8 @@ const FreeTestManager: React.FC = () => {
           )}
 
         </div>
+      )}
+        </>
       )}
 
       {/* ========================================================================= */}
@@ -2189,14 +2175,14 @@ const FreeTestManager: React.FC = () => {
                   />
                 </div>
               </div>
-              
+
               {quota && (publishStudentLimit > (quota.free_students_per_test || 50)) && (
                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
                   <div className="flex items-start gap-2">
                     <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
                     <div className="text-xs text-amber-900">
                       <strong>Additional Fee Required:</strong> You are setting the candidate limit to {publishStudentLimit}, which is {(publishStudentLimit - (quota.free_students_per_test || 50))} more than the free base limit ({quota.free_students_per_test || 50}).
-                      <br/>
+                      <br />
                       <span className="font-bold text-amber-700 mt-1 block">
                         Wallet Deduction: ₹{(publishStudentLimit - (quota.free_students_per_test || 50)) * (quota.charge_per_extra_student || 5)}
                       </span>
@@ -2267,6 +2253,14 @@ const FreeTestManager: React.FC = () => {
 
             {/* Modal Actions */}
             <div className="flex items-center justify-end gap-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => setPublishModalTest(null)}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+
               {Number(publishModalTest.is_published) === 1 ? (
                 <button
                   type="button"
@@ -2285,7 +2279,13 @@ const FreeTestManager: React.FC = () => {
                 className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer flex items-center gap-1.5"
               >
                 <CheckCircle2 size={16} />
-                <span>{publishSaving ? 'Saving...' : 'Publish Test & Activate Link'}</span>
+                <span>
+                  {publishSaving
+                    ? 'Saving...'
+                    : Number(publishModalTest.is_published) === 1
+                      ? 'Save Changes & Close'
+                      : 'Publish Test & Activate Link'}
+                </span>
               </button>
             </div>
 
@@ -2445,7 +2445,7 @@ const FreeTestManager: React.FC = () => {
       {marksheetModalSubmission && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl border border-slate-200 my-8 space-y-6">
-            
+
             {/* Action Bar */}
             <div className="flex items-center justify-between border-b pb-4 no-print">
               <div className="flex items-center gap-2">
@@ -2472,7 +2472,7 @@ const FreeTestManager: React.FC = () => {
 
             {/* Printable Marksheet Container */}
             <div className="border-4 border-double border-indigo-950 p-6 sm:p-8 rounded-2xl bg-white space-y-6 text-slate-900 relative">
-              
+
               {/* Header */}
               <div className="text-center border-b-2 border-indigo-950 pb-4 space-y-1">
                 <div className="text-[10px] font-black uppercase tracking-widest text-indigo-900">
@@ -2553,9 +2553,8 @@ const FreeTestManager: React.FC = () => {
                         {marksheetModalSubmission.score}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                          marksheetModalSubmission.status === 'PASSED' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${marksheetModalSubmission.status === 'PASSED' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                          }`}>
                           {marksheetModalSubmission.status}
                         </span>
                       </td>
@@ -2732,11 +2731,10 @@ const FreeTestManager: React.FC = () => {
                   type="button"
                   onClick={confirmRecoverTest}
                   disabled={Boolean(quota?.requires_charge && !quota.has_sufficient_balance)}
-                  className={`flex-1 px-4 py-2.5 rounded-xl font-bold shadow-md transition-colors cursor-pointer text-xs flex items-center justify-center gap-1.5 ${
-                    quota?.requires_charge && !quota.has_sufficient_balance
+                  className={`flex-1 px-4 py-2.5 rounded-xl font-bold shadow-md transition-colors cursor-pointer text-xs flex items-center justify-center gap-1.5 ${quota?.requires_charge && !quota.has_sufficient_balance
                       ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
                       : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200'
-                  }`}
+                    }`}
                 >
                   <RefreshCw size={13} />
                   <span>
@@ -2780,7 +2778,7 @@ const FreeTestManager: React.FC = () => {
                   "This test has already been published before. Republishing it will not cost any extra quota or credits."
                 ) : quota?.requires_charge ? (
                   <>
-                    <strong className="text-red-600">WARNING: You have exhausted your free quota.</strong><br/>
+                    <strong className="text-red-600">WARNING: You have exhausted your free quota.</strong><br />
                     Publishing this test will deduct <strong>₹{quota.charge_per_extra_test}</strong> from your wallet.
                   </>
                 ) : (
@@ -2796,7 +2794,7 @@ const FreeTestManager: React.FC = () => {
               <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1">
                 <LayoutDashboard size={12} /> Test Details Preview
               </h4>
-              
+
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-3 mb-6">
                 <div className="flex justify-between items-start pb-3 border-b border-slate-200/60">
                   <div>
@@ -2844,6 +2842,7 @@ const FreeTestManager: React.FC = () => {
                 disabled={publishSaving}
                 onClick={() => {
                   setShowConfirmPublishModal(false);
+                  setPublishModalTest(null);
                   handleOpenAddQuestions(publishModalTest);
                 }}
                 className="px-4 py-2.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 font-bold rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1.5"
@@ -2851,7 +2850,7 @@ const FreeTestManager: React.FC = () => {
               >
                 <Eye size={16} /> Review Q&A
               </button>
-              
+
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -2865,14 +2864,13 @@ const FreeTestManager: React.FC = () => {
                   type="button"
                   disabled={publishSaving}
                   onClick={() => handleSavePublishSettings(true, true)}
-                  className={`px-6 py-2.5 font-bold rounded-xl text-xs shadow-md transition-all cursor-pointer flex items-center gap-2 ${
-                    !publishModalTest.has_been_published && quota?.requires_charge
+                  className={`px-6 py-2.5 font-bold rounded-xl text-xs shadow-md transition-all cursor-pointer flex items-center gap-2 ${!publishModalTest.has_been_published && quota?.requires_charge
                       ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
                       : 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20'
-                  }`}
+                    }`}
                 >
-                  {publishSaving ? 'Publishing...' : 
-                    !publishModalTest.has_been_published && quota?.requires_charge 
+                  {publishSaving ? 'Publishing...' :
+                    !publishModalTest.has_been_published && quota?.requires_charge
                       ? `Yes, Deduct ₹${quota.charge_per_extra_test} & Publish`
                       : 'Yes, Confirm & Publish'
                   }

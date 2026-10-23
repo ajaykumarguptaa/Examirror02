@@ -44,7 +44,8 @@ router.get('/:centerId/certificate', async (req, res) => {
 
 router.post('/:centerId/claim-certificate', async (req, res) => {
   try {
-    const result = await centerService.claimCenterCertificate(req.params.centerId);
+    const isReminder = req.body?.isReminder === true;
+    const result = await centerService.claimCenterCertificate(req.params.centerId, isReminder);
     res.status(200).json(result);
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });

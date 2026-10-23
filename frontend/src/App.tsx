@@ -23,6 +23,7 @@ const FranchiseRegister = lazy(() => import('./pages/public/FranchiseRegister'))
 const TermsAndConditions = lazy(() => import('./pages/public/TermsAndConditions'));
 const PrivacyPolicy = lazy(() => import('./pages/public/PrivacyPolicy'));
 const CandidateTestPortal = lazy(() => import('./pages/public/CandidateTestPortal'));
+const TestSeriesPage = lazy(() => import('./pages/public/TestSeriesPage'));
 
 // Center Portal Pages (Code-Split)
 const CenterDashboard = lazy(() => import('./pages/center/CenterDashboard'));
@@ -123,6 +124,7 @@ function App() {
           <Route index element={<Home />} />
           <Route path="about" element={<About />} />
           <Route path="courses" element={<Courses />} />
+          <Route path="test-series" element={<TestSeriesPage />} />
           <Route path="centers" element={<Centers />} />
           <Route path="gallery" element={<Gallery />} />
           <Route path="notes" element={<StudyMaterialLibrary />} />
@@ -192,6 +194,8 @@ function App() {
           <Route index element={<StudentDashboard />} />
           <Route path="dashboard" element={<StudentDashboard />} />
           <Route path="test-series" element={<StudentTestSeries />} />
+          <Route path="notes" element={<StudyMaterialLibrary />} />
+          <Route path="notes/:id" element={<StudyMaterialPreview />} />
           <Route path="exam/:examId" element={<StudentExamPortal />} />
         </Route>
       </Routes>

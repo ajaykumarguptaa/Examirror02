@@ -331,33 +331,34 @@ const Contact = () => {
         }}
       />
 
-      {/* Top Hero Section */}
-      <section className="relative overflow-hidden bg-slate-900 text-white py-14 lg:py-18 border-b-2 border-slate-800">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+      {/* Top Hero Section with Apple Compact Height & Motion */}
+      <section className="relative overflow-hidden bg-slate-950 text-white py-4 sm:py-5 border-b border-slate-800/80">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 text-center space-y-1.5">
           <motion.div
-            initial={{ opacity: 0, y: -15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-amber-400 text-xs font-bold uppercase tracking-wider mb-5 shadow-sm"
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700/80 text-amber-400 text-[11px] font-bold uppercase tracking-wider shadow-sm"
           >
-            <Sparkles size={14} className="text-amber-400" />
+            <Sparkles size={12} className="text-amber-400" />
             <span>24/7 Admissions & Support Helpdesk</span>
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white mb-4"
+            transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white"
           >
             Get in Touch With Our Team
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto font-normal leading-relaxed"
+            transition={{ duration: 0.5, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className="text-slate-300 text-xs sm:text-[13px] max-w-2xl mx-auto font-normal leading-normal"
           >
             Have inquiries regarding computer course admissions, new study center affiliation, or student certificate authentication? We are here to assist you.
           </motion.p>

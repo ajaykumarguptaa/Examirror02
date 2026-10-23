@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import {
@@ -6,12 +6,19 @@ import {
   Share2, Users, Download, Eye, FileText, Sparkles, Check,
   AlertCircle, ShieldCheck, Wallet, ArrowRight, Lock, QrCode, Clock
 } from 'lucide-react';
-import { AntiPiracyStudyMaterialModal } from '../../components/AntiPiracyStudyMaterialModal';
-import { StudyMaterialPaymentModal } from '../../components/StudyMaterialPaymentModal';
+import { useDebounce } from '../../hooks/useDebounce';
+
+const AntiPiracyStudyMaterialModal = lazy(() =>
+  import('../../components/AntiPiracyStudyMaterialModal').then(m => ({ default: m.AntiPiracyStudyMaterialModal }))
+);
+const StudyMaterialPaymentModal = lazy(() =>
+  import('../../components/StudyMaterialPaymentModal').then(m => ({ default: m.StudyMaterialPaymentModal }))
+);
 
 export const CenterStudyMaterials: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 250);
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -97,16 +104,18 @@ export const CenterStudyMaterials: React.FC = () => {
     }
   });
 
-  const filteredMaterials = materials.filter((m: any) => {
-    if (categoryFilter !== 'ALL' && m.category !== categoryFilter) return false;
-    
-    if (!search.trim()) return true;
-    return (
-      m.title?.toLowerCase().includes(search.toLowerCase()) ||
-      m.description?.toLowerCase().includes(search.toLowerCase()) ||
-      m.category?.toLowerCase().includes(search.toLowerCase())
-    );
-  });
+  const filteredMaterials = useMemo(() => {
+    const term = debouncedSearch.trim().toLowerCase();
+    return materials.filter((m: any) => {
+      if (categoryFilter !== 'ALL' && m.category !== categoryFilter) return false;
+      if (!term) return true;
+      return (
+        m.title?.toLowerCase().includes(term) ||
+        m.description?.toLowerCase().includes(term) ||
+        m.category?.toLowerCase().includes(term)
+      );
+    });
+  }, [materials, categoryFilter, debouncedSearch]);
 
   return (
     <div className="space-y-6">
@@ -415,41 +424,45 @@ export const CenterStudyMaterials: React.FC = () => {
 
       {/* Center UPI Purchase Modal */}
       {upiPurchasingItem && (
-        <StudyMaterialPaymentModal
-          material={upiPurchasingItem}
-          student={{}}
-          userType="center"
-          onClose={() => setUpiPurchasingItem(null)}
-          onSuccess={() => {
-            setUpiPurchasingItem(null);
-            queryClient.invalidateQueries({ queryKey: ['center-study-materials'] });
-            showToast('success', 'Payment submitted for verification. It will be unlocked once approved.');
-          }}
-        />
+        <Suspense fallback={null}>
+          <StudyMaterialPaymentModal
+            material={upiPurchasingItem}
+            student={{}}
+            userType="center"
+            onClose={() => setUpiPurchasingItem(null)}
+            onSuccess={() => {
+              setUpiPurchasingItem(null);
+              queryClient.invalidateQueries({ queryKey: ['center-study-materials'] });
+              showToast('success', 'Payment submitted for verification. It will be unlocked once approved.');
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Reader Preview Modal */}
       {previewMaterialId && (
-        <AntiPiracyStudyMaterialModal
-          materialId={previewMaterialId}
-          student={{
-            centerId: centerId,
-            firstName: 'Study Center',
-            lastName: 'Admin Review',
-            roll_no: 'CENTER-ADMIN-01',
-            enrollment_no: 'CENTER-EXM-001',
-            centerName: 'Your Authorized Center',
-            centerCode: 'CTR-01'
-          }}
-          onClose={() => setPreviewMaterialId(null)}
-          onUnlockClick={(matId) => {
-            const mat = materials.find((m: any) => String(m.id) === String(matId));
-            setPreviewMaterialId(null);
-            if (mat) {
-              setPurchasingItem(mat);
-            }
-          }}
-        />
+        <Suspense fallback={null}>
+          <AntiPiracyStudyMaterialModal
+            materialId={previewMaterialId}
+            student={{
+              centerId: centerId,
+              firstName: 'Study Center',
+              lastName: 'Admin Review',
+              roll_no: 'CENTER-ADMIN-01',
+              enrollment_no: 'CENTER-EXM-001',
+              centerName: 'Your Authorized Center',
+              centerCode: 'CTR-01'
+            }}
+            onClose={() => setPreviewMaterialId(null)}
+            onUnlockClick={(matId) => {
+              const mat = materials.find((m: any) => String(m.id) === String(matId));
+              setPreviewMaterialId(null);
+              if (mat) {
+                setPurchasingItem(mat);
+              }
+            }}
+          />
+        </Suspense>
       )}
 
     </div>

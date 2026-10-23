@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Eye, Plus, X, Trash2, CheckCircle2, AlertCircle, ChevronDown, HelpCircle, Loader2, AlertTriangle, Edit3, Check, Sparkles } from 'lucide-react';
 import axios from 'axios';
+import { useDebounce } from '../../hooks/useDebounce';
 
 interface Semester {
   num: number;
@@ -53,8 +54,13 @@ const CoursesList = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
 
   // Manage / Add Question Modal
   const [activeCourse, setActiveCourse] = useState<Course | null>(null);
@@ -339,15 +345,16 @@ const CoursesList = () => {
     }
   };
 
-  const filteredCourses = courses.filter((c) => {
-    const q = searchTerm.toLowerCase().trim();
-    if (!q) return true;
-    return (
+  // Memoized & Debounced Course Filtering
+  const filteredCourses = useMemo(() => {
+    const q = debouncedSearchTerm.toLowerCase().trim();
+    if (!q) return courses;
+    return courses.filter((c) =>
       (c.name && c.name.toLowerCase().includes(q)) ||
       (c.code && c.code.toLowerCase().includes(q)) ||
       (c.shortDescription && c.shortDescription.toLowerCase().includes(q))
     );
-  });
+  }, [courses, debouncedSearchTerm]);
 
   const totalEntries = filteredCourses.length;
   const totalPages = Math.ceil(totalEntries / entriesPerPage) || 1;

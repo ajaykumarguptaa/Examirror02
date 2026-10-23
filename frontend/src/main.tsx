@@ -15,7 +15,17 @@ setupAxiosInterceptors();
 // Register PWA service worker for offline capabilities
 registerSW({ immediate: true });
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 10, // 10 minutes cache lifetime in memory
+      gcTime: 1000 * 60 * 60, // 1 hour memory persistence
+      refetchOnWindowFocus: false, // Prevent reload when switching browser tabs
+      refetchOnReconnect: false,
+      refetchOnMount: false, // Instant restore from cache when navigating between pages!
+    },
+  },
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

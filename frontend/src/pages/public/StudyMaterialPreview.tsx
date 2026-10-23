@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
 import { BookOpen, FileText, CheckCircle2, Lock, ArrowLeft, Maximize2, X, AlertTriangle } from 'lucide-react';
+import { prepareSafeHtmlContent } from '../../utils/htmlNoteSecurity';
 
 export default function StudyMaterialPreview() {
   const { id } = useParams<{ id: string }>();
@@ -97,6 +98,10 @@ export default function StudyMaterialPreview() {
     };
   }, []);
 
+  const preparedContent = useMemo(() => {
+    return prepareSafeHtmlContent(note?.demo_content || '', note?.title || 'E-Note');
+  }, [note?.demo_content, note?.title]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-slate-50">
@@ -118,7 +123,10 @@ export default function StudyMaterialPreview() {
       </Helmet>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Link to="/notes" className="inline-flex items-center gap-2 text-indigo-600 font-semibold mb-8 hover:text-indigo-700 transition-colors">
+        <Link 
+          to={window.location.pathname.startsWith('/student') ? '/student/notes' : '/notes'} 
+          className="inline-flex items-center gap-2 text-indigo-600 font-semibold mb-8 hover:text-indigo-700 transition-colors"
+        >
           <ArrowLeft size={18} /> Back to Library
         </Link>
 
@@ -229,7 +237,7 @@ export default function StudyMaterialPreview() {
                 <iframe
                   title="Demo Content"
                   sandbox="allow-same-origin allow-scripts"
-                  srcDoc={note.demo_content}
+                  srcDoc={preparedContent}
                   className={`w-full border-none bg-white ${Number(note.price) === 0
                     ? 'h-[800px]'
                     : 'h-[500px] pointer-events-none select-none'
@@ -278,7 +286,7 @@ export default function StudyMaterialPreview() {
             <iframe
               title="Full Content"
               sandbox="allow-same-origin allow-scripts"
-              srcDoc={note.demo_content}
+              srcDoc={preparedContent}
               className="w-full h-full border-none bg-white"
             />
           </div>

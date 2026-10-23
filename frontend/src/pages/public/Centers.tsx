@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -25,7 +25,10 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SEO from '../../components/SEO';
-import CenterCertificateModal from '../../components/CenterCertificateModal';
+import { useDebounce } from '../../hooks/useDebounce';
+
+// Lazy-loaded heavy Center Certificate Canvas/PDF modal
+const CenterCertificateModal = lazy(() => import('../../components/CenterCertificateModal'));
 
 const INDIAN_STATES = [
   'All States',
@@ -183,6 +186,7 @@ const FALLBACK_CENTERS: CenterRecord[] = [
 export const Centers = () => {
   const [selectedState, setSelectedState] = useState('All States');
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 250);
   const [selectedCenterForModal, setSelectedCenterForModal] = useState<CenterRecord | null>(null);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
@@ -226,9 +230,9 @@ export const Centers = () => {
     return FALLBACK_CENTERS;
   }, [dbCenters]);
 
-  // Filtered Centers
+  // Filtered Centers (Debounced & Memoized)
   const filteredCenters = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = debouncedSearchQuery.trim().toLowerCase();
     return allCenters.filter((center) => {
       const matchesState =
         selectedState === 'All States' ||
@@ -244,7 +248,7 @@ export const Centers = () => {
 
       return matchesState && matchesQuery;
     });
-  }, [allCenters, selectedState, searchQuery]);
+  }, [allCenters, selectedState, debouncedSearchQuery]);
 
   // Generate Google Maps URL
   const getDirectionsUrl = (center: CenterRecord) => {
@@ -277,19 +281,35 @@ export const Centers = () => {
           description: 'Verified educational centers and franchisee branches operating under Examirror across India.'
         }}
       />
-      {/* Header Banner */}
-      <section className="bg-slate-900 text-white py-14 sm:py-16 text-center relative overflow-hidden border-b border-slate-800">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-400/20 text-emerald-300 px-3 py-1 rounded-full text-xs font-semibold">
-            <ShieldCheck size={14} />
+      {/* Header Banner with Apple Compact Height & Motion */}
+      <section className="bg-slate-950 text-white py-4 sm:py-5 text-center relative overflow-hidden border-b border-slate-800/80">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/15 via-transparent to-transparent" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 space-y-1.5">
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-400/20 text-emerald-300 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
+          >
+            <ShieldCheck size={13} />
             <span>Centralized Authorized Center Network</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight"
+          >
             Authorized Study Centers
-          </h1>
-          <p className="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className="text-slate-300 text-xs sm:text-[13px] max-w-2xl mx-auto leading-normal"
+          >
             Locate official affiliated skill development and computer education centers across India with active authorization and certified infrastructure.
-          </p>
+          </motion.p>
         </div>
       </section>
 
@@ -651,27 +671,29 @@ export const Centers = () => {
         )}
       </AnimatePresence>
 
-      {/* Center Affiliation Certificate Modal */}
+      {/* Center Affiliation Certificate Modal (Lazy Loaded) */}
       {isCertModalOpen && selectedCenterForModal && (
-        <CenterCertificateModal
-          center={{
-            id: selectedCenterForModal.id,
-            centerName: selectedCenterForModal.name,
-            centerCode: selectedCenterForModal.code,
-            headName: selectedCenterForModal.headName,
-            headPhoto: selectedCenterForModal.headImageUrl,
-            phone: selectedCenterForModal.phone,
-            email: selectedCenterForModal.email,
-            address: selectedCenterForModal.address,
-            addressLine2: selectedCenterForModal.addressLine2,
-            city: selectedCenterForModal.city,
-            district: selectedCenterForModal.district,
-            state: selectedCenterForModal.state,
-            pincode: selectedCenterForModal.pincode
-          }}
-          isOpen={isCertModalOpen}
-          onClose={() => setIsCertModalOpen(false)}
-        />
+        <Suspense fallback={null}>
+          <CenterCertificateModal
+            center={{
+              id: selectedCenterForModal.id,
+              centerName: selectedCenterForModal.name,
+              centerCode: selectedCenterForModal.code,
+              headName: selectedCenterForModal.headName,
+              headPhoto: selectedCenterForModal.headImageUrl,
+              phone: selectedCenterForModal.phone,
+              email: selectedCenterForModal.email,
+              address: selectedCenterForModal.address,
+              addressLine2: selectedCenterForModal.addressLine2,
+              city: selectedCenterForModal.city,
+              district: selectedCenterForModal.district,
+              state: selectedCenterForModal.state,
+              pincode: selectedCenterForModal.pincode
+            }}
+            isOpen={isCertModalOpen}
+            onClose={() => setIsCertModalOpen(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

@@ -30,6 +30,7 @@ const AdminLogin = () => {
 
       if (res.data?.success && res.data?.token) {
         localStorage.setItem('adminToken', res.data.token);
+        localStorage.setItem('admin_token', res.data.token);
         sessionStorage.setItem('adminToken', res.data.token);
         navigate('/admin');
       } else {

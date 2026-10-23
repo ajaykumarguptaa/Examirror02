@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogIn, Lock, Mail, AlertCircle, Eye, EyeOff, GraduationCap } from 'lucide-react';
+import { LogIn, Lock, Mail, AlertCircle, Eye, EyeOff, GraduationCap, Sparkles, UserPlus } from 'lucide-react';
 import axios from 'axios';
 import SEO from '../../components/SEO';
+import { DirectStudentRegisterModal } from '../../components/DirectStudentRegisterModal';
 
 const StudentLogin = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ const StudentLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +76,24 @@ const StudentLogin = () => {
           <p className="mt-2 text-center text-sm text-gray-500 font-medium">
             Welcome back! Sign in to access your courses and exams.
           </p>
+        </div>
+
+        {/* Tab Switcher between Login and Candidate Registration */}
+        <div className="flex p-1 bg-slate-100 rounded-2xl">
+          <button
+            type="button"
+            className="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-white text-indigo-700 shadow-xs"
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowRegisterModal(true)}
+            className="flex-1 py-2 text-xs font-bold rounded-xl transition-all text-slate-600 hover:text-indigo-600 cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <UserPlus size={13} />
+            <span>Register Now</span>
+          </button>
         </div>
 
         {errorMessage && (
@@ -165,7 +185,26 @@ const StudentLogin = () => {
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-center">
+        {/* Online Test Candidate Registration Prompt */}
+        <div className="p-4 bg-indigo-50/80 border border-indigo-100 rounded-2xl text-center space-y-2">
+          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-900">
+            <Sparkles size={14} className="text-amber-500" />
+            <span>Interested in Online Test Series?</span>
+          </div>
+          <p className="text-[11px] text-slate-600 leading-relaxed">
+            Not studying in an offline center? Create an account to start practicing mock tests, live assessments & all-India rankings directly.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowRegisterModal(true)}
+            className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer active:scale-98 flex items-center justify-center gap-1.5"
+          >
+            <UserPlus size={14} />
+            <span>Register Now (New Student)</span>
+          </button>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-center">
           <p className="text-sm text-gray-500 text-center">
             Are you a Center Operator?{' '}
             <a href="/login/center" className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors">
@@ -174,6 +213,12 @@ const StudentLogin = () => {
           </p>
         </div>
       </motion.div>
+
+      {/* Direct Candidate Registration Modal */}
+      <DirectStudentRegisterModal
+        isOpen={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+      />
     </div>
   );
 };

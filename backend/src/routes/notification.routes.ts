@@ -63,5 +63,20 @@ router.post('/mark-read', async (req, res) => {
   }
 });
 
+// PATCH /:id/read - Mark single notification as read
+router.patch('/:id/read', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'Valid notification ID required' });
+    }
+    await notificationService.markOneAsRead(id);
+    res.status(200).json({ success: true, message: 'Notification marked as read' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;
+
 

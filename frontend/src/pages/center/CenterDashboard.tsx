@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, BookOpen, CheckSquare, IndianRupee, Sparkles, TrendingUp, Clock, ArrowRight, UserPlus, CheckCircle2, Award, ShieldCheck, Download, Printer, FileCheck, AlertTriangle, AlertCircle, Upload, Send, RefreshCw } from 'lucide-react';
+import { Users, BookOpen, CheckSquare, IndianRupee, Sparkles, TrendingUp, Clock, ArrowRight, UserPlus, CheckCircle2, Award, ShieldCheck, Download, Printer, FileCheck, AlertTriangle, AlertCircle, Upload, Send, RefreshCw, Eye } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import axios from 'axios';
 import { StaggerContainer, StaggerItem, InteractiveCard, NumberCounter, FadeUp } from '../../motion';
@@ -91,15 +91,23 @@ const CenterDashboard = () => {
     };
   }, [centerId]);
 
-  const handleClaimCertificate = async () => {
+  const handleClaimCertificate = async (isReminder: boolean = false) => {
+    // If certificate is already approved, prevent duplicate claim requests
+    if (centerProfile?.certificateStatus === 'approved') {
+      setShowCertModal(true);
+      return;
+    }
+
     setClaimLoading(true);
     try {
-      const res = await axios.post(`http://localhost:3000/api/center/${centerId}/claim-certificate`);
+      const res = await axios.post(`http://localhost:3000/api/center/${centerId}/claim-certificate`, { isReminder });
       if (res.data?.success) {
         setCenterProfile((prev: any) => ({ ...prev, certificateStatus: 'pending' }));
         setClaimToast({
           type: 'success',
-          message: 'Certificate claim request submitted to Super Admin for verification!'
+          message: res.data.message || (isReminder
+            ? 'Priority reminder & re-request sent to Super Admin!'
+            : 'Certificate claim request submitted to Super Admin for verification!')
         });
         setTimeout(() => setClaimToast(null), 6000);
       }
@@ -284,11 +292,36 @@ const CenterDashboard = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 w-full lg:w-auto">
-                <div className="px-5 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-2">
-                  <Clock size={16} />
-                  <span>Verification in Progress</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full lg:w-auto">
+                <div className="px-3.5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-2 shrink-0">
+                  <Clock size={15} />
+                  <span>Under Review</span>
                 </div>
+
+                <button
+                  type="button"
+                  disabled={claimLoading}
+                  onClick={() => handleClaimCertificate(true)}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all transform active:scale-95 cursor-pointer shrink-0"
+                  title="Ping Super Admin with high-priority reminder / re-request"
+                >
+                  {claimLoading ? (
+                    <RefreshCw size={14} className="animate-spin text-slate-950" />
+                  ) : (
+                    <Send size={14} className="text-slate-950" />
+                  )}
+                  <span>{claimLoading ? 'Sending...' : 'Request Again'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(true)}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl border border-white/20 transition-all cursor-pointer shrink-0"
+                  title="Upload additional center photos or premises documents"
+                >
+                  <Upload size={13} />
+                  <span>Add Proofs</span>
+                </button>
               </div>
             </div>
           </div>
@@ -314,7 +347,7 @@ const CenterDashboard = () => {
                     Center Authorization & Affiliation Certificate
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                    Your authorized training center certificate has been officially issued under Examirror accreditation. Print and display this certificate at your study center.
+                    Your authorized training center certificate has been officially issued under Examirror accreditation. View, download, or print this certificate for your study center.
                   </p>
                   <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-amber-200/90 font-mono">
                     <span>Cert No: <b className="text-white">{centerProfile?.certificate_number || `EXAM-ATC-2026-${String(centerProfile?.id || centerId).padStart(4, '0')}`}</b></span>
@@ -328,19 +361,19 @@ const CenterDashboard = () => {
                 <button
                   type="button"
                   onClick={() => setShowCertModal(true)}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm rounded-xl shadow-md transition-all transform active:scale-95 cursor-pointer"
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-sm rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all transform active:scale-95 cursor-pointer shrink-0"
                 >
-                  <Award size={18} className="text-slate-950" />
-                  <span>Claim & View Certificate</span>
+                  <Eye size={18} className="text-slate-950" />
+                  <span>View Center Certificate</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowCertModal(true)}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-sm rounded-xl border border-white/20 hover:border-white/30 transition-all cursor-pointer backdrop-blur-sm"
-                  title="Print or Download Certificate"
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-white/10 hover:bg-white/20 text-white font-bold text-sm rounded-xl border border-white/20 hover:border-white/30 transition-all transform active:scale-95 cursor-pointer backdrop-blur-sm shrink-0"
+                  title="Download / Print Official Certificate"
                 >
-                  <Printer size={16} />
-                  <span className="hidden sm:inline">Print / HD PDF</span>
+                  <Download size={18} />
+                  <span>Download / Print</span>
                 </button>
               </div>
             </div>
@@ -381,7 +414,7 @@ const CenterDashboard = () => {
                 <button
                   type="button"
                   disabled={claimLoading}
-                  onClick={handleClaimCertificate}
+                  onClick={() => handleClaimCertificate(false)}
                   className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm rounded-xl shadow-md transition-all transform active:scale-95 cursor-pointer"
                 >
                   {claimLoading ? <RefreshCw size={18} className="animate-spin text-slate-950" /> : <Award size={18} className="text-slate-950" />}

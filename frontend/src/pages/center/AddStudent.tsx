@@ -292,14 +292,6 @@ const AddStudent = () => {
       return;
     }
 
-    if (!isSelectedCourseReady) {
-      setFeedback({
-        type: 'error',
-        text: 'Cannot enroll student! This course does not have exam questions configured yet. Please configure questions in the Courses List first.'
-      });
-      return;
-    }
-
 
 
     try {
@@ -667,15 +659,22 @@ const AddStudent = () => {
                               <option
                                 key={c.id}
                                 value={c.id}
-                                disabled={!isReady}
                               >
-                                {c.name} ({c.code}) {isReady ? `(${c.questionsCount} Qs Available)` : '(No Exam Qs)'}
+                                {c.name} ({c.code}) {isReady ? `(${c.questionsCount} Qs Available)` : '(Questions Pending)'}
                               </option>
                             );
                           })}
                         </select>
                         <ChevronDown size={14} className="text-gray-500 absolute right-3 pointer-events-none" />
                       </div>
+                      {selectedCourse && !isSelectedCourseReady && (
+                        <div className="mt-2 px-2.5 py-1.5 bg-amber-50 border border-amber-200/80 rounded-md text-[11px] text-amber-800 flex items-start gap-1.5">
+                          <AlertCircle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                          <span>
+                            <strong>Note:</strong> This course has 0 questions added yet. You can enroll the student now; exam scheduling will be enabled once questions are configured in Course Management.
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Course Duration (Auto-fetched & Strictly Locked) */}

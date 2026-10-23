@@ -118,23 +118,44 @@ const TermsAndConditions = () => {
         ]}
       />
       
-      {/* Top Header Banner */}
-      <section className="bg-slate-900 text-white py-14 px-4 sm:px-6 lg:px-8 border-b-2 border-slate-800 text-center relative overflow-hidden">
-        <div className="max-w-4xl mx-auto space-y-3 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-blue-400 text-xs font-bold uppercase tracking-wider">
-            <FileText size={14} />
+      {/* Top Header Banner with Apple Compact Height & Motion */}
+      <section className="bg-slate-950 text-white py-4 sm:py-5 px-4 sm:px-6 lg:px-8 border-b border-slate-800/80 text-center relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-500/10 via-transparent to-transparent" />
+        <div className="max-w-4xl mx-auto space-y-1.5 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-blue-400 text-[11px] font-bold uppercase tracking-wider"
+          >
+            <FileText size={13} />
             <span>Official Institutional Framework</span>
-          </div>
+          </motion.div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white">
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white"
+          >
             Terms & Conditions
-          </h1>
+          </motion.h1>
 
-          <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed">
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className="text-xs sm:text-[13px] text-slate-300 max-w-2xl mx-auto font-normal leading-normal"
+          >
             Please read these terms carefully before utilizing the Examirror educational portal, applying for study center affiliation, or registering for certified programs.
-          </p>
+          </motion.p>
 
-          <div className="pt-2 flex items-center justify-center gap-3 text-xs text-slate-400">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            className="pt-1 flex items-center justify-center gap-3 text-xs text-slate-400"
+          >
             <span className="flex items-center gap-1">
               <Clock size={13} /> Last Updated: {lastUpdated}
             </span>
@@ -142,7 +163,7 @@ const TermsAndConditions = () => {
             <span className="flex items-center gap-1 text-emerald-400 font-semibold">
               <ShieldCheck size={14} /> Legally Binding Agreement
             </span>
-          </div>
+          </motion.div>
         </div>
       </section>
 

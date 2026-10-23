@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { getAssetUrl } from '../../utils/axiosSetup';
+import { useDebounce } from '../../hooks/useDebounce';
 import {
   FileText,
   CheckCircle2,
@@ -45,9 +47,12 @@ import {
   Key,
   Table
 } from 'lucide-react';
-import { CenterCertificateModal } from '../../components/CenterCertificateModal';
 import { downloadFranchiseDossierZip } from '../../utils/generateFranchiseDossierZip';
 import { downloadFranchiseDossierPdf } from '../../utils/generateFranchiseDossierPdf';
+
+const CenterCertificateModal = lazy(() =>
+  import('../../components/CenterCertificateModal').then(m => ({ default: m.CenterCertificateModal }))
+);
 
 interface FranchiseApplication {
   id: number;
@@ -178,10 +183,25 @@ const DocImageThumbnail: React.FC<{ url: string; alt: string }> = ({ url, alt })
 };
 
 const FranchiseRequests = () => {
+  const [searchParams] = useSearchParams();
   const [applications, setApplications] = useState<FranchiseApplication[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>(() => searchParams.get('tab') || 'all');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
+  const debouncedSearchQuery = useDebounce(searchQuery, 250);
+
+  // Sync with searchParams on navigation from notification clicks
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      setFilterStatus(tabParam);
+    }
+    const searchParam = searchParams.get('search');
+    if (searchParam !== null) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParams]);
+
   const [selectedApp, setSelectedApp] = useState<FranchiseApplication | null>(null);
 
   // Document Verification State (key: `${appId}_${docKey}`)
@@ -589,41 +609,67 @@ const FranchiseRequests = () => {
     }
   };
 
-  // Active vs Trash counts
-  const activeApps = applications.filter((a) => a.status !== 'Trash');
-  const pendingCount = applications.filter((a) => a.status === 'Pending').length;
-  const certClaimsCount = applications.filter((a) => a.certificate_status === 'pending' || a.certificate_status === 'action_required').length;
-  const approvedCount = applications.filter((a) => a.status === 'Approved').length;
-  const rejectedCount = applications.filter((a) => a.status === 'Rejected').length;
-  const trashCount = applications.filter((a) => a.status === 'Trash').length;
+  // Active vs Trash counts (memoized)
+  const { activeApps, pendingCount, certClaimsCount, approvedCount, rejectedCount, trashCount } = useMemo(() => {
+    const active = applications.filter((a) => a.status !== 'Trash');
+    let pending = 0;
+    let certClaims = 0;
+    let approved = 0;
+    let rejected = 0;
+    let trash = 0;
 
-  // Filter & Search
-  const filteredApplications = applications.filter((app) => {
-    let matchesStatus = false;
-    if (filterStatus === 'all') {
-      matchesStatus = app.status !== 'Trash';
-    } else if (filterStatus === 'trash') {
-      matchesStatus = app.status === 'Trash';
-    } else if (filterStatus === 'cert_claims') {
-      matchesStatus = app.certificate_status === 'pending' || app.certificate_status === 'action_required';
-    } else {
-      matchesStatus = app.status?.toLowerCase() === filterStatus.toLowerCase();
+    for (const a of applications) {
+      if (a.status === 'Pending') pending++;
+      else if (a.status === 'Approved') approved++;
+      else if (a.status === 'Rejected') rejected++;
+      else if (a.status === 'Trash') trash++;
+
+      if (a.certificate_status === 'pending' || a.certificate_status === 'action_required') {
+        certClaims++;
+      }
     }
 
-    const fullName = `${app.center_head_first_name} ${app.center_head_last_name}`.toLowerCase();
-    const q = searchQuery.toLowerCase();
-    const matchesSearch =
-      q === '' ||
-      fullName.includes(q) ||
-      (app.center_code || '').toLowerCase().includes(q) ||
-      (app.center_name || '').toLowerCase().includes(q) ||
-      (app.phone || '').includes(q) ||
-      (app.email || '').toLowerCase().includes(q) ||
-      (app.district || '').toLowerCase().includes(q) ||
-      (app.state || '').toLowerCase().includes(q);
+    return {
+      activeApps: active,
+      pendingCount: pending,
+      certClaimsCount: certClaims,
+      approvedCount: approved,
+      rejectedCount: rejected,
+      trashCount: trash
+    };
+  }, [applications]);
 
-    return matchesStatus && matchesSearch;
-  });
+  // Filter & Search with debounced query (memoized)
+  const filteredApplications = useMemo(() => {
+    const q = debouncedSearchQuery.toLowerCase().trim();
+
+    return applications.filter((app) => {
+      let matchesStatus = false;
+      if (filterStatus === 'all') {
+        matchesStatus = app.status !== 'Trash';
+      } else if (filterStatus === 'trash') {
+        matchesStatus = app.status === 'Trash';
+      } else if (filterStatus === 'cert_claims') {
+        matchesStatus = app.certificate_status === 'pending' || app.certificate_status === 'action_required';
+      } else {
+        matchesStatus = app.status?.toLowerCase() === filterStatus.toLowerCase();
+      }
+
+      if (!matchesStatus) return false;
+      if (!q) return true;
+
+      const fullName = `${app.center_head_first_name} ${app.center_head_last_name}`.toLowerCase();
+      return (
+        fullName.includes(q) ||
+        (app.center_code || '').toLowerCase().includes(q) ||
+        (app.center_name || '').toLowerCase().includes(q) ||
+        (app.phone || '').includes(q) ||
+        (app.email || '').toLowerCase().includes(q) ||
+        (app.district || '').toLowerCase().includes(q) ||
+        (app.state || '').toLowerCase().includes(q)
+      );
+    });
+  }, [applications, filterStatus, debouncedSearchQuery]);
 
   // Verify Captcha matching dynamically
   const captchaMatches = captchaInput.trim().toUpperCase() === zebtishCaptcha.trim().toUpperCase();
@@ -2815,11 +2861,15 @@ const FranchiseRequests = () => {
       )}
 
       {/* CENTER AFFILIATION CERTIFICATE MODAL */}
-      <CenterCertificateModal
-        center={certCenterData}
-        isOpen={certModalOpen}
-        onClose={() => setCertModalOpen(false)}
-      />
+      {certModalOpen && (
+        <Suspense fallback={null}>
+          <CenterCertificateModal
+            center={certCenterData}
+            isOpen={certModalOpen}
+            onClose={() => setCertModalOpen(false)}
+          />
+        </Suspense>
+      )}
 
     </div>
   );

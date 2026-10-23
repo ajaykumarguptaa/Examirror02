@@ -15,8 +15,8 @@ export const adminService = {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(newPassword, salt);
     const [result]: any = await db.query(
-      'UPDATE centers SET password_hash = ?, token_version = COALESCE(token_version, 1) + 1 WHERE id = ?', 
-      [passwordHash, centerId]
+      'UPDATE centers SET password_hash = ?, token_version = COALESCE(token_version, 1) + 1 WHERE id = ? OR center_code = ?', 
+      [passwordHash, centerId, centerId]
     );
     if (result.affectedRows === 0) {
       throw new Error('Center not found');
@@ -555,6 +555,12 @@ approveWalletRequest: async (requestId: number | string, bonusTokens: number = 0
 
   // --- FRANCHISE REQUESTS ---
   getFranchiseRequests: async (status?: string) => {
+    try {
+      await adminService.syncCentersToFranchiseApplications();
+    } catch (syncErr) {
+      console.warn('[Admin] Auto-sync centers to applications notice:', syncErr);
+    }
+
     let query = 'SELECT * FROM franchise_applications';
     const params: any[] = [];
     if (status && status !== 'all') {

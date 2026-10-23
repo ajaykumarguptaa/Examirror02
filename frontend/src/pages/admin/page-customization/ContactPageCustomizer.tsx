@@ -38,7 +38,7 @@ const ContactPageCustomizer = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const adminToken = typeof window !== 'undefined' ? (localStorage.getItem('adminToken') || localStorage.getItem('admin_token') || localStorage.getItem('token')) : '';
+  const adminToken = typeof window !== 'undefined' ? (localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken') || localStorage.getItem('admin_token') || '') : '';
 
   const fetchSettings = async () => {
     try {

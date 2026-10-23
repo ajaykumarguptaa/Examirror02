@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import {
   Edit,
   Eye,
@@ -45,13 +45,16 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import { QRCodeSVG } from 'qrcode.react';
 import JsBarcode from 'jsbarcode';
-import { StudentMarksheetModal } from "../../components/StudentMarksheetModal";
-import { StudentCertificateModal } from "../../components/StudentCertificateModal";
-import { CenterSignatureUploadModal } from "../../components/CenterSignatureUploadModal";
 import { StudentIdCard } from "../../components/StudentIdCard";
-import { StudentIdCardModal } from "../../components/StudentIdCardModal";
-import { BatchIdCardModal } from "../../components/BatchIdCardModal";
 import { OfficialCertificateCard } from "../../components/OfficialCertificateCard";
+import { useDebounce } from '../../hooks/useDebounce';
+
+// Lazy-loaded heavy PDF / canvas modals (code-splitting)
+const StudentMarksheetModal = lazy(() => import('../../components/StudentMarksheetModal').then(m => ({ default: m.StudentMarksheetModal })));
+const StudentCertificateModal = lazy(() => import('../../components/StudentCertificateModal').then(m => ({ default: m.StudentCertificateModal })));
+const CenterSignatureUploadModal = lazy(() => import('../../components/CenterSignatureUploadModal').then(m => ({ default: m.CenterSignatureUploadModal })));
+const StudentIdCardModal = lazy(() => import('../../components/StudentIdCardModal').then(m => ({ default: m.StudentIdCardModal })));
+const BatchIdCardModal = lazy(() => import('../../components/BatchIdCardModal').then(m => ({ default: m.BatchIdCardModal })));
 
 import { compressImageFile } from '../../utils/imageCompressor';
 import {
@@ -77,6 +80,7 @@ interface Student {
   lastName: string;
   email?: string;
   courseId: number;
+  courseQuestionsCount?: number;
   courseName?: string;
   courseCode?: string;
   courseDescription?: string;
@@ -131,9 +135,15 @@ const StudentsList = () => {
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Auto-reset page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
 
   // Selected Checkboxes for Batch Actions (e.g. Print N id cards)
   const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
@@ -425,6 +435,16 @@ const StudentsList = () => {
 
   const handleSaveExamMarks = async (isDateChangeCharge: boolean = false) => {
     if (!selectedStudent) return;
+    if (Number(selectedStudent.courseQuestionsCount || 0) === 0) {
+      const hasDate = studentExamMarks.some(m => m.exam_date && String(m.exam_date).trim() !== '');
+      if (hasDate) {
+        setFeedback({
+          type: 'error',
+          text: 'Cannot schedule exam! No exam questions have been added for this course yet. Please configure questions in Course Management first.'
+        });
+        return;
+      }
+    }
     try {
       setIsProcessing(true);
       const res = await axios.post(`http://localhost:3000/api/center/students/${selectedStudent.id}/marks`, {
@@ -716,17 +736,21 @@ const StudentsList = () => {
     }
   };
 
-  // Filter & Pagination
-  const filteredStudents = students.filter(s =>
-    s.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (s.father_name && s.father_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (s.mother_name && s.mother_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (s.enrollment_no && s.enrollment_no.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (s.roll_no && s.roll_no.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (s.phone && s.phone.includes(searchTerm)) ||
-    (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Filter & Pagination (Memoized + Debounced for high-speed rendering)
+  const filteredStudents = useMemo(() => {
+    const q = debouncedSearchTerm.toLowerCase().trim();
+    if (!q) return students;
+    return students.filter(s =>
+      s.firstName.toLowerCase().includes(q) ||
+      s.lastName.toLowerCase().includes(q) ||
+      (s.father_name && s.father_name.toLowerCase().includes(q)) ||
+      (s.mother_name && s.mother_name.toLowerCase().includes(q)) ||
+      (s.enrollment_no && s.enrollment_no.toLowerCase().includes(q)) ||
+      (s.roll_no && s.roll_no.toLowerCase().includes(q)) ||
+      (s.phone && s.phone.includes(q)) ||
+      (s.email && s.email.toLowerCase().includes(q))
+    );
+  }, [students, debouncedSearchTerm]);
 
   const totalEntries = filteredStudents.length;
   const totalPages = Math.ceil(totalEntries / entriesPerPage) || 1;
@@ -2211,10 +2235,12 @@ const StudentsList = () => {
 
       {/* 6. Single Student ID Card Modal */}
       {modalType === 'idcard' && selectedStudent && (
-        <StudentIdCardModal
-          student={selectedStudent}
-          onClose={() => setModalType(null)}
-        />
+        <Suspense fallback={null}>
+          <StudentIdCardModal
+            student={selectedStudent}
+            onClose={() => setModalType(null)}
+          />
+        </Suspense>
       )}
 
       {/* 7. Certificate Generator Modal */}
@@ -2316,31 +2342,33 @@ const StudentsList = () => {
         </div>
       )}
 
-      {showMarksheetModal && selectedStudent && (
-        <StudentMarksheetModal student={selectedStudent} onClose={() => setShowMarksheetModal(false)} />
-      )}
+      <Suspense fallback={null}>
+        {showMarksheetModal && selectedStudent && (
+          <StudentMarksheetModal student={selectedStudent} onClose={() => setShowMarksheetModal(false)} />
+        )}
 
-      {showCertModal && selectedStudent && (
-        <StudentCertificateModal
-          student={{
-            ...selectedStudent,
-            marks: selectedStudent.marks && selectedStudent.marks.length > 0 ? selectedStudent.marks : studentExamMarks
-          }}
-          onClose={() => setShowCertModal(false)}
-          onOpenMarksheet={() => {
-            setShowCertModal(false);
-            setShowMarksheetModal(true);
-          }}
-        />
-      )}
+        {showCertModal && selectedStudent && (
+          <StudentCertificateModal
+            student={{
+              ...selectedStudent,
+              marks: selectedStudent.marks && selectedStudent.marks.length > 0 ? selectedStudent.marks : studentExamMarks
+            }}
+            onClose={() => setShowCertModal(false)}
+            onOpenMarksheet={() => {
+              setShowCertModal(false);
+              setShowMarksheetModal(true);
+            }}
+          />
+        )}
 
-      {/* 8. Batch Print ID Cards Modal (A4 Sheet Layout) */}
-      {modalType === 'batch_idcards' && (
-        <BatchIdCardModal
-          students={students.filter(s => selectedStudentIds.includes(s.id))}
-          onClose={() => setModalType(null)}
-        />
-      )}
+        {/* 8. Batch Print ID Cards Modal (A4 Sheet Layout) */}
+        {modalType === 'batch_idcards' && (
+          <BatchIdCardModal
+            students={students.filter(s => selectedStudentIds.includes(s.id))}
+            onClose={() => setModalType(null)}
+          />
+        )}
+      </Suspense>
 
       {/* 8b. Batch Print Certificates Modal */}
       {modalType === 'batch_certificates' && (
@@ -2674,6 +2702,15 @@ const StudentsList = () => {
                 <p className="text-xs text-slate-500 font-medium">{selectedStudent.courseName || `Course ID: ${selectedStudent.courseId}`} {selectedStudent.roll_no ? `• Roll No: ${selectedStudent.roll_no}` : ''}</p>
               </div>
 
+              {Number(selectedStudent.courseQuestionsCount || 0) === 0 && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2 shadow-2xs">
+                  <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Exam Scheduling Locked:</span> No exam questions have been added for this course ({selectedStudent.courseName || `Course #${selectedStudent.courseId}`}). Exam dates cannot be scheduled until questions are added in Course Management.
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 {getParsedSemesters(selectedStudent).map((sem: any, index: number) => {
                   const semesterName = `SEM ${sem.num}`;
@@ -2768,20 +2805,26 @@ const StudentsList = () => {
 
                         {/* Exam Date */}
                         <div className="col-span-2">
-                          <label className="block text-xs font-bold text-slate-700 mb-1">
-                            Exam Date
+                          <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                            <span>Exam Date</span>
+                            {Number(selectedStudent.courseQuestionsCount || 0) === 0 && (
+                              <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded border border-amber-200">
+                                Locked (0 Questions in Course)
+                              </span>
+                            )}
                           </label>
                           <input
                             type="date"
                             value={currentMark.exam_date ? (String(currentMark.exam_date).split('T')[0]) : ''}
-                            disabled={isCompleted}
-                            readOnly={isCompleted}
-                            className={`w-full px-3 py-2 border rounded-xl text-sm font-bold transition-colors ${isCompleted
-                                ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed select-none'
+                            disabled={isCompleted || Number(selectedStudent.courseQuestionsCount || 0) === 0}
+                            readOnly={isCompleted || Number(selectedStudent.courseQuestionsCount || 0) === 0}
+                            className={`w-full px-3 py-2 border rounded-xl text-sm font-bold transition-colors ${
+                              isCompleted || Number(selectedStudent.courseQuestionsCount || 0) === 0
+                                ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed select-none'
                                 : 'bg-white text-slate-900 border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'
-                              }`}
+                            }`}
                             onChange={(e) => {
-                              if (isCompleted) return;
+                              if (isCompleted || Number(selectedStudent.courseQuestionsCount || 0) === 0) return;
                               const val = e.target.value;
                               setStudentExamMarks(prev => {
                                 const newMarks = [...prev];
@@ -3036,15 +3079,19 @@ const StudentsList = () => {
         </div>
       )}
 
-      {/* Center Signature & Stamp Upload Modal */}
-      <CenterSignatureUploadModal
-        isOpen={isSignModalOpen}
-        centerId={centerId}
-        onClose={() => setIsSignModalOpen(false)}
-        onSaved={() => {
-          fetchStudents();
-        }}
-      />
+      {/* Center Signature & Stamp Upload Modal (Lazy Loaded) */}
+      {isSignModalOpen && (
+        <Suspense fallback={null}>
+          <CenterSignatureUploadModal
+            isOpen={isSignModalOpen}
+            centerId={centerId}
+            onClose={() => setIsSignModalOpen(false)}
+            onSaved={() => {
+              fetchStudents();
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

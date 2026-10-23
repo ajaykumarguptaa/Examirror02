@@ -1,10 +1,18 @@
 import db from '../db';
 
 export const notificationService = {
-  createNotification: async (userType: 'admin' | 'center' | 'student', userId: number | null, title: string, message: string, type: string = 'info', expiryDate: string | null = null) => {
+  createNotification: async (
+    userType: 'admin' | 'center' | 'student',
+    userId: number | null,
+    title: string,
+    message: string,
+    type: string = 'info',
+    expiryDate: string | null = null,
+    linkUrl: string | null = null
+  ) => {
     const [result]: any = await db.query(
-      'INSERT INTO notifications (user_type, user_id, title, message, type, expiry_date) VALUES (?, ?, ?, ?, ?, ?)',
-      [userType, userId, title, message, type, expiryDate]
+      'INSERT INTO notifications (user_type, user_id, title, message, type, expiry_date, link_url) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [userType, userId, title, message, type, expiryDate, linkUrl]
     );
     return result.insertId;
   },
@@ -20,6 +28,11 @@ export const notificationService = {
     }
   },
 
+  // Mark a single notification as read by ID
+  markOneAsRead: async (id: number) => {
+    await db.query('UPDATE notifications SET is_read = 1 WHERE id = ?', [id]);
+  },
+
   // Mark all notifications as read for a user
   markAllAsRead: async (userType: 'admin' | 'center' | 'student', userId: number | null) => {
     if (userType === 'admin') {
@@ -29,3 +42,4 @@ export const notificationService = {
     }
   }
 };
+

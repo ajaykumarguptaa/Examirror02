@@ -536,9 +536,8 @@ export const TestSeriesManagement = () => {
     <div className="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto font-sans text-slate-800">
       {/* Toast Notification */}
       {toast && (
-        <div className={`fixed top-5 right-5 z-50 p-4 rounded-2xl shadow-xl flex items-center gap-3 border text-xs font-bold transition-all ${
-          toast.type === 'success' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'
-        }`}>
+        <div className={`fixed top-5 right-5 z-50 p-4 rounded-2xl shadow-xl flex items-center gap-3 border text-xs font-bold transition-all ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'
+          }`}>
           {toast.type === 'success' ? <CheckCircle2 size={18} className="text-emerald-600" /> : <AlertCircle size={18} className="text-rose-600" />}
           <span>{toast.message}</span>
         </div>
@@ -606,18 +605,16 @@ export const TestSeriesManagement = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-                isActive
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${isActive
                   ? 'bg-blue-600 text-white shadow-xs'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-              }`}
+                }`}
             >
               <Icon size={14} />
               <span>{tab.label}</span>
               {tab.count !== undefined && (
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                  isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-                }`}>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                  }`}>
                   {tab.count}
                 </span>
               )}
@@ -649,16 +646,14 @@ export const TestSeriesManagement = () => {
               <button
                 key={st.id}
                 onClick={() => setSeriesStatusFilter(st.id as any)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border transition-all cursor-pointer ${
-                  seriesStatusFilter === st.id
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border transition-all cursor-pointer ${seriesStatusFilter === st.id
                     ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                     : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 <span>{st.label}</span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                  seriesStatusFilter === st.id ? 'bg-white/20 text-white' : st.badgeColor || 'bg-slate-100 text-slate-700'
-                }`}>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${seriesStatusFilter === st.id ? 'bg-white/20 text-white' : st.badgeColor || 'bg-slate-100 text-slate-700'
+                  }`}>
                   {st.count}
                 </span>
               </button>
@@ -716,9 +711,8 @@ export const TestSeriesManagement = () => {
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute top-2.5 left-2.5 flex gap-1.5">
-                        <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase text-white ${
-                          series.is_free ? 'bg-emerald-600' : 'bg-blue-600'
-                        }`}>
+                        <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase text-white ${series.is_free ? 'bg-emerald-600' : 'bg-blue-600'
+                          }`}>
                           {series.is_free ? 'FREE TEST' : `₹${series.price}`}
                         </span>
                         <span className="bg-slate-900/90 text-white px-2 py-0.5 rounded-md text-[10px] font-bold">
@@ -880,9 +874,8 @@ export const TestSeriesManagement = () => {
                 <button
                   key={st}
                   onClick={() => setPaymentFilter(st)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    paymentFilter === st ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${paymentFilter === st ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
                 >
                   {st}
                 </button>
@@ -943,10 +936,9 @@ export const TestSeriesManagement = () => {
                         )}
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase ${
-                          pay.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
-                          pay.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
+                        <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase ${pay.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
+                            pay.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
                           {pay.status}
                         </span>
                       </td>
@@ -1206,10 +1198,9 @@ export const TestSeriesManagement = () => {
                       </td>
                       <td className="py-3 px-4 font-semibold text-blue-700">{att.accuracy}%</td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          att.status === 'SUBMITTED' ? 'bg-emerald-100 text-emerald-800' :
-                          att.status === 'RESET' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${att.status === 'SUBMITTED' ? 'bg-emerald-100 text-emerald-800' :
+                            att.status === 'RESET' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
+                          }`}>
                           {att.status}
                         </span>
                       </td>
@@ -1283,9 +1274,8 @@ export const TestSeriesManagement = () => {
                       {analyticsData.kpis.pendingPayments || 0}
                     </div>
                   </div>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold mt-2 self-start ${
-                    analyticsData.kpis.pendingPayments > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
-                  }`}>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold mt-2 self-start ${analyticsData.kpis.pendingPayments > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
+                    }`}>
                     {analyticsData.kpis.pendingPayments > 0 ? 'Requires Action' : 'All Clear'}
                   </span>
                 </div>
@@ -1449,10 +1439,9 @@ export const TestSeriesManagement = () => {
                             <td className="py-2.5 px-3 font-bold text-slate-900">₹{p.amount}</td>
                             <td className="py-2.5 px-3 font-mono text-[11px] text-blue-700">{p.utr_number}</td>
                             <td className="py-2.5 px-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                p.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
-                                p.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
-                              }`}>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${p.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
+                                  p.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                                }`}>
                                 {p.status}
                               </span>
                             </td>
@@ -1624,7 +1613,7 @@ export const TestSeriesManagement = () => {
                                   showToast('success', 'Thumbnail uploaded successfully!');
                                   return;
                                 }
-                              } catch (_) {}
+                              } catch (_) { }
                               const reader = new FileReader();
                               reader.onload = () => {
                                 setSeriesForm({ ...seriesForm, thumbnail_url: reader.result as string });
@@ -1661,11 +1650,10 @@ export const TestSeriesManagement = () => {
                               key={preset.label}
                               type="button"
                               onClick={() => setSeriesForm({ ...seriesForm, thumbnail_url: preset.url })}
-                              className={`text-[10px] px-2 py-0.5 rounded-lg border font-bold transition-all cursor-pointer ${
-                                seriesForm.thumbnail_url === preset.url
+                              className={`text-[10px] px-2 py-0.5 rounded-lg border font-bold transition-all cursor-pointer ${seriesForm.thumbnail_url === preset.url
                                   ? 'bg-blue-600 text-white border-blue-600'
                                   : 'bg-white hover:bg-slate-100 text-slate-600 border-slate-200'
-                              }`}
+                                }`}
                             >
                               {preset.label}
                             </button>
@@ -1748,7 +1736,7 @@ export const TestSeriesManagement = () => {
 
                     {/* LIVE SELECTED QR PREVIEW CARD */}
                     {(() => {
-                      const selectedQrObj = seriesForm.payment_qr_id 
+                      const selectedQrObj = seriesForm.payment_qr_id
                         ? paymentQrs.find((q: any) => String(q.id) === String(seriesForm.payment_qr_id))
                         : paymentQrs.find((q: any) => q.is_global_default) || paymentQrs[0];
 
@@ -2022,7 +2010,7 @@ export const TestSeriesManagement = () => {
                     className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
                   >
                     <Sparkles size={14} className="text-amber-300" />
-                    <span>⚡ AI / Bulk JSON Import</span>
+                    <span>Bulk JSON Import</span>
                   </button>
 
                   <button
@@ -2058,9 +2046,8 @@ export const TestSeriesManagement = () => {
                       {q.options?.map((opt: any) => (
                         <div
                           key={opt.id || opt.option_key}
-                          className={`p-2 rounded-lg border text-xs font-semibold flex items-center justify-between ${
-                            opt.is_correct ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-white border-slate-200 text-slate-700'
-                          }`}
+                          className={`p-2 rounded-lg border text-xs font-semibold flex items-center justify-between ${opt.is_correct ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-white border-slate-200 text-slate-700'
+                            }`}
                         >
                           <span>{opt.option_key}. {opt.option_text}</span>
                           {opt.is_correct && <Check size={14} className="text-emerald-600" />}
@@ -2183,9 +2170,8 @@ export const TestSeriesManagement = () => {
                         setQuestionForm({ ...questionForm, options: updated });
                       }}
                       placeholder={`Option ${opt.option_key} text...`}
-                      className={`flex-grow px-3 py-1.5 border rounded-xl text-xs ${
-                        opt.is_correct ? 'border-emerald-500 bg-emerald-50/40 font-bold' : 'border-slate-300'
-                      }`}
+                      className={`flex-grow px-3 py-1.5 border rounded-xl text-xs ${opt.is_correct ? 'border-emerald-500 bg-emerald-50/40 font-bold' : 'border-slate-300'
+                        }`}
                     />
                   </div>
                 ))}
@@ -2338,11 +2324,10 @@ export const TestSeriesManagement = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors ${
-                    testForm.qr_mode === 'INHERIT'
+                  <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors ${testForm.qr_mode === 'INHERIT'
                       ? 'bg-white border-purple-600 shadow-xs'
                       : 'bg-white/50 border-purple-200 hover:bg-white'
-                  }`}>
+                    }`}>
                     <input
                       type="radio"
                       name="test_qr_mode"
@@ -2356,11 +2341,10 @@ export const TestSeriesManagement = () => {
                     </div>
                   </label>
 
-                  <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors ${
-                    testForm.qr_mode === 'CUSTOM'
+                  <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors ${testForm.qr_mode === 'CUSTOM'
                       ? 'bg-white border-purple-600 shadow-xs'
                       : 'bg-white/50 border-purple-200 hover:bg-white'
-                  }`}>
+                    }`}>
                     <input
                       type="radio"
                       name="test_qr_mode"
@@ -2787,7 +2771,7 @@ export const TestSeriesManagement = () => {
             {/* DIRECT QR IMAGE UPLOAD & LIVE PREVIEW BOX */}
             <div className="space-y-1.5">
               <label className="block font-bold text-slate-700">QR Code Image (Direct Upload or Auto-Generate)</label>
-              
+
               <div className="flex flex-col sm:flex-row items-center gap-4 p-3.5 bg-slate-50 border border-dashed border-slate-300 rounded-2xl">
                 {/* Live QR Image Preview */}
                 <div className="w-28 h-28 bg-white p-2 rounded-xl border border-slate-200 shadow-xs shrink-0 flex items-center justify-center relative">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import NotificationBell from '../components/common/NotificationBell';
@@ -23,7 +23,11 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import SEO from '../components/SEO';
-import { CenterSignatureUploadModal } from '../components/CenterSignatureUploadModal';
+import { throttle } from '../utils/throttleDebounce';
+
+const CenterSignatureUploadModal = lazy(() =>
+  import('../components/CenterSignatureUploadModal').then(m => ({ default: m.CenterSignatureUploadModal }))
+);
 
 const CenterLayout = () => {
   const location = useLocation();
@@ -101,9 +105,9 @@ const CenterLayout = () => {
     fetchStats();
   }, [fetchStats, location.pathname]);
 
-  // Listen to custom update events triggered across pages & realtime push events
+  // Listen to custom update events triggered across pages & realtime push events (throttled to 2000ms)
   useEffect(() => {
-    const handleStatsUpdate = () => fetchStats();
+    const handleStatsUpdate = throttle(() => fetchStats(), 2000);
     window.addEventListener('center-stats-updated', handleStatsUpdate);
     window.addEventListener('wallet-updated', handleStatsUpdate);
     window.addEventListener('certificate-updated', handleStatsUpdate);
@@ -258,8 +262,8 @@ const CenterLayout = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
-        {/* Top Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-3.5 sm:px-6 shrink-0 shadow-sm z-20 gap-2">
+        {/* Top Header with Apple Frosted Glass */}
+        <header className="h-16 apple-glass border-b border-white/60 flex items-center justify-between px-3.5 sm:px-6 shrink-0 shadow-2xs z-20 gap-2 transition-all duration-300">
 
           
           <div className="flex md:hidden items-center mr-1">
@@ -391,12 +395,16 @@ const CenterLayout = () => {
       </div>
 
       {/* Center Director Signature & Stamp Upload Modal */}
-      <CenterSignatureUploadModal
-        isOpen={isSigModalOpen}
-        centerId={authInfo.centerId}
-        centerName={authInfo.centerName}
-        onClose={() => setIsSigModalOpen(false)}
-      />
+      {isSigModalOpen && (
+        <Suspense fallback={null}>
+          <CenterSignatureUploadModal
+            isOpen={isSigModalOpen}
+            centerId={authInfo.centerId}
+            centerName={authInfo.centerName}
+            onClose={() => setIsSigModalOpen(false)}
+          />
+        </Suspense>
+      )}
       </div>
     </RealtimeNotificationProvider>
   );

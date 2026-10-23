@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { X, Sparkles, AlertCircle, FileText, Upload, Eye, Image as ImageIcon, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
+import { prepareSafeHtmlContent } from '../../utils/htmlNoteSecurity';
+import { LazyImage } from '../ui/LazyImage';
+import { compressImageFile } from '../../utils/imageCompressor';
 
 interface CreateCenterMaterialModalProps {
   onClose: () => void;
@@ -206,7 +209,12 @@ export const CreateCenterMaterialModal: React.FC<CreateCenterMaterialModalProps>
 
               {form.thumbnail_url && (
                 <div className="relative aspect-video max-h-28 rounded-lg overflow-hidden border border-slate-200 bg-white">
-                  <img src={form.thumbnail_url} alt="Cover Preview" className="w-full h-full object-cover" />
+                  <LazyImage
+                    src={form.thumbnail_url}
+                    alt="Cover Preview"
+                    wrapperClassName="w-full h-full"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               )}
 
@@ -222,8 +230,14 @@ export const CreateCenterMaterialModal: React.FC<CreateCenterMaterialModalProps>
                       const file = e.target.files?.[0];
                       if (!file) return;
                       try {
+                        const compressed = await compressImageFile(file, {
+                          maxWidth: 800,
+                          maxHeight: 600,
+                          quality: 0.82,
+                          targetFormat: 'image/webp'
+                        });
                         const fd = new FormData();
-                        fd.append('file', file);
+                        fd.append('file', compressed.file);
                         const res = await axios.post('http://localhost:3000/api/public/upload', fd, {
                           headers: { 'Content-Type': 'multipart/form-data' }
                         });
@@ -231,12 +245,12 @@ export const CreateCenterMaterialModal: React.FC<CreateCenterMaterialModalProps>
                           setForm({ ...form, thumbnail_url: res.data.url || res.data.s3Url });
                           return;
                         }
-                      } catch (_) {}
-                      const reader = new FileReader();
-                      reader.onload = () => {
-                        setForm({ ...form, thumbnail_url: reader.result as string });
-                      };
-                      reader.readAsDataURL(file);
+                        if (compressed.dataUrl) {
+                          setForm({ ...form, thumbnail_url: compressed.dataUrl });
+                        }
+                      } catch (err) {
+                        console.error('Failed to compress/upload image', err);
+                      }
                     }}
                   />
                 </label>
@@ -327,7 +341,7 @@ export const CreateCenterMaterialModal: React.FC<CreateCenterMaterialModalProps>
                   <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs h-60">
                     {form.content_text ? (
                       <iframe 
-                        srcDoc={form.content_text}
+                        srcDoc={prepareSafeHtmlContent(form.content_text, form.title || 'Live Preview')}
                         className="w-full h-full border-none bg-white"
                         title="Live Preview"
                         sandbox="allow-same-origin allow-scripts"

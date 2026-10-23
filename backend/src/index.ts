@@ -79,7 +79,10 @@ app.use('/api', generalApiLimiter);
 app.use('/uploads', express.static(uploadsDir, {
   maxAge: '30d',
   etag: true,
-  lastModified: true
+  lastModified: true,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+  }
 }));
 
 // Fallback to S3 bucket if file does not exist on local disk
@@ -654,10 +657,15 @@ const initDbSchema = async () => {
 
     try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN qualification VARCHAR(100) DEFAULT 'Graduate'`); } catch (_) {}
     try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_status VARCHAR(50) DEFAULT 'unclaimed'`); } catch (_) {}
+    try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN center_id INT NULL`); } catch (_) {}
+    try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN center_code VARCHAR(50) NULL`); } catch (_) {}
+    try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_number VARCHAR(100) NULL`); } catch (_) {}
     try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_claim_date DATETIME NULL`); } catch (_) {}
     try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_approved_date DATETIME NULL`); } catch (_) {}
     try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_demand_notes TEXT NULL`); } catch (_) {}
+    try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_demanded_docs TEXT NULL`); } catch (_) {}
     try { await db.query(`ALTER TABLE franchise_applications ADD COLUMN certificate_uploaded_docs LONGTEXT NULL`); } catch (_) {}
+    try { await db.query(`ALTER TABLE notifications ADD COLUMN link_url VARCHAR(255) DEFAULT NULL`); } catch (_) {}
 
     // Ensure Training Videos Schema
     try { await db.query(`ALTER TABLE training_videos ADD COLUMN youtube_id VARCHAR(50) NULL`); } catch (_) {}

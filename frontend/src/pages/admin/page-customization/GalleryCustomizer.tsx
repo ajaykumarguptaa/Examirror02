@@ -15,6 +15,7 @@ import {
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import DeleteConfirmCaptchaModal from '../../../components/DeleteConfirmCaptchaModal';
+import { compressImageFile } from '../../../utils/imageCompressor';
 
 export const DEFAULT_GALLERY_SETTINGS = {
   header: {
@@ -294,14 +295,20 @@ const GalleryCustomizer = () => {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        setNewImageUrl(reader.result as string);
-                      };
-                      reader.readAsDataURL(file);
+                      try {
+                        const compressed = await compressImageFile(file, { maxWidth: 1920, maxHeight: 1080, quality: 0.85 });
+                        setNewImageUrl(compressed.dataUrl);
+                        toast.success(`Image converted to WebP (${compressed.sizeKB} KB)`);
+                      } catch {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setNewImageUrl(reader.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
                     }
                   }}
                   className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"

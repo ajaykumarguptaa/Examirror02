@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useDebounce } from '../../hooks/useDebounce';
+import { throttle } from '../../utils/throttleDebounce';
 import {
   Send,
   Search,
@@ -65,6 +67,7 @@ const RechargeWallet = () => {
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 250);
   const [currentPage, setCurrentPage] = useState(1);
   const entriesPerPage = 10;
 
@@ -116,8 +119,8 @@ const RechargeWallet = () => {
   useEffect(() => {
     fetchWalletData();
 
-    // Event listener for SSE realtime events (wallet approved, admissions, deductions)
-    const handleUpdate = () => fetchWalletData(true);
+    // Event listener for SSE realtime events (throttled to at most once per 2s)
+    const handleUpdate = throttle(() => fetchWalletData(true), 2000);
     window.addEventListener('center-stats-updated', handleUpdate);
     window.addEventListener('wallet-updated', handleUpdate);
     window.addEventListener('focus', handleUpdate);
@@ -215,35 +218,44 @@ const RechargeWallet = () => {
     }
   };
 
-  // Filter Transactions
-  const filteredTransactions = transactions.filter((txn) => {
-    const txnType = String(txn.type || '').toUpperCase();
-    const txnStatus = String(txn.status || 'Approved').toLowerCase();
-    const utr = String(txn.utr_number || '');
-    const txnUid = String(txn.txn_uid || '');
-    const narrationText = String(txn.narration || txn.description || '');
+  // Reset page when filter or debounced search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, filterStatus, debouncedSearchTerm]);
 
-    // Type Filter
-    if (filterType !== 'all' && txnType !== filterType.toUpperCase()) {
-      return false;
-    }
+  // Filter Transactions (memoized with debounced search)
+  const filteredTransactions = useMemo(() => {
+    const term = debouncedSearchTerm.trim().toLowerCase();
+    const typeFilter = filterType.toUpperCase();
+    const statusFilter = filterStatus.toLowerCase();
 
-    // Status Filter
-    if (filterStatus !== 'all' && txnStatus !== filterStatus.toLowerCase()) {
-      return false;
-    }
+    return transactions.filter((txn) => {
+      const txnType = String(txn.type || '').toUpperCase();
+      const txnStatus = String(txn.status || 'Approved').toLowerCase();
 
-    // Search Term Filter
-    if (searchTerm.trim()) {
-      const term = searchTerm.trim().toLowerCase();
-      const matchesUtr = utr.toLowerCase().includes(term);
-      const matchesUid = txnUid.toLowerCase().includes(term);
-      const matchesNarr = narrationText.toLowerCase().includes(term);
-      if (!matchesUtr && !matchesUid && !matchesNarr) return false;
-    }
+      // Type Filter
+      if (filterType !== 'all' && txnType !== typeFilter) {
+        return false;
+      }
 
-    return true;
-  });
+      // Status Filter
+      if (filterStatus !== 'all' && txnStatus !== statusFilter) {
+        return false;
+      }
+
+      // Debounced Search Term Filter
+      if (term) {
+        const utr = String(txn.utr_number || '').toLowerCase();
+        const txnUid = String(txn.txn_uid || '').toLowerCase();
+        const narrationText = String(txn.narration || txn.description || '').toLowerCase();
+        if (!utr.includes(term) && !txnUid.includes(term) && !narrationText.includes(term)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [transactions, filterType, filterStatus, debouncedSearchTerm]);
 
   const totalEntries = filteredTransactions.length;
   const totalPages = Math.ceil(totalEntries / entriesPerPage) || 1;

@@ -9,7 +9,13 @@ import {
   Lock, Download, CheckSquare, Square, Share2, Users, ShoppingBag,
   Code, FileCode, Globe, File, Image as ImageIcon
 } from 'lucide-react';
-import { AntiPiracyStudyMaterialModal } from '../AntiPiracyStudyMaterialModal';
+import { prepareSafeHtmlContent } from '../../utils/htmlNoteSecurity';
+import { LazyImage } from '../ui/LazyImage';
+import { compressImageFile } from '../../utils/imageCompressor';
+
+const AntiPiracyStudyMaterialModal = React.lazy(() =>
+  import('../AntiPiracyStudyMaterialModal').then(m => ({ default: m.AntiPiracyStudyMaterialModal }))
+);
 
 export const StudyMaterialManagementTab: React.FC = () => {
   const queryClient = useQueryClient();
@@ -503,12 +509,13 @@ export const StudyMaterialManagementTab: React.FC = () => {
                 >
                   {m.thumbnail_url && (
                     <div className="relative -mx-5 -mt-5 mb-1 h-36 overflow-hidden rounded-t-2xl bg-slate-100 border-b border-slate-100">
-                      <img
+                      <LazyImage
                         src={m.thumbnail_url}
                         alt={m.title}
+                        wrapperClassName="w-full h-full"
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-transparent to-transparent pointer-events-none" />
                     </div>
                   )}
 
@@ -859,12 +866,13 @@ export const StudyMaterialManagementTab: React.FC = () => {
                     <div className="md:col-span-5 relative aspect-video rounded-xl overflow-hidden border-2 border-dashed border-slate-300 bg-white flex items-center justify-center group shadow-xs">
                       {formData.thumbnail_url ? (
                         <>
-                          <img
+                          <LazyImage
                             src={formData.thumbnail_url}
                             alt="Cover Thumbnail Preview"
+                            wrapperClassName="w-full h-full"
                             className="w-full h-full object-cover"
                           />
-                          <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                             <span className="text-[10px] text-white font-bold bg-slate-900/80 px-2 py-1 rounded">
                               Current Cover
                             </span>
@@ -892,28 +900,31 @@ export const StudyMaterialManagementTab: React.FC = () => {
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file) return;
-                              if (file.size > 8 * 1024 * 1024) {
-                                showToast('error', 'Image size must be under 8MB');
-                                return;
-                              }
                               try {
+                                const compressed = await compressImageFile(file, {
+                                  maxWidth: 800,
+                                  maxHeight: 600,
+                                  quality: 0.82,
+                                  targetFormat: 'image/webp'
+                                });
                                 const fd = new FormData();
-                                fd.append('file', file);
+                                fd.append('file', compressed.file);
                                 const res = await axios.post('http://localhost:3000/api/public/upload', fd, {
                                   headers: { 'Content-Type': 'multipart/form-data' }
                                 });
                                 if (res.data?.url || res.data?.s3Url) {
                                   setFormData({ ...formData, thumbnail_url: res.data.url || res.data.s3Url });
-                                  showToast('success', 'Cover thumbnail uploaded successfully!');
+                                  showToast('success', `Thumbnail optimized & saved (${compressed.sizeKB} KB)!`);
                                   return;
                                 }
-                              } catch (_) {}
-                              const reader = new FileReader();
-                              reader.onload = () => {
-                                setFormData({ ...formData, thumbnail_url: reader.result as string });
-                                showToast('success', 'Thumbnail loaded from file!');
-                              };
-                              reader.readAsDataURL(file);
+                                if (compressed.dataUrl) {
+                                  setFormData({ ...formData, thumbnail_url: compressed.dataUrl });
+                                  showToast('success', `Optimized thumbnail preview loaded (${compressed.sizeKB} KB)!`);
+                                }
+                              } catch (err) {
+                                console.error('Upload failed', err);
+                                showToast('error', 'Failed to upload image.');
+                              }
                             }}
                           />
                         </label>
@@ -1113,7 +1124,7 @@ export const StudyMaterialManagementTab: React.FC = () => {
                     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs h-80">
                       {formData.content_text ? (
                         <iframe 
-                          srcDoc={formData.content_text}
+                          srcDoc={prepareSafeHtmlContent(formData.content_text, formData.title || 'Live Preview')}
                           className="w-full h-full border-none bg-white"
                           title="Live Preview"
                           sandbox="allow-same-origin allow-scripts"
@@ -1467,18 +1478,20 @@ export const StudyMaterialManagementTab: React.FC = () => {
 
       {/* Super Admin Live Preview Modal with Anti-Piracy Watermark */}
       {previewMaterialId && (
-        <AntiPiracyStudyMaterialModal
-          materialId={previewMaterialId}
-          student={{
-            firstName: 'Super Admin',
-            lastName: 'Preview Mode',
-            roll_no: 'ADMIN-MASTER-01',
-            enrollment_no: 'EXM-ROOT-001',
-            centerName: 'Examirror National Head Office',
-            centerCode: 'HQ-99'
-          }}
-          onClose={() => setPreviewMaterialId(null)}
-        />
+        <React.Suspense fallback={null}>
+          <AntiPiracyStudyMaterialModal
+            materialId={previewMaterialId}
+            student={{
+              firstName: 'Super Admin',
+              lastName: 'Preview Mode',
+              roll_no: 'ADMIN-MASTER-01',
+              enrollment_no: 'EXM-ROOT-001',
+              centerName: 'Examirror National Head Office',
+              centerCode: 'HQ-99'
+            }}
+            onClose={() => setPreviewMaterialId(null)}
+          />
+        </React.Suspense>
       )}
 
     </div>
