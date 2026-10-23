@@ -215,3 +215,17 @@ export const registrationLimiter = createTokenBucketLimiter({
     message: 'Too many registration requests. Please wait before submitting again.'
   }
 });
+
+/**
+ * 5. Student Email Verification OTP Limiter
+ * Capacity: 10 requests burst
+ * Refill Rate: 1 token every 30 seconds
+ */
+export const otpRateLimiter = createTokenBucketLimiter({
+  capacity: 10,
+  refillRate: 1 / 30,
+  message: {
+    success: false,
+    message: 'Too many verification code attempts. Please wait a few minutes before trying again.'
+  }
+});

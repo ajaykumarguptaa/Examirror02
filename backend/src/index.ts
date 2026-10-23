@@ -17,6 +17,7 @@ import { runHousekeepingMaintenance } from './utils/housekeeper';
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', true);
 const port = process.env.PORT || 3000;
 
 // Ensure upload directory exists

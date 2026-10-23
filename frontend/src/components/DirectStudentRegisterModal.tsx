@@ -173,8 +173,19 @@ export const DirectStudentRegisterModal: React.FC<DirectStudentRegisterModalProp
     }
 
     setLoading(true);
+    const postStudentApi = async (endpoint: string, payload: any) => {
+      try {
+        return await axios.post(endpoint, payload);
+      } catch (err: any) {
+        if ((err.code === 'ERR_NETWORK' || !err.response) && window.location.hostname === 'localhost') {
+          return await axios.post(`http://localhost:3000${endpoint}`, payload);
+        }
+        throw err;
+      }
+    };
+
     try {
-      const res = await axios.post('http://localhost:3000/api/student/send-registration-otp', {
+      const res = await postStudentApi('/api/student/send-registration-otp', {
         email: emailClean,
         firstName: firstNameClean,
         lastName: lastNameClean,
@@ -193,9 +204,23 @@ export const DirectStudentRegisterModal: React.FC<DirectStudentRegisterModalProp
         setErrorMsg(res.data?.message || 'Failed to send verification code.');
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Error sending verification code. Please try again.';
-      setErrorMsg(msg);
-      toast.error(msg);
+      if (err.response?.status === 429) {
+        const data = err.response?.data;
+        const msg = data?.message || '';
+        if (data?.algorithm === 'token-bucket' || msg.includes('restricted') || msg.includes('Too many failed') || msg.includes('Rate limit')) {
+          setErrorMsg(msg || 'Too many attempts. For security reasons, please try again in a few minutes.');
+          toast.error(msg || 'Rate limit exceeded. Please wait a moment.');
+        } else {
+          // 45-second cooldown from DB where an OTP was actually sent
+          toast('A verification code was just sent! Please check your email.', { icon: '✉️' });
+          setStep(2);
+          setResendCountdown(45);
+        }
+      } else {
+        const msg = err.response?.data?.message || 'Error sending verification code. Please try again.';
+        setErrorMsg(msg);
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -209,7 +234,18 @@ export const DirectStudentRegisterModal: React.FC<DirectStudentRegisterModalProp
     const toastId = toast.loading('Sending fresh verification code...');
 
     try {
-      const res = await axios.post('http://localhost:3000/api/student/send-registration-otp', {
+      const postStudentApi = async (endpoint: string, payload: any) => {
+        try {
+          return await axios.post(endpoint, payload);
+        } catch (err: any) {
+          if ((err.code === 'ERR_NETWORK' || !err.response) && window.location.hostname === 'localhost') {
+            return await axios.post(`http://localhost:3000${endpoint}`, payload);
+          }
+          throw err;
+        }
+      };
+
+      const res = await postStudentApi('/api/student/send-registration-otp', {
         email: emailClean,
         firstName: firstNameClean,
         lastName: lastNameClean,
@@ -250,7 +286,18 @@ export const DirectStudentRegisterModal: React.FC<DirectStudentRegisterModalProp
 
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:3000/api/student/verify-and-register', {
+      const postStudentApi = async (endpoint: string, payload: any) => {
+        try {
+          return await axios.post(endpoint, payload);
+        } catch (err: any) {
+          if ((err.code === 'ERR_NETWORK' || !err.response) && window.location.hostname === 'localhost') {
+            return await axios.post(`http://localhost:3000${endpoint}`, payload);
+          }
+          throw err;
+        }
+      };
+
+      const res = await postStudentApi('/api/student/verify-and-register', {
         firstName: firstNameClean,
         lastName: lastNameClean,
         email: emailClean,

@@ -6,12 +6,12 @@ import { sendStudentRegistrationOtpEmail } from '../utils/emailService';
 
 const router = express.Router();
 
-import { authRateLimiter } from '../middleware/rateLimiter';
+import { authRateLimiter, otpRateLimiter } from '../middleware/rateLimiter';
 
 /**
  * 1. Send OTP for Direct Student Registration (Brevo SMTP Relay)
  */
-router.post('/send-registration-otp', authRateLimiter, async (req, res) => {
+router.post('/send-registration-otp', otpRateLimiter, async (req, res) => {
   try {
     const { email, firstName, lastName, phone } = req.body;
 
@@ -81,13 +81,7 @@ router.post('/send-registration-otp', authRateLimiter, async (req, res) => {
       [cleanEmail]
     );
 
-    // Save new OTP with 10-minute validity
-    await db.query(`
-      INSERT INTO student_email_otps (email, otp_code, purpose, expires_at)
-      VALUES (?, ?, 'STUDENT_REGISTRATION', DATE_ADD(NOW(), INTERVAL 10 MINUTE))
-    `, [cleanEmail, otpCode]);
-
-    // Send email via Brevo SMTP (with development fallback)
+    // Send email via Brevo SMTP (with development fallback) FIRST
     await sendStudentRegistrationOtpEmail(
       cleanEmail,
       otpCode,
@@ -95,6 +89,12 @@ router.post('/send-registration-otp', authRateLimiter, async (req, res) => {
       cleanLastName,
       cleanPhone
     );
+
+    // Save new OTP with 10-minute validity ONLY after email is successfully dispatched
+    await db.query(`
+      INSERT INTO student_email_otps (email, otp_code, purpose, expires_at)
+      VALUES (?, ?, 'STUDENT_REGISTRATION', DATE_ADD(NOW(), INTERVAL 10 MINUTE))
+    `, [cleanEmail, otpCode]);
 
     res.json({
       success: true,
@@ -110,7 +110,7 @@ router.post('/send-registration-otp', authRateLimiter, async (req, res) => {
 /**
  * 2. Verify OTP & Create Direct Student Account
  */
-router.post('/verify-and-register', authRateLimiter, async (req, res) => {
+router.post('/verify-and-register', otpRateLimiter, async (req, res) => {
   try {
     const { firstName, lastName, email, phone, password, otp } = req.body;
 
