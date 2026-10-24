@@ -101,6 +101,11 @@ export async function initStudentWalletDatabase() {
     console.log('--- Seeded Basic and Elite Passes ---');
   }
 
+  // Ensure pass titles are clean
+  try {
+    await db.query(`UPDATE test_passes SET title = 'Examirror Elite Pass' WHERE pass_type = 'ELITE' AND title LIKE '%👑%'`);
+  } catch (_) {}
+
   // 6. Student Pass Subscriptions Table
   await db.query(`
     CREATE TABLE IF NOT EXISTS student_pass_subscriptions (
