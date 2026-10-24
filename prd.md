@@ -31,7 +31,7 @@ Transform Examirror into an immersive, interactive 3D web experience with realis
   - Implement a purposeful hero depth composition with isolated 3D component and lightweight perspective geometry.
   - Include loading, error, reduced-motion, and mobile fallbacks.
 
-- [ ] **Task 9: Consistent Depth System for Feature Sections**
+- [x] **Task 9: Consistent Depth System for Feature Sections**
   - Apply shared elevation, perspective, and motion rules to features, courses, and interactive learning journeys.
   - Preserve content readability, keyboard focus, and all existing actions.
 

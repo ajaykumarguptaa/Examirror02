@@ -95,3 +95,29 @@ Regressions or risks:
 
 Next task:
 - Task 9: Consistent Depth System for Feature Sections
+
+[2026-10-24 18:32] Iteration 9 — Consistent Depth System for Feature Sections
+Status: PASS
+Files inspected:
+- frontend/src/pages/public/Home.tsx
+- frontend/src/index.css
+
+Files changed:
+- frontend/src/pages/public/Home.tsx — Applied card-3d-elevated and preserve-3d to Core Features cards; wrapped Course Catalog cards in interactive Tilt3DCard with tactile curriculum buttons.
+
+Implementation:
+- Upgraded Core Feature benefits cards with layered specular depth borders and 3D elevation.
+- Transformed Course Catalog cards into interactive 3D perspective cards using Tilt3DCard, preserving smooth horizontal drag-scroll tracks and keyboard accessibility.
+
+Validation:
+- Lint: NOT_AVAILABLE
+- Type check: PASS (TypeScript via build)
+- Tests: NOT_AVAILABLE
+- Build: PASS (frontend built in 378ms with 0 errors)
+- Manual checks: Verified card hierarchy, text legibility, cursor tilt response, and mobile scroll stability.
+
+Regressions or risks:
+- None found. Courses links, curriculum modals, and test portal routing remain completely intact.
+
+Next task:
+- Task 10: Portal and Exam Flow Regression Audit

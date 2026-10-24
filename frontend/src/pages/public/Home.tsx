@@ -1020,7 +1020,7 @@ const Home = () => {
                         whileHover={{ y: -6, scale: 1.015 }}
                         whileTap={{ scale: 0.98 }}
                         transition={{ duration: 0.2 }}
-                        className={`${styles.cardBg} ${styles.border} p-7 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden group h-full`}
+                        className={`${styles.cardBg} ${styles.border} p-7 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden group h-full card-3d-elevated preserve-3d`}
                       >
                         {/* Card Watermark Number */}
                         <span className={`absolute -bottom-4 -right-2 text-7xl font-black ${styles.numberColor} select-none pointer-events-none group-hover:scale-110 transition-transform duration-300`}>
@@ -1759,71 +1759,77 @@ const Home = () => {
                 }`}
             >
               {allDisplayCourses.map((cat: any, idx: number) => (
-                <motion.div
+                <div
                   key={cat.id || idx}
-                  initial={{ opacity: 0, y: 35, scale: 0.95 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  viewport={{ once: true, margin: '-40px' }}
-                  transition={{ duration: 0.55, delay: Math.min(idx * 0.08, 0.4), ease: [0.16, 1, 0.3, 1] }}
-                  whileHover={{ y: -8 }}
-                  className="course-card-item snap-start shrink-0 w-[285px] sm:w-[325px] lg:w-[calc(25%-18px)] rounded-3xl flex flex-col justify-between group relative overflow-hidden bg-white/95 backdrop-blur-md shadow-md hover:shadow-2xl hover:shadow-indigo-500/15 transition-all duration-400 h-[385px] sm:h-[405px] border border-slate-200/90 hover:border-indigo-400/60"
+                  className="course-card-item snap-start shrink-0 w-[285px] sm:w-[325px] lg:w-[calc(25%-18px)]"
                 >
-                  {/* Course Card Thumbnail Image Header */}
-                  <div className="h-44 sm:h-48 w-full relative overflow-hidden bg-slate-900 shrink-0">
-                    <img
-                      src={cat.image || getCourseFallbackImage(cat.name, cat.tag)}
-                      alt={cat.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out opacity-95 pointer-events-none"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                    <div className="absolute inset-0 bg-slate-950/45 pointer-events-none" />
-
-                    {/* Tag Overlay Badge */}
-                    <div className="absolute top-3 left-3">
-                      <span className="text-[10px] font-black text-indigo-700 bg-white/95 backdrop-blur-md px-3 py-1 rounded-full uppercase tracking-wider inline-flex items-center gap-1 shadow-sm border border-white/50">
-                        <Sparkles size={11} className="text-indigo-600" />
-                        <span>{cat.tag || 'Diploma'}</span>
-                      </span>
-                    </div>
-
-                    {/* Recognized Badge Overlay */}
-                    <div className="absolute top-3 right-3">
-                      <span className="text-[10px] font-bold text-white/90 bg-slate-900/70 backdrop-blur-md px-2.5 py-1 rounded-full inline-flex items-center gap-1 border border-white/10">
-                        <Award size={11} className="text-amber-400" />
-                        <span>Certified</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Card Body */}
-                  <div className="p-5 flex-1 flex flex-col justify-between text-left">
-                    <div>
-                      <h3 className="font-black text-slate-900 text-base sm:text-lg group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug min-h-[48px] sm:min-h-[52px] flex items-start">
-                        {cat.name}
-                      </h3>
-                      <div className="flex items-center justify-between text-slate-500 text-xs mt-3 font-medium">
-                        <span className="flex items-center gap-1.5">
-                          <Clock3 size={13} className="text-slate-400" />
-                          <span>Duration: {cat.duration}</span>
-                        </span>
-                        <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                          Job-Ready
-                        </span>
-                      </div>
-                    </div>
-
-                    <Link
-                      to="/courses"
-                      className="btn-elastic pt-3.5 mt-auto border-t border-slate-100 flex items-center justify-between text-xs font-black text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer group/link"
+                  <Tilt3DCard
+                    maxTilt={8}
+                    scale={1.02}
+                    glare={true}
+                    className="h-full rounded-3xl"
+                  >
+                    <div
+                      className="rounded-3xl flex flex-col justify-between group relative overflow-hidden bg-white/95 backdrop-blur-md shadow-md hover:shadow-2xl hover:shadow-indigo-500/15 transition-all duration-400 h-[385px] sm:h-[405px] border border-slate-200/90 hover:border-indigo-400/60 card-3d-elevated preserve-3d"
                     >
-                      <span className="group-hover/link:underline">Explore Curriculum</span>
-                      <div className="btn-icon-bounce w-7 h-7 rounded-full bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center shadow-xs transition-colors">
-                        <ArrowRight size={13} className="group-hover/link:translate-x-0.5 transition-transform" />
+                      {/* Course Card Thumbnail Image Header */}
+                      <div className="h-44 sm:h-48 w-full relative overflow-hidden bg-slate-900 shrink-0">
+                        <img
+                          src={cat.image || getCourseFallbackImage(cat.name, cat.tag)}
+                          alt={cat.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out opacity-95 pointer-events-none"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        <div className="absolute inset-0 bg-slate-950/45 pointer-events-none" />
+
+                        {/* Tag Overlay Badge */}
+                        <div className="absolute top-3 left-3">
+                          <span className="text-[10px] font-black text-indigo-700 bg-white/95 backdrop-blur-md px-3 py-1 rounded-full uppercase tracking-wider inline-flex items-center gap-1 shadow-sm border border-white/50">
+                            <Sparkles size={11} className="text-indigo-600" />
+                            <span>{cat.tag || 'Diploma'}</span>
+                          </span>
+                        </div>
+
+                        {/* Recognized Badge Overlay */}
+                        <div className="absolute top-3 right-3">
+                          <span className="text-[10px] font-bold text-white/90 bg-slate-900/70 backdrop-blur-md px-2.5 py-1 rounded-full inline-flex items-center gap-1 border border-white/10">
+                            <Award size={11} className="text-amber-400" />
+                            <span>Certified</span>
+                          </span>
+                        </div>
                       </div>
-                    </Link>
-                  </div>
-                </motion.div>
+
+                      {/* Card Body */}
+                      <div className="p-5 flex-1 flex flex-col justify-between text-left">
+                        <div>
+                          <h3 className="font-black text-slate-900 text-base sm:text-lg group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug min-h-[48px] sm:min-h-[52px] flex items-start">
+                            {cat.name}
+                          </h3>
+                          <div className="flex items-center justify-between text-slate-500 text-xs mt-3 font-medium">
+                            <span className="flex items-center gap-1.5">
+                              <Clock3 size={13} className="text-slate-400" />
+                              <span>Duration: {cat.duration}</span>
+                            </span>
+                            <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                              Job-Ready
+                            </span>
+                          </div>
+                        </div>
+
+                        <Link
+                          to="/courses"
+                          className="btn-elastic pt-3.5 mt-auto border-t border-slate-100 flex items-center justify-between text-xs font-black text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer group/link"
+                        >
+                          <span className="group-hover/link:underline">Explore Curriculum</span>
+                          <div className="btn-icon-bounce w-7 h-7 rounded-full bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center shadow-xs transition-colors">
+                            <ArrowRight size={13} className="group-hover/link:translate-x-0.5 transition-transform" />
+                          </div>
+                        </Link>
+                      </div>
+                    </div>
+                  </Tilt3DCard>
+                </div>
               ))}
             </div>
 
