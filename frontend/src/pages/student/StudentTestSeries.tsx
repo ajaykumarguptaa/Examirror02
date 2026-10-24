@@ -49,6 +49,7 @@ import {
   Download,
   Wallet,
   Crown,
+  FolderTree,
 } from 'lucide-react';
 import { downloadOfficialScorecardPdf } from '../../utils/scorecardPdf';
 import { WalletPurchaseConfirmModal, type PurchaseItem } from '../../components/student/WalletPurchaseConfirmModal';
@@ -61,12 +62,25 @@ interface Category {
   description: string;
 }
 
+interface SubCategory {
+  id: number;
+  category_id: number;
+  category_name?: string;
+  name: string;
+  slug: string;
+  description?: string;
+  display_order?: number;
+  status?: string;
+}
+
 interface TestSeriesItem {
   id: number;
   title: string;
   slug: string;
   category_name?: string;
   category_id: number;
+  sub_category_name?: string;
+  sub_category_id?: number | null;
   description: string;
   thumbnail_url?: string;
   instructions?: string;
@@ -164,6 +178,8 @@ export default function StudentTestSeries() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | 'ALL'>('ALL');
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<number | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 250);
   const [mySeriesSearchQuery, setMySeriesSearchQuery] = useState('');
@@ -303,6 +319,13 @@ export default function StudentTestSeries() {
         .catch(() => ({ data: { data: [] } }));
       if (catRes?.data?.data && Array.isArray(catRes.data.data)) {
         setCategories(catRes.data.data);
+      }
+
+      const subCatRes = await axios.get('/api/student/test-series/sub-categories', { headers })
+        .catch(() => axios.get('http://localhost:3000/api/student/test-series/sub-categories', { headers }))
+        .catch(() => ({ data: { data: [] } }));
+      if (subCatRes?.data?.data && Array.isArray(subCatRes.data.data)) {
+        setSubCategories(subCatRes.data.data);
       }
 
       // Fetch student wallet overview
@@ -753,15 +776,23 @@ export default function StudentTestSeries() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const activeSubCategories = useMemo(() => {
+    if (selectedCategory === 'ALL') {
+      return subCategories;
+    }
+    return subCategories.filter(sc => sc.category_id === selectedCategory);
+  }, [subCategories, selectedCategory]);
+
   const filteredSeries = useMemo(() => {
     const q = debouncedSearchQuery.toLowerCase().trim();
     return availableSeries.filter(s => {
       const matchesCat = selectedCategory === 'ALL' || s.category_id === selectedCategory;
+      const matchesSubCat = selectedSubCategory === 'ALL' || s.sub_category_id === selectedSubCategory;
       const matchesSearch = !q || s.title.toLowerCase().includes(q) || (s.description && s.description.toLowerCase().includes(q));
       const matchesType = filterType === 'ALL' || (filterType === 'FREE' && s.is_free) || (filterType === 'PAID' && !s.is_free);
-      return matchesCat && matchesSearch && matchesType;
+      return matchesCat && matchesSubCat && matchesSearch && matchesType;
     });
-  }, [availableSeries, selectedCategory, debouncedSearchQuery, filterType]);
+  }, [availableSeries, selectedCategory, selectedSubCategory, debouncedSearchQuery, filterType]);
 
   if (isTakingExam && activeTest) {
     const currentQ = examQuestions[currentQIndex];
@@ -1487,72 +1518,113 @@ export default function StudentTestSeries() {
       {activeTab === 'discover' && (
         <div className="space-y-6">
           {/* Filters & Search */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-              <button
-                onClick={() => setSelectedCategory('ALL')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${
-                  selectedCategory === 'ALL'
-                    ? 'bg-slate-900 text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                }`}
-              >
-                All Categories
-              </button>
-              {categories.map(cat => (
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
                 <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
+                  onClick={() => {
+                    setSelectedCategory('ALL');
+                    setSelectedSubCategory('ALL');
+                  }}
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${
-                    selectedCategory === cat.id
+                    selectedCategory === 'ALL'
                       ? 'bg-slate-900 text-white shadow-2xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
                   }`}
                 >
-                  {cat.name}
+                  All Categories
                 </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
-                <button
-                  onClick={() => setFilterType('ALL')}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    filterType === 'ALL' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setFilterType('FREE')}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    filterType === 'FREE' ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Free
-                </button>
-                <button
-                  onClick={() => setFilterType('PAID')}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    filterType === 'PAID' ? 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Paid
-                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setSelectedCategory(cat.id);
+                      setSelectedSubCategory('ALL');
+                    }}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${
+                      selectedCategory === cat.id
+                        ? 'bg-slate-900 text-white shadow-2xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
               </div>
 
-              <div className="relative flex-1 md:w-64">
-                <Search size={16} className="absolute left-3.5 top-2.5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search test series..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-1.5 text-xs bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
-                />
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
+                  <button
+                    onClick={() => setFilterType('ALL')}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      filterType === 'ALL' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setFilterType('FREE')}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      filterType === 'FREE' ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Free
+                  </button>
+                  <button
+                    onClick={() => setFilterType('PAID')}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      filterType === 'PAID' ? 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Paid
+                  </button>
+                </div>
+
+                <div className="relative flex-1 md:w-64">
+                  <Search size={16} className="absolute left-3.5 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search test series..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3.5 py-1.5 text-xs bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
+                  />
+                </div>
               </div>
             </div>
+
+            {/* Smart Sub-Category Filter Bar */}
+            {activeSubCategories.length > 0 && (
+              <div className="pt-2.5 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 shrink-0 mr-1">
+                  <FolderTree size={12} className="text-indigo-600" />
+                  Sub-Category:
+                </span>
+                <button
+                  onClick={() => setSelectedSubCategory('ALL')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer ${
+                    selectedSubCategory === 'ALL'
+                      ? 'bg-indigo-600 text-white shadow-2xs'
+                      : 'bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100'
+                  }`}
+                >
+                  All {selectedCategory !== 'ALL' ? (categories.find(c => c.id === selectedCategory)?.name || '') : 'Sub-Categories'}
+                </button>
+                {activeSubCategories.map(sc => (
+                  <button
+                    key={sc.id}
+                    onClick={() => setSelectedSubCategory(sc.id)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer ${
+                      selectedSubCategory === sc.id
+                        ? 'bg-indigo-600 text-white shadow-2xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                    }`}
+                  >
+                    {sc.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Test Series Grid */}
@@ -1584,9 +1656,17 @@ export default function StudentTestSeries() {
                       )}
 
                       <div className="p-4 pb-3 flex items-center justify-between border-b border-slate-100 bg-slate-50/50">
-                        <span className="px-2.5 py-0.5 bg-white text-slate-700 border border-slate-200 text-[11px] font-semibold rounded-md">
-                          {series.category_name || 'General'}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-2.5 py-0.5 bg-white text-slate-700 border border-slate-200 text-[11px] font-semibold rounded-md">
+                            {series.category_name || 'General'}
+                          </span>
+                          {series.sub_category_name && (
+                            <span className="px-2 py-0.5 bg-indigo-50/70 text-indigo-700 border border-indigo-200/60 text-[10px] font-semibold rounded-md flex items-center gap-1">
+                              <FolderTree size={11} className="text-indigo-500" />
+                              {series.sub_category_name}
+                            </span>
+                          )}
+                        </div>
                         {series.unlocked_via_elite_pass ? (
                           <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-black rounded-md flex items-center gap-1">
                             <Crown size={12} className="text-amber-600" /> ELITE PASS
@@ -1769,6 +1849,12 @@ export default function StudentTestSeries() {
                           <span className="px-2.5 py-0.5 bg-slate-800 text-slate-200 text-xs font-medium rounded-md">
                             {series.category_name || 'General'}
                           </span>
+                          {series.sub_category_name && (
+                            <span className="px-2 py-0.5 bg-indigo-950/80 text-indigo-300 border border-indigo-800 text-xs font-semibold rounded-md flex items-center gap-1">
+                              <FolderTree size={11} className="text-indigo-400" />
+                              {series.sub_category_name}
+                            </span>
+                          )}
                           {isFreeSeries ? (
                             <span className="px-2.5 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs font-semibold rounded-md flex items-center gap-1">
                               <CheckCircle2 size={12} /> Free Access
@@ -2103,9 +2189,17 @@ export default function StudentTestSeries() {
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 sm:p-7 border border-slate-200 shadow-xl space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between">
               <div>
-                <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold rounded-md">
-                  {selectedSeriesDetail.category_name || 'Category'}
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold rounded-md">
+                    {selectedSeriesDetail.category_name || 'Category'}
+                  </span>
+                  {selectedSeriesDetail.sub_category_name && (
+                    <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-md flex items-center gap-1">
+                      <FolderTree size={12} className="text-indigo-600" />
+                      {selectedSeriesDetail.sub_category_name}
+                    </span>
+                  )}
+                </div>
                 <h3 className="text-xl font-bold text-slate-900 mt-2 tracking-tight">{selectedSeriesDetail.title}</h3>
               </div>
               <button

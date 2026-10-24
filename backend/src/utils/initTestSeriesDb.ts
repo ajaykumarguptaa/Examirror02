@@ -22,6 +22,22 @@ export async function initTestSeriesDatabase() {
     await db.query(`ALTER TABLE test_categories ADD COLUMN thumbnail_url TEXT NULL AFTER description`);
   } catch (e) {}
 
+  // 1b. Test Sub Categories (Hierarchical Sub-classification)
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS test_sub_categories (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      category_id INT NOT NULL,
+      name VARCHAR(150) NOT NULL,
+      slug VARCHAR(150) NOT NULL,
+      description TEXT,
+      display_order INT DEFAULT 0,
+      status ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (category_id) REFERENCES test_categories(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
   // 2. Test Payment QR Configurations
   await db.query(`
     CREATE TABLE IF NOT EXISTS test_payment_qr (
@@ -99,6 +115,24 @@ export async function initTestSeriesDatabase() {
     `);
   } catch (e) {
     // Column already exists
+  }
+
+  try {
+    await db.query(`
+      ALTER TABLE test_series 
+      ADD COLUMN sub_category_id INT NULL AFTER category_id
+    `);
+  } catch (e) {
+    // Column already exists
+  }
+
+  try {
+    await db.query(`
+      ALTER TABLE test_series 
+      ADD CONSTRAINT fk_test_series_sub_cat FOREIGN KEY (sub_category_id) REFERENCES test_sub_categories(id) ON DELETE SET NULL
+    `);
+  } catch (e) {
+    // Constraint already exists
   }
 
   // 4. Test Series Allowed Centres (for SELECTED_CENTRES scope)
@@ -348,6 +382,63 @@ export async function initTestSeriesDatabase() {
       ('Accounting & Tally Prime', 'accounting-tally', 'Computerized financial accounting, GST invoicing, TDS and ledger practical exams', 'FileText', 5);
     `);
     console.log('✓ Seeded default test categories');
+  }
+
+  // Seed default Sub-Categories if empty
+  const [subCatRows]: any = await db.query('SELECT COUNT(*) as count FROM test_sub_categories');
+  if (subCatRows[0].count === 0) {
+    const [cats]: any = await db.query('SELECT id, slug FROM test_categories');
+    const itCat = cats.find((c: any) => c.slug === 'it-computer');
+    const sscCat = cats.find((c: any) => c.slug === 'ssc-cgl');
+    const bankCat = cats.find((c: any) => c.slug === 'banking-ibps');
+    const rrbCat = cats.find((c: any) => c.slug === 'railway-rrb');
+    const tallyCat = cats.find((c: any) => c.slug === 'accounting-tally');
+
+    const subCatsToSeed: any[] = [];
+    if (itCat) {
+      subCatsToSeed.push(
+        [itCat.id, 'ADCA Diploma', 'adca-diploma', 'Advanced Diploma in Computer Applications', 1],
+        [itCat.id, 'DCA Certificate', 'dca-certificate', 'Diploma in Computer Applications', 2],
+        [itCat.id, 'Python Programming', 'python-programming', 'Core and Advanced Python with OOP', 3],
+        [itCat.id, 'Web Development', 'web-development', 'HTML, CSS, JavaScript, React basics', 4]
+      );
+    }
+    if (sscCat) {
+      subCatsToSeed.push(
+        [sscCat.id, 'SSC CGL (Tier 1 & 2)', 'ssc-cgl-tier-1-2', 'Combined Graduate Level Examination', 1],
+        [sscCat.id, 'SSC CHSL (10+2)', 'ssc-chsl', 'Combined Higher Secondary Level Examination', 2],
+        [sscCat.id, 'SSC MTS & Havaldar', 'ssc-mts', 'Multi-Tasking Staff examination', 3],
+        [sscCat.id, 'SSC GD Constable', 'ssc-gd-constable', 'General Duty Constable exam series', 4]
+      );
+    }
+    if (bankCat) {
+      subCatsToSeed.push(
+        [bankCat.id, 'IBPS PO (Probationary Officer)', 'ibps-po', 'IBPS PO Prelims and Mains', 1],
+        [bankCat.id, 'IBPS Clerk', 'ibps-clerk', 'Clerical Cadre National Examination', 2],
+        [bankCat.id, 'SBI PO & Clerk', 'sbi-po-clerk', 'State Bank of India Examinations', 3]
+      );
+    }
+    if (rrbCat) {
+      subCatsToSeed.push(
+        [rrbCat.id, 'RRB NTPC (Non-Technical)', 'rrb-ntpc', 'Non-Technical Popular Categories', 1],
+        [rrbCat.id, 'RRB Group D', 'rrb-group-d', 'Level 1 Posts Examination', 2],
+        [rrbCat.id, 'RRB ALP & Technician', 'rrb-alp', 'Assistant Loco Pilot Examination', 3]
+      );
+    }
+    if (tallyCat) {
+      subCatsToSeed.push(
+        [tallyCat.id, 'Tally Prime with GST', 'tally-prime-gst', 'Financial accounting & GST invoicing', 1],
+        [tallyCat.id, 'Advanced Excel for Accountants', 'advanced-excel', 'Pivot tables, VLOOKUP, Financial formulas', 2]
+      );
+    }
+
+    for (const sc of subCatsToSeed) {
+      await db.query(`
+        INSERT INTO test_sub_categories (category_id, name, slug, description, display_order)
+        VALUES (?, ?, ?, ?, ?)
+      `, sc);
+    }
+    console.log('✓ Seeded default test sub-categories');
   }
 
   // Seed default Global Payment QR if empty

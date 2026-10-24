@@ -50,6 +50,55 @@ export const testSeriesService = {
   },
 
   // ==========================================
+  // SUPER ADMIN & STUDENT: SUB-CATEGORIES
+  // ==========================================
+  getSubCategories: async (categoryId?: number | string) => {
+    let query = `
+      SELECT sc.*, c.name as category_name 
+      FROM test_sub_categories sc
+      JOIN test_categories c ON sc.category_id = c.id
+    `;
+    const params: any[] = [];
+    if (categoryId && categoryId !== 'ALL' && Number(categoryId) > 0) {
+      query += ` WHERE sc.category_id = ?`;
+      params.push(Number(categoryId));
+    }
+    query += ` ORDER BY sc.display_order ASC, sc.id ASC`;
+    const [rows]: any = await db.query(query, params);
+    return rows;
+  },
+
+  createSubCategory: async (data: any) => {
+    const { category_id, name, slug, description, display_order, status } = data;
+    const finalSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    const [result]: any = await db.query(`
+      INSERT INTO test_sub_categories (category_id, name, slug, description, display_order, status)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [category_id, name, finalSlug, description || '', display_order || 0, status || 'ACTIVE']);
+    return { id: result.insertId, ...data, slug: finalSlug };
+  },
+
+  updateSubCategory: async (id: number | string, data: any) => {
+    const { category_id, name, slug, description, display_order, status } = data;
+    await db.query(`
+      UPDATE test_sub_categories
+      SET category_id = COALESCE(?, category_id),
+          name = COALESCE(?, name),
+          slug = COALESCE(?, slug),
+          description = COALESCE(?, description),
+          display_order = COALESCE(?, display_order),
+          status = COALESCE(?, status)
+      WHERE id = ?
+    `, [category_id, name, slug, description, display_order, status, id]);
+    return { id, ...data };
+  },
+
+  deleteSubCategory: async (id: number | string) => {
+    await db.query('DELETE FROM test_sub_categories WHERE id = ?', [id]);
+    return { success: true };
+  },
+
+  // ==========================================
   // SUPER ADMIN: PAYMENT QR CONFIGURATION
   // ==========================================
   getPaymentQRs: async () => {
@@ -156,6 +205,7 @@ export const testSeriesService = {
       SELECT 
         ts.*,
         c.name as category_name,
+        sc.name as sub_category_name,
         qr.upi_id as qr_upi_id,
         qr.account_name as qr_account_name,
         (SELECT COUNT(*) FROM tests t WHERE t.test_series_id = ts.id) as tests_count,
@@ -172,6 +222,7 @@ export const testSeriesService = {
         (SELECT COUNT(*) FROM test_payments tp WHERE tp.test_series_id = ts.id AND tp.status = 'PENDING') as pending_payments
       FROM test_series ts
       LEFT JOIN test_categories c ON ts.category_id = c.id
+      LEFT JOIN test_sub_categories sc ON ts.sub_category_id = sc.id
       LEFT JOIN test_payment_qr qr ON ts.payment_qr_id = qr.id
     `;
 
@@ -229,15 +280,16 @@ export const testSeriesService = {
 
     const [result]: any = await db.query(`
       INSERT INTO test_series (
-        title, slug, category_id, description, thumbnail_url, instructions,
+        title, slug, category_id, sub_category_id, description, thumbnail_url, instructions,
         exam_type, language, difficulty, total_tests, price, is_free,
         duration_minutes, validity_days, publish_scope, payment_qr_id,
         start_date, end_date, scheduled_publish_time, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       data.title,
       finalSlug,
       data.category_id && Number(data.category_id) > 0 ? Number(data.category_id) : null,
+      data.sub_category_id && Number(data.sub_category_id) > 0 ? Number(data.sub_category_id) : null,
       data.description || '',
       thumbUrl || '',
       data.instructions || '',
@@ -307,6 +359,7 @@ export const testSeriesService = {
       SET title = COALESCE(?, title),
           slug = COALESCE(?, slug),
           category_id = COALESCE(?, category_id),
+          sub_category_id = ?,
           description = COALESCE(?, description),
           thumbnail_url = COALESCE(?, thumbnail_url),
           instructions = COALESCE(?, instructions),
@@ -329,6 +382,7 @@ export const testSeriesService = {
       data.title,
       data.slug,
       data.category_id && Number(data.category_id) > 0 ? Number(data.category_id) : null,
+      data.sub_category_id && Number(data.sub_category_id) > 0 ? Number(data.sub_category_id) : null,
       data.description,
       thumbUrl,
       data.instructions,
@@ -991,6 +1045,7 @@ export const testSeriesService = {
         ts.*,
         c.name as category_name,
         c.slug as category_slug,
+        sc.name as sub_category_name,
         COALESCE(qr.upi_id, gqr.upi_id) as upi_id,
         COALESCE(qr.account_name, gqr.account_name) as account_name,
         COALESCE(qr.qr_image_url, gqr.qr_image_url) as qr_image_url,
@@ -1011,6 +1066,7 @@ export const testSeriesService = {
         tp.utr_number as latest_utr
       FROM test_series ts
       LEFT JOIN test_categories c ON ts.category_id = c.id
+      LEFT JOIN test_sub_categories sc ON ts.sub_category_id = sc.id
       LEFT JOIN test_payment_qr qr ON ts.payment_qr_id = qr.id
       LEFT JOIN (
         SELECT * FROM test_payment_qr WHERE is_global_default = 1 ORDER BY id DESC LIMIT 1
@@ -1136,9 +1192,11 @@ export const testSeriesService = {
         tse.expires_at,
         tp.status as payment_status,
         tp.utr_number,
-        tp.rejection_reason
+        tp.rejection_reason,
+        sc.name as sub_category_name
       FROM test_series ts
       LEFT JOIN test_categories c ON ts.category_id = c.id
+      LEFT JOIN test_sub_categories sc ON ts.sub_category_id = sc.id
       LEFT JOIN test_payment_qr qr ON ts.payment_qr_id = qr.id
       LEFT JOIN (
         SELECT * FROM test_payment_qr WHERE is_global_default = 1 ORDER BY id DESC LIMIT 1

@@ -41,7 +41,8 @@ import {
   Clock3,
   ListOrdered,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  FolderTree
 } from 'lucide-react';
 import { StudyMaterialManagementTab } from '../../components/admin/StudyMaterialManagementTab';
 import { BulkQuestionJsonImportModal } from '../../components/admin/BulkQuestionJsonImportModal';
@@ -54,6 +55,7 @@ export const TestSeriesManagement = () => {
   // Series Filter
   const [seriesSearch, setSeriesSearch] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
+  const [selectedSubCategoryFilter, setSelectedSubCategoryFilter] = useState('ALL');
   const [seriesStatusFilter, setSeriesStatusFilter] = useState<'ALL' | 'PUBLISHED' | 'DRAFT' | 'SCHEDULED' | 'ARCHIVED'>('ALL');
 
   // Modals
@@ -85,6 +87,15 @@ export const TestSeriesManagement = () => {
   const [newCatDesc, setNewCatDesc] = useState('');
   const [newCatThumbnail, setNewCatThumbnail] = useState('');
   const [isUploadingCatThumb, setIsUploadingCatThumb] = useState(false);
+
+  // Sub-Categories Modals & Form
+  const [isSubCategoryModalOpen, setIsSubCategoryModalOpen] = useState(false);
+  const [editingSubCategory, setEditingSubCategory] = useState<any | null>(null);
+  const [newSubCatParentId, setNewSubCatParentId] = useState<string>('');
+  const [newSubCatName, setNewSubCatName] = useState('');
+  const [newSubCatDesc, setNewSubCatDesc] = useState('');
+  const [deletingSubCategoryTarget, setDeletingSubCategoryTarget] = useState<any | null>(null);
+  const [isDeletingSubCategoryLoading, setIsDeletingSubCategoryLoading] = useState(false);
 
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [editingQr, setEditingQr] = useState<any | null>(null);
@@ -121,6 +132,7 @@ export const TestSeriesManagement = () => {
     title: '',
     slug: '',
     category_id: '',
+    sub_category_id: '',
     description: '',
     thumbnail_url: '',
     instructions: '• Do not refresh or switch tabs during test\n• Negative marking applies for incorrect attempts\n• Detailed scorecard generated upon submission',
@@ -184,6 +196,14 @@ export const TestSeriesManagement = () => {
     queryKey: ['adminCategories'],
     queryFn: async () => {
       const res = await axios.get('/api/admin/categories');
+      return res.data?.data || [];
+    }
+  });
+
+  const { data: subCategories = [] } = useQuery({
+    queryKey: ['adminSubCategories'],
+    queryFn: async () => {
+      const res = await axios.get('/api/admin/sub-categories');
       return res.data?.data || [];
     }
   });
@@ -260,6 +280,7 @@ export const TestSeriesManagement = () => {
       title: '',
       slug: '',
       category_id: categories[0]?.id || '',
+      sub_category_id: '',
       description: '',
       thumbnail_url: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=600',
       instructions: '• Total questions indicated inside\n• Negative marking applies for incorrect attempts\n• Do not switch browser tabs during test',
@@ -296,6 +317,7 @@ export const TestSeriesManagement = () => {
       title: series.title,
       slug: series.slug,
       category_id: series.category_id || '',
+      sub_category_id: series.sub_category_id ? String(series.sub_category_id) : '',
       description: series.description || '',
       thumbnail_url: series.thumbnail_url || '',
       instructions: series.instructions || '',
@@ -345,6 +367,7 @@ export const TestSeriesManagement = () => {
       const payload = {
         ...seriesForm,
         category_id: seriesForm.category_id && Number(seriesForm.category_id) > 0 ? Number(seriesForm.category_id) : null,
+        sub_category_id: seriesForm.sub_category_id && Number(seriesForm.sub_category_id) > 0 ? Number(seriesForm.sub_category_id) : null,
         payment_qr_id: seriesForm.payment_qr_id && Number(seriesForm.payment_qr_id) > 0 ? Number(seriesForm.payment_qr_id) : null,
         price: Number(seriesForm.price) || 0,
         duration_minutes: Number(seriesForm.duration_minutes) || 60,
@@ -528,8 +551,9 @@ export const TestSeriesManagement = () => {
   const filteredSeries = seriesList.filter((s: any) => {
     const matchesSearch = !seriesSearch || s.title.toLowerCase().includes(seriesSearch.toLowerCase());
     const matchesCat = selectedCategoryFilter === 'ALL' || String(s.category_id) === String(selectedCategoryFilter);
+    const matchesSubCat = selectedSubCategoryFilter === 'ALL' || String(s.sub_category_id) === String(selectedSubCategoryFilter);
     const matchesStatus = seriesStatusFilter === 'ALL' || s.status === seriesStatusFilter;
-    return matchesSearch && matchesCat && matchesStatus;
+    return matchesSearch && matchesCat && matchesSubCat && matchesStatus;
   });
 
   return (
@@ -673,18 +697,39 @@ export const TestSeriesManagement = () => {
               />
             </div>
 
-            <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
               <span className="text-xs font-semibold text-slate-500">Category:</span>
               <select
                 className="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white outline-none cursor-pointer"
                 value={selectedCategoryFilter}
-                onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                onChange={(e) => {
+                  setSelectedCategoryFilter(e.target.value);
+                  setSelectedSubCategoryFilter('ALL');
+                }}
               >
                 <option value="ALL">All Categories</option>
                 {categories.map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+
+              {selectedCategoryFilter !== 'ALL' && (
+                <>
+                  <span className="text-xs font-semibold text-slate-500 ml-1">Sub-Category:</span>
+                  <select
+                    className="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white outline-none cursor-pointer"
+                    value={selectedSubCategoryFilter}
+                    onChange={(e) => setSelectedSubCategoryFilter(e.target.value)}
+                  >
+                    <option value="ALL">All Sub-Categories</option>
+                    {subCategories
+                      .filter((sc: any) => String(sc.category_id) === String(selectedCategoryFilter))
+                      .map((sc: any) => (
+                        <option key={sc.id} value={sc.id}>{sc.name}</option>
+                      ))}
+                  </select>
+                </>
+              )}
             </div>
           </div>
 
@@ -742,9 +787,17 @@ export const TestSeriesManagement = () => {
                     {/* Body */}
                     <div className="p-5 flex flex-col flex-grow space-y-3">
                       <div>
-                        <span className="text-[10px] uppercase font-bold text-blue-600 tracking-wider">
-                          {series.category_name || 'General Mock'}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] uppercase font-bold text-blue-600 tracking-wider">
+                            {series.category_name || 'General Mock'}
+                          </span>
+                          {series.sub_category_name && (
+                            <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-1.5 py-0.5 rounded flex items-center gap-1">
+                              <FolderTree size={10} className="text-indigo-500" />
+                              {series.sub_category_name}
+                            </span>
+                          )}
+                        </div>
                         <h3 className="font-bold text-base text-slate-900 line-clamp-2 mt-0.5">
                           {series.title}
                         </h3>
@@ -985,19 +1038,34 @@ export const TestSeriesManagement = () => {
               <h3 className="font-bold text-base text-slate-900">Test Series Categories</h3>
               <p className="text-xs text-slate-500">Manage categories displayed on student discovery tabs.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setEditingCategory(null);
-                setNewCatName('');
-                setNewCatDesc('');
-                setNewCatThumbnail('');
-                setIsCategoryModalOpen(true);
-              }}
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
-            >
-              <Plus size={14} /> Add Category
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingSubCategory(null);
+                  setNewSubCatParentId(categories[0]?.id ? String(categories[0].id) : '');
+                  setNewSubCatName('');
+                  setNewSubCatDesc('');
+                  setIsSubCategoryModalOpen(true);
+                }}
+                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer border border-indigo-200 transition-colors"
+              >
+                <FolderTree size={14} /> Add Sub-Category
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingCategory(null);
+                  setNewCatName('');
+                  setNewCatDesc('');
+                  setNewCatThumbnail('');
+                  setIsCategoryModalOpen(true);
+                }}
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Plus size={14} /> Add Category
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -1044,6 +1112,64 @@ export const TestSeriesManagement = () => {
                     >
                       <Trash2 size={14} />
                     </button>
+                  </div>
+                </div>
+
+                {/* Sub Categories inside Category Card */}
+                <div className="pt-3 border-t border-slate-200/80">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                      <FolderTree size={12} className="text-indigo-600" />
+                      Sub-Categories ({subCategories.filter((sc: any) => sc.category_id === cat.id).length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingSubCategory(null);
+                        setNewSubCatParentId(String(cat.id));
+                        setNewSubCatName('');
+                        setNewSubCatDesc('');
+                        setIsSubCategoryModalOpen(true);
+                      }}
+                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <Plus size={11} /> Add
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {subCategories.filter((sc: any) => sc.category_id === cat.id).map((sc: any) => (
+                      <span
+                        key={sc.id}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-xs shadow-2xs group/sub"
+                      >
+                        <span className="font-medium">{sc.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingSubCategory(sc);
+                            setNewSubCatParentId(String(sc.category_id));
+                            setNewSubCatName(sc.name || '');
+                            setNewSubCatDesc(sc.description || '');
+                            setIsSubCategoryModalOpen(true);
+                          }}
+                          className="hover:text-blue-600 cursor-pointer ml-0.5 text-slate-400 hover:text-blue-600"
+                          title="Edit Sub-Category"
+                        >
+                          <Edit size={10} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingSubCategoryTarget(sc)}
+                          className="hover:text-rose-600 cursor-pointer text-slate-400 hover:text-rose-600"
+                          title="Delete Sub-Category"
+                        >
+                          <Trash2 size={10} />
+                        </button>
+                      </span>
+                    ))}
+                    {subCategories.filter((sc: any) => sc.category_id === cat.id).length === 0 && (
+                      <span className="text-[11px] text-slate-400 italic">No sub-categories yet</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1511,13 +1637,47 @@ export const TestSeriesManagement = () => {
                   <select
                     required
                     value={seriesForm.category_id}
-                    onChange={(e) => setSeriesForm({ ...seriesForm, category_id: e.target.value })}
+                    onChange={(e) => {
+                      const newCatId = e.target.value;
+                      setSeriesForm({ ...seriesForm, category_id: newCatId, sub_category_id: '' });
+                    }}
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none"
                   >
                     <option value="">Select Category</option>
                     {categories.map((c: any) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
+                  </select>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-700">Sub-Category</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingSubCategory(null);
+                        setNewSubCatParentId(seriesForm.category_id ? String(seriesForm.category_id) : (categories[0]?.id ? String(categories[0].id) : ''));
+                        setNewSubCatName('');
+                        setNewSubCatDesc('');
+                        setIsSubCategoryModalOpen(true);
+                      }}
+                      className="text-indigo-600 hover:text-indigo-800 text-[11px] font-bold flex items-center gap-0.5 hover:underline cursor-pointer"
+                    >
+                      <Plus size={12} /> New Sub-Category
+                    </button>
+                  </div>
+                  <select
+                    value={seriesForm.sub_category_id || ''}
+                    onChange={(e) => setSeriesForm({ ...seriesForm, sub_category_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none"
+                  >
+                    <option value="">None / General</option>
+                    {subCategories
+                      .filter((sc: any) => !seriesForm.category_id || String(sc.category_id) === String(seriesForm.category_id))
+                      .map((sc: any) => (
+                        <option key={sc.id} value={sc.id}>{sc.name}</option>
+                      ))}
                   </select>
                 </div>
 
@@ -2700,6 +2860,126 @@ export const TestSeriesManagement = () => {
       )}
 
       {/* ========================================== */}
+      {/* MODAL: ADD / EDIT SUB-CATEGORY */}
+      {/* ========================================== */}
+      {isSubCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl border border-slate-200 text-xs my-8">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="font-bold text-base text-slate-900">
+                  {editingSubCategory ? 'Edit Sub-Category' : 'Create Sub-Category'}
+                </h3>
+                <p className="text-slate-500 text-xs">Organize tests under a parent category.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setIsSubCategoryModalOpen(false); setEditingSubCategory(null); }}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Parent Category *</label>
+                <select
+                  value={newSubCatParentId}
+                  onChange={(e) => setNewSubCatParentId(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-indigo-600 cursor-pointer"
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Sub-Category Name *</label>
+                <input
+                  type="text"
+                  value={newSubCatName}
+                  onChange={(e) => setNewSubCatName(e.target.value)}
+                  placeholder="e.g. SSC CGL (Tier 1 & 2), ADCA Diploma"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Description (Optional)</label>
+                <textarea
+                  rows={3}
+                  value={newSubCatDesc}
+                  onChange={(e) => setNewSubCatDesc(e.target.value)}
+                  placeholder="Brief summary of syllabus or target audience..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => { setIsSubCategoryModalOpen(false); setEditingSubCategory(null); }}
+                className="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!newSubCatParentId) {
+                    showToast('error', 'Please select a parent category');
+                    return;
+                  }
+                  if (!newSubCatName.trim()) {
+                    showToast('error', 'Sub-category name is required');
+                    return;
+                  }
+                  try {
+                    if (editingSubCategory) {
+                      await axios.put(`/api/admin/sub-categories/${editingSubCategory.id}`, {
+                        category_id: Number(newSubCatParentId),
+                        name: newSubCatName.trim(),
+                        description: newSubCatDesc.trim()
+                      });
+                      showToast('success', 'Sub-category updated successfully');
+                    } else {
+                      const res = await axios.post('/api/admin/sub-categories', {
+                        category_id: Number(newSubCatParentId),
+                        name: newSubCatName.trim(),
+                        description: newSubCatDesc.trim()
+                      });
+                      showToast('success', `Sub-category "${newSubCatName.trim()}" created`);
+                      if (res.data?.data?.id) {
+                        setSeriesForm(prev => ({
+                          ...prev,
+                          category_id: String(newSubCatParentId),
+                          sub_category_id: String(res.data.data.id)
+                        }));
+                      }
+                    }
+                    await queryClient.invalidateQueries({ queryKey: ['adminSubCategories'] });
+                    setIsSubCategoryModalOpen(false);
+                    setEditingSubCategory(null);
+                    setNewSubCatName('');
+                    setNewSubCatDesc('');
+                  } catch (err: any) {
+                    showToast('error', err.response?.data?.message || 'Failed to save sub-category');
+                  }
+                }}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-xs cursor-pointer"
+              >
+                {editingSubCategory ? 'Save Changes' : 'Create Sub-Category'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================== */}
       {/* MODAL: ADD / EDIT PAYMENT QR */}
       {/* ========================================== */}
       {isQrModalOpen && (
@@ -3328,6 +3608,66 @@ export const TestSeriesManagement = () => {
               >
                 <Trash2 size={13} />
                 {isDeletingCategoryLoading ? 'Deleting...' : 'Delete Category'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================== */}
+      {/* MODAL: SECONDARY CONFIRMATION DELETE SUB-CATEGORY */}
+      {/* ========================================== */}
+      {deletingSubCategoryTarget && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0">
+                <Trash2 size={24} />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 leading-snug">
+                  Delete Sub-Category?
+                </h3>
+                <p className="text-xs text-slate-500">Remove sub-category classification permanently.</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-1">
+              <div className="font-bold text-slate-900 text-xs">{deletingSubCategoryTarget.name}</div>
+              <div className="text-[11px] text-slate-500">
+                Associated test series will be set to general (category preserved).
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isDeletingSubCategoryLoading}
+                onClick={() => setDeletingSubCategoryTarget(null)}
+                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingSubCategoryLoading}
+                onClick={async () => {
+                  try {
+                    setIsDeletingSubCategoryLoading(true);
+                    await axios.delete(`/api/admin/sub-categories/${deletingSubCategoryTarget.id}`);
+                    showToast('success', `Sub-Category "${deletingSubCategoryTarget.name}" deleted.`);
+                    await queryClient.invalidateQueries({ queryKey: ['adminSubCategories'] });
+                    setDeletingSubCategoryTarget(null);
+                  } catch (err: any) {
+                    showToast('error', err.response?.data?.message || 'Failed to delete sub-category');
+                  } finally {
+                    setIsDeletingSubCategoryLoading(false);
+                  }
+                }}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Trash2 size={13} />
+                {isDeletingSubCategoryLoading ? 'Deleting...' : 'Delete Sub-Category'}
               </button>
             </div>
           </div>

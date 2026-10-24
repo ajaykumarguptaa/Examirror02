@@ -1265,3 +1265,22 @@ VALUES
   (2, 'ELITE', 'Examirror Elite Pass', 'All-Access VIP Pass to ALL Test Series & Live Mocks', 299.00, 999.00, 365, '["UNLIMITED 1-Click Access to ALL Paid Test Series", "Zero Extra Payment - Instant Test Activation", "Unlimited Mock Re-attempts & Practice Rounds", "Official All India Ranking (AIR) & Percentile Cards", "Detailed Solution PDF Explanations", "VIP Candidate Verification Badge & Priority Support", "Valid for Full 365 Days (1 Year)"]', 'BEST VALUE', 1)
 ON DUPLICATE KEY UPDATE `price` = VALUES(`price`), `original_price` = VALUES(`original_price`), `title` = VALUES(`title`);
 
+--
+-- Table structure and seed data for `test_sub_categories`
+--
+
+CREATE TABLE IF NOT EXISTS `test_sub_categories` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `category_id` INT NOT NULL,
+  `name` VARCHAR(150) NOT NULL,
+  `slug` VARCHAR(150) NOT NULL,
+  `description` TEXT,
+  `display_order` INT DEFAULT 0,
+  `status` ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`category_id`) REFERENCES `test_categories`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add sub_category_id to test_series if missing
+ALTER TABLE `test_series` ADD COLUMN IF NOT EXISTS `sub_category_id` INT NULL AFTER `category_id`;

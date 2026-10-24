@@ -104,6 +104,57 @@ const handleDeleteCategory = async (req: Request, res: Response) => {
 router.delete('/admin/categories/:id', handleDeleteCategory);
 router.delete('/admin/test-series/categories/:id', handleDeleteCategory);
 
+// 1b. Sub-Categories
+const handleGetSubCategories = async (req: Request, res: Response) => {
+  try {
+    const categoryId = req.query.categoryId as string;
+    const data = await testSeriesService.getSubCategories(categoryId);
+    res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+router.get('/admin/sub-categories', handleGetSubCategories);
+router.get('/admin/test-series/sub-categories', handleGetSubCategories);
+router.get('/student/test-series/sub-categories', handleGetSubCategories);
+router.get('/public/sub-categories', handleGetSubCategories);
+router.get('/sub-categories', handleGetSubCategories);
+
+const handleCreateSubCategory = async (req: Request, res: Response) => {
+  try {
+    const data = await testSeriesService.createSubCategory(req.body);
+    res.status(201).json({ success: true, data });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+router.post('/admin/sub-categories', handleCreateSubCategory);
+router.post('/admin/test-series/sub-categories', handleCreateSubCategory);
+
+const handleUpdateSubCategory = async (req: Request, res: Response) => {
+  try {
+    const id = getParam(req.params.id);
+    const data = await testSeriesService.updateSubCategory(id, req.body);
+    res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+router.put('/admin/sub-categories/:id', handleUpdateSubCategory);
+router.put('/admin/test-series/sub-categories/:id', handleUpdateSubCategory);
+
+const handleDeleteSubCategory = async (req: Request, res: Response) => {
+  try {
+    const id = getParam(req.params.id);
+    await testSeriesService.deleteSubCategory(id);
+    res.status(200).json({ success: true, message: 'Sub-category deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+router.delete('/admin/sub-categories/:id', handleDeleteSubCategory);
+router.delete('/admin/test-series/sub-categories/:id', handleDeleteSubCategory);
+
 // 2. Payment QRs
 const handleGetPaymentQRs = async (req: Request, res: Response) => {
   try {
