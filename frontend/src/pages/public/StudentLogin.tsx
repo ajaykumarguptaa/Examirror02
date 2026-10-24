@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LogIn, Lock, Mail, AlertCircle, Eye, EyeOff, GraduationCap, Sparkles, UserPlus } from 'lucide-react';
 import axios from 'axios';
@@ -8,6 +8,10 @@ import { DirectStudentRegisterModal } from '../../components/DirectStudentRegist
 
 const StudentLogin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const redirectPath = searchParams.get('redirect') || '/student';
+
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,7 +26,8 @@ const StudentLogin = () => {
 
     try {
       const trimmed = identifier.trim();
-      const res = await axios.post('http://localhost:3000/api/student/login', {
+      const loginUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/student/login' : '/api/student/login';
+      const res = await axios.post(loginUrl, {
         email: trimmed,
         password: password
       });
@@ -35,8 +40,8 @@ const StudentLogin = () => {
         // Trigger custom event so any active layouts update immediately
         window.dispatchEvent(new Event('student-auth-changed'));
 
-        // Redirect to student dashboard
-        navigate('/student');
+        // Redirect to intended target destination or student dashboard
+        navigate(redirectPath);
       } else {
         setErrorMessage(res.data?.message || 'Invalid credentials');
       }

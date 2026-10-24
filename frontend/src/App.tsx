@@ -24,6 +24,7 @@ const TermsAndConditions = lazy(() => import('./pages/public/TermsAndConditions'
 const PrivacyPolicy = lazy(() => import('./pages/public/PrivacyPolicy'));
 const CandidateTestPortal = lazy(() => import('./pages/public/CandidateTestPortal'));
 const TestSeriesPage = lazy(() => import('./pages/public/TestSeriesPage'));
+const PublicPasses = lazy(() => import('./pages/public/PublicPasses'));
 
 // Center Portal Pages (Code-Split)
 const CenterDashboard = lazy(() => import('./pages/center/CenterDashboard'));
@@ -127,6 +128,9 @@ function App() {
           <Route path="about" element={<About />} />
           <Route path="courses" element={<Courses />} />
           <Route path="test-series" element={<TestSeriesPage />} />
+          <Route path="passes" element={<PublicPasses />} />
+          <Route path="pass" element={<PublicPasses />} />
+          <Route path="elite-pass" element={<PublicPasses />} />
           <Route path="centers" element={<Centers />} />
           <Route path="gallery" element={<Gallery />} />
           <Route path="notes" element={<StudyMaterialLibrary />} />

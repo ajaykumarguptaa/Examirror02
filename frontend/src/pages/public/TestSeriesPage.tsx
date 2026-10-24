@@ -24,7 +24,8 @@ import {
   ChevronDown,
   X,
   IndianRupee,
-  Check
+  Check,
+  Crown
 } from 'lucide-react';
 import SEO from '../../components/SEO';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -253,6 +254,32 @@ export default function TestSeriesPage() {
             <span>Register Now</span>
             <ArrowRight size={15} />
           </button>
+        </div>
+
+        {/* Elite Pass All-Access Banner */}
+        <div className="mb-6 p-4.5 rounded-2xl bg-gradient-to-r from-amber-950/90 via-slate-950 to-amber-950/90 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl border border-amber-500/30 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-full bg-amber-500/10 blur-2xl pointer-events-none" />
+          <div className="flex items-center gap-3.5 text-left relative z-10">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 flex items-center justify-center shrink-0 shadow-lg font-black">
+              <Crown size={22} className="text-slate-950" />
+            </div>
+            <div>
+              <div className="text-[11px] font-black text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                <span>Examirror Elite Pass • 365 Days Unlimited Access</span>
+              </div>
+              <div className="text-xs sm:text-sm font-semibold text-white mt-0.5">
+                Don't buy individual tests! Unlock all live mock exams, solutions & All-India ranks for just <span className="text-amber-400 font-extrabold">₹499/year</span>.
+              </div>
+            </div>
+          </div>
+          <Link
+            to="/passes"
+            className="px-5 py-2.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 active:scale-95 text-slate-950 font-black rounded-xl text-xs sm:text-sm flex items-center gap-2 shrink-0 shadow-lg shadow-amber-500/20 cursor-pointer transition-all relative z-10"
+          >
+            <span>Explore Elite Pass</span>
+            <ArrowRight size={15} />
+          </Link>
         </div>
 
         {/* Search, Filter & Controls Toolbar */}

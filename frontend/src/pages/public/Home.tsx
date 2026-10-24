@@ -36,7 +36,8 @@ import {
   FileText,
   Camera,
   Download,
-  BadgeCheck
+  BadgeCheck,
+  Crown
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -48,6 +49,7 @@ const QrCameraScannerModal = lazy(() => import('../../components/QrCameraScanner
 const DirectStudentRegisterModal = lazy(() => import('../../components/DirectStudentRegisterModal').then(m => ({ default: m.DirectStudentRegisterModal })));
 import HeroVisualSlider from '../../components/home/HeroVisualSlider';
 import HomeHeroSpotlightAdCard from '../../components/home/HomeHeroSpotlightAdCard';
+import { HomeElitePassSection } from '../../components/home/HomeElitePassSection';
 import { type HomeAdvertisementSettings } from '../../types/advertisement';
 import {
   DEFAULT_HOME_SETTINGS,
@@ -1848,6 +1850,15 @@ const Home = () => {
                 </button>
 
                 <Link
+                  to="/passes"
+                  className="btn-elastic hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-yellow-500/15 to-amber-500/10 border border-amber-300 text-amber-800 text-xs sm:text-sm font-black hover:bg-amber-100 shadow-2xs cursor-pointer transition-all"
+                  title="Unlock all test series with Elite Pass"
+                >
+                  <Crown size={15} className="text-amber-600 animate-pulse" />
+                  <span>Elite Pass (₹499)</span>
+                </Link>
+
+                <Link
                   to="/test-series"
                   className="btn-glow-primary btn-shimmer btn-elastic px-4.5 py-2.5 rounded-xl text-xs sm:text-sm font-black inline-flex items-center gap-2 shadow-md cursor-pointer"
                 >
@@ -1986,6 +1997,9 @@ const Home = () => {
           </div>
         </section>
       )}
+
+      {/* 6.8. Examirror Elite Pass VIP Membership Showcase */}
+      <HomeElitePassSection />
 
       {/* 7. Recently Joined Centers Showcase (Dynamic Horizontal Slider) */}
       {centersSection?.enabled !== false && (

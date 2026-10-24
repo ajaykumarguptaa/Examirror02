@@ -22,8 +22,9 @@ const PublicLayout = () => {
   const franchiseRef = useRef<HTMLDivElement>(null);
 
   const isLinkActive = (path: string) => {
-    if (path === '/') return pathname === '/' && (!location.hash || location.hash !== '#test-series');
+    if (path === '/') return pathname === '/' && (!location.hash || (location.hash !== '#test-series' && location.hash !== '#elite-pass'));
     if (path === '/test-series') return pathname === '/test-series' || pathname.startsWith('/test-series');
+    if (path === '/passes') return pathname === '/passes' || pathname === '/pass' || pathname === '/elite-pass' || (pathname === '/' && location.hash === '#elite-pass');
     if (path === '/centers' && (pathname === '/centers' || pathname === '/branches' || pathname.startsWith('/centers/') || pathname.startsWith('/branches/'))) {
       return true;
     }
@@ -38,6 +39,7 @@ const PublicLayout = () => {
     { label: 'About Us', path: '/about' },
     { label: 'Courses', path: '/courses' },
     { label: 'Test Series', path: '/test-series', badge: 'Live' },
+    { label: 'Elite Pass', path: '/passes', badge: 'VIP' },
     { label: 'E-Notes', path: '/notes' },
     { label: 'Branches', path: '/centers' },
     { label: 'Gallery', path: '/gallery' },
@@ -539,6 +541,8 @@ const PublicLayout = () => {
             <div className="space-y-2">
               <h4 className="text-white font-bold text-xs tracking-wider uppercase opacity-90">Quick Links</h4>
               <ul className="space-y-1.5 text-xs font-medium">
+                <li><Link to="/passes" className="text-amber-400 font-bold hover:text-amber-300 transition-colors inline-flex items-center gap-1"><span>👑 Examirror Elite Pass</span></Link></li>
+                <li><Link to="/test-series" className="hover:text-white transition-colors">Test Series & Mocks</Link></li>
                 <li><Link to="/courses" className="hover:text-white transition-colors">Courses Catalog</Link></li>
                 <li><Link to="/gallery" className="hover:text-white transition-colors">Photo Gallery</Link></li>
                 <li><Link to="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link></li>
