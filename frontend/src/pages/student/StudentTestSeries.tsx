@@ -38,6 +38,7 @@ import {
   Bell,
   Info,
   ArrowRight,
+  ArrowLeft,
   Maximize2,
   Minimize2,
   Target,
@@ -133,13 +134,29 @@ export default function StudentTestSeries() {
   const activeTab: 'discover' | 'my_series' | 'achievements' =
     (tabParam === 'my_series' || tabParam === 'achievements') ? tabParam : 'discover';
 
+  const selectedSeriesId = searchParams.get('seriesId') ? Number(searchParams.get('seriesId')) : null;
+
   const setActiveTab = useCallback((tab: 'discover' | 'my_series' | 'achievements') => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       if (tab === 'discover') {
         next.delete('tab');
+        next.delete('seriesId');
       } else {
         next.set('tab', tab);
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const setSelectedSeriesId = useCallback((seriesId: number | null) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (seriesId) {
+        next.set('seriesId', String(seriesId));
+        next.set('tab', 'my_series');
+      } else {
+        next.delete('seriesId');
       }
       return next;
     }, { replace: true });
@@ -375,18 +392,8 @@ export default function StudentTestSeries() {
   };
 
   const handleGoToSeriesTests = (seriesId: number) => {
-    setActiveTab('my_series');
-    setMySeriesSearchQuery('');
-    setTimeout(() => {
-      const el = document.getElementById(`series-${seriesId}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.classList.add('ring-4', 'ring-emerald-400', 'shadow-2xl');
-        setTimeout(() => {
-          el.classList.remove('ring-4', 'ring-emerald-400', 'shadow-2xl');
-        }, 3000);
-      }
-    }, 150);
+    setSelectedSeriesId(seriesId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleOpenPayment = (series: TestSeriesItem) => {
@@ -1686,45 +1693,75 @@ export default function StudentTestSeries() {
       )}
 
       {/* MY ENROLLED SERIES TAB */}
-      {activeTab === 'my_series' && (
-        <div className="space-y-6 w-full">
-          {/* Search box for Enrolled Series */}
-          {mySeries.length > 1 && (
-            <div className="flex items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
-              <div className="relative flex-1">
-                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search enrolled series by title..."
-                  value={mySeriesSearchQuery}
-                  onChange={(e) => setMySeriesSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-indigo-500 font-medium text-slate-800"
-                />
-              </div>
-              <span className="text-xs text-slate-500 font-semibold px-2">
-                {mySeries.filter(s => !mySeriesSearchQuery.trim() || s.title.toLowerCase().includes(mySeriesSearchQuery.toLowerCase())).length} Enrolled Series
-              </span>
-            </div>
-          )}
+      {activeTab === 'my_series' && (() => {
+        const selectedSeriesObj = selectedSeriesId
+          ? (mySeries.find(s => s.id === selectedSeriesId) || availableSeries.find(s => s.id === selectedSeriesId) || null)
+          : null;
 
-          {mySeries.length > 0 ? (
-            <div className="space-y-6">
-              {mySeries
-                .filter(s => !mySeriesSearchQuery.trim() || s.title.toLowerCase().includes(mySeriesSearchQuery.toLowerCase()) || (s.description && s.description.toLowerCase().includes(mySeriesSearchQuery.toLowerCase())))
-                .map(series => {
-                const isFreeSeries = Boolean(series.is_free) || Number(series.price) === 0;
-                const enrollmentStatus = series.enrollment_status;
-                const isApproved = isFreeSeries || enrollmentStatus === 'APPROVED';
-                const isPending = !isFreeSeries && (enrollmentStatus === 'PENDING' || enrollmentStatus === 'PAYMENT_PENDING');
-                const isRejected = !isFreeSeries && enrollmentStatus === 'REJECTED';
-                const testsCount = series.tests?.length || 0;
+        const displayMySeries = selectedSeriesObj
+          ? [selectedSeriesObj]
+          : mySeries.filter(s => !mySeriesSearchQuery.trim() || s.title.toLowerCase().includes(mySeriesSearchQuery.toLowerCase()) || (s.description && s.description.toLowerCase().includes(mySeriesSearchQuery.toLowerCase())));
 
-                return (
-                  <div
-                    key={series.id}
-                    id={`series-${series.id}`}
-                    className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden transition-all duration-500"
+        return (
+          <div className="space-y-6 w-full">
+            {/* Selected Series Breadcrumb Header with Back button */}
+            {selectedSeriesObj && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-4.5 rounded-2xl shadow-lg border border-indigo-900/60 animate-in fade-in slide-in-from-top-3 duration-200">
+                <div className="flex items-center gap-3 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSeriesId(null)}
+                    className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer border border-white/10 active:scale-95 shrink-0"
                   >
+                    <ArrowLeft size={16} />
+                    <span>View All Series</span>
+                  </button>
+                  <div className="border-l border-white/20 pl-3 min-w-0">
+                    <span className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider block">Selected Test Series</span>
+                    <h3 className="text-sm sm:text-base font-black text-white truncate">{selectedSeriesObj.title}</h3>
+                  </div>
+                </div>
+                <span className="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-xl font-bold shrink-0">
+                  {selectedSeriesObj.tests?.length || 0} Mock Tests Inside
+                </span>
+              </div>
+            )}
+
+            {/* Search box for Enrolled Series (Only shown when browsing all series) */}
+            {!selectedSeriesObj && mySeries.length > 1 && (
+              <div className="flex items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+                <div className="relative flex-1">
+                  <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search enrolled series by title..."
+                    value={mySeriesSearchQuery}
+                    onChange={(e) => setMySeriesSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-indigo-500 font-medium text-slate-800"
+                  />
+                </div>
+                <span className="text-xs text-slate-500 font-semibold px-2">
+                  {displayMySeries.length} Enrolled Series
+                </span>
+              </div>
+            )}
+
+            {displayMySeries.length > 0 ? (
+              <div className="space-y-6">
+                {displayMySeries.map(series => {
+                  const isFreeSeries = Boolean(series.is_free) || Number(series.price) === 0;
+                  const enrollmentStatus = series.enrollment_status;
+                  const isApproved = isFreeSeries || enrollmentStatus === 'APPROVED' || series.unlocked_via_elite_pass;
+                  const isPending = !isFreeSeries && (enrollmentStatus === 'PENDING' || enrollmentStatus === 'PAYMENT_PENDING');
+                  const isRejected = !isFreeSeries && enrollmentStatus === 'REJECTED';
+                  const testsCount = series.tests?.length || 0;
+
+                  return (
+                    <div
+                      key={series.id}
+                      id={`series-${series.id}`}
+                      className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden transition-all duration-500"
+                    >
                     {/* Header Banner */}
                     <div className="p-5 sm:p-6 bg-slate-900 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
                       <div className="space-y-1.5">
@@ -1975,7 +2012,8 @@ export default function StudentTestSeries() {
             </div>
           )}
         </div>
-      )}
+      );
+    })()}
 
       {/* ACHIEVEMENTS TAB */}
       {activeTab === 'achievements' && (
