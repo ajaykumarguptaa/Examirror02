@@ -201,6 +201,10 @@ export async function initTestSeriesDatabase() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
+  // Safe migration: expand enrollment_type and status to VARCHAR(50)
+  try { await db.query(`ALTER TABLE test_series_enrollments MODIFY COLUMN enrollment_type VARCHAR(50) DEFAULT 'FREE'`); } catch (e) {}
+  try { await db.query(`ALTER TABLE test_series_enrollments MODIFY COLUMN status VARCHAR(50) DEFAULT 'ACTIVE'`); } catch (e) {}
+
   // 9. Test Payments (Manual UPI / QR with UTR submission)
   await db.query(`
     CREATE TABLE IF NOT EXISTS test_payments (

@@ -264,8 +264,8 @@ export class StudentWalletService {
     // Grant Active Enrollment
     await db.query(
       `INSERT INTO test_series_enrollments (student_id, test_series_id, centre_id, enrollment_type, status, expires_at)
-       VALUES (?, ?, ?, 'PAID', 'APPROVED', DATE_ADD(NOW(), INTERVAL ? DAY))
-       ON DUPLICATE KEY UPDATE status = 'APPROVED', expires_at = DATE_ADD(NOW(), INTERVAL ? DAY)`,
+       VALUES (?, ?, ?, 'PAID', 'ACTIVE', DATE_ADD(NOW(), INTERVAL ? DAY))
+       ON DUPLICATE KEY UPDATE status = 'ACTIVE', expires_at = DATE_ADD(NOW(), INTERVAL ? DAY)`,
       [sId, sSeriesId, student.centerId, validityDays, validityDays]
     );
 
