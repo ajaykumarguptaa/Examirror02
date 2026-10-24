@@ -149,6 +149,7 @@ export default function StudentTestSeries() {
   const [selectedCategory, setSelectedCategory] = useState<number | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 250);
+  const [mySeriesSearchQuery, setMySeriesSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'FREE' | 'PAID'>('ALL');
 
   const [availableSeries, setAvailableSeries] = useState<TestSeriesItem[]>([]);
@@ -371,6 +372,21 @@ export default function StudentTestSeries() {
     } catch (err: any) {
       showToast('error', err.response?.data?.message || 'Failed to enroll in free series');
     }
+  };
+
+  const handleGoToSeriesTests = (seriesId: number) => {
+    setActiveTab('my_series');
+    setMySeriesSearchQuery('');
+    setTimeout(() => {
+      const el = document.getElementById(`series-${seriesId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-4', 'ring-emerald-400', 'shadow-2xl');
+        setTimeout(() => {
+          el.classList.remove('ring-4', 'ring-emerald-400', 'shadow-2xl');
+        }, 3000);
+      }
+    }, 150);
   };
 
   const handleOpenPayment = (series: TestSeriesItem) => {
@@ -1590,15 +1606,15 @@ export default function StudentTestSeries() {
                         <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100 text-center text-xs mt-4">
                           <div>
                             <div className="text-slate-400 text-[10px] font-semibold uppercase">Tests</div>
-                            <div className="font-bold text-slate-900">{series.total_tests_count || 1} Tests</div>
+                            <div className="font-bold text-slate-900">{series.tests?.length || series.total_tests_count || 1} Tests</div>
                           </div>
                           <div>
                             <div className="text-slate-400 text-[10px] font-semibold uppercase">Duration</div>
-                            <div className="font-bold text-slate-900">{series.duration_minutes} Mins</div>
+                            <div className="font-bold text-slate-900">{series.tests?.[0]?.duration_minutes || series.duration_minutes || 60} Mins</div>
                           </div>
                           <div>
                             <div className="text-slate-400 text-[10px] font-semibold uppercase">Validity</div>
-                            <div className="font-bold text-slate-900">{series.validity_days} Days</div>
+                            <div className="font-bold text-slate-900">{series.validity_days || 365} Days</div>
                           </div>
                         </div>
                       </div>
@@ -1617,7 +1633,7 @@ export default function StudentTestSeries() {
 
                       {isEnrolled || series.unlocked_via_elite_pass ? (
                         <button
-                          onClick={() => setActiveTab('my_series')}
+                          onClick={() => handleGoToSeriesTests(series.id)}
                           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
                         >
                           {series.unlocked_via_elite_pass && <Crown size={13} className="text-amber-300" />}
@@ -1672,9 +1688,30 @@ export default function StudentTestSeries() {
       {/* MY ENROLLED SERIES TAB */}
       {activeTab === 'my_series' && (
         <div className="space-y-6 w-full">
+          {/* Search box for Enrolled Series */}
+          {mySeries.length > 1 && (
+            <div className="flex items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="relative flex-1">
+                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search enrolled series by title..."
+                  value={mySeriesSearchQuery}
+                  onChange={(e) => setMySeriesSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-indigo-500 font-medium text-slate-800"
+                />
+              </div>
+              <span className="text-xs text-slate-500 font-semibold px-2">
+                {mySeries.filter(s => !mySeriesSearchQuery.trim() || s.title.toLowerCase().includes(mySeriesSearchQuery.toLowerCase())).length} Enrolled Series
+              </span>
+            </div>
+          )}
+
           {mySeries.length > 0 ? (
             <div className="space-y-6">
-              {mySeries.map(series => {
+              {mySeries
+                .filter(s => !mySeriesSearchQuery.trim() || s.title.toLowerCase().includes(mySeriesSearchQuery.toLowerCase()) || (s.description && s.description.toLowerCase().includes(mySeriesSearchQuery.toLowerCase())))
+                .map(series => {
                 const isFreeSeries = Boolean(series.is_free) || Number(series.price) === 0;
                 const enrollmentStatus = series.enrollment_status;
                 const isApproved = isFreeSeries || enrollmentStatus === 'APPROVED';
@@ -1685,7 +1722,8 @@ export default function StudentTestSeries() {
                 return (
                   <div
                     key={series.id}
-                    className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden"
+                    id={`series-${series.id}`}
+                    className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden transition-all duration-500"
                   >
                     {/* Header Banner */}
                     <div className="p-5 sm:p-6 bg-slate-900 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
@@ -2047,21 +2085,45 @@ export default function StudentTestSeries() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-center text-xs">
               <div>
                 <div className="text-slate-400 font-semibold uppercase text-[10px]">Tests</div>
-                <div className="font-bold text-slate-900 text-sm mt-0.5">{selectedSeriesDetail.total_tests_count} Tests</div>
+                <div className="font-bold text-slate-900 text-sm mt-0.5">{selectedSeriesDetail.tests?.length || selectedSeriesDetail.total_tests_count || 1} Tests</div>
               </div>
               <div>
                 <div className="text-slate-400 font-semibold uppercase text-[10px]">Duration</div>
-                <div className="font-bold text-slate-900 text-sm mt-0.5">{selectedSeriesDetail.duration_minutes} Mins</div>
+                <div className="font-bold text-slate-900 text-sm mt-0.5">{selectedSeriesDetail.tests?.[0]?.duration_minutes || selectedSeriesDetail.duration_minutes || 60} Mins</div>
               </div>
               <div>
                 <div className="text-slate-400 font-semibold uppercase text-[10px]">Validity</div>
-                <div className="font-bold text-slate-900 text-sm mt-0.5">{selectedSeriesDetail.validity_days} Days</div>
+                <div className="font-bold text-slate-900 text-sm mt-0.5">{selectedSeriesDetail.validity_days || 365} Days</div>
               </div>
               <div>
                 <div className="text-slate-400 font-semibold uppercase text-[10px]">Language</div>
-                <div className="font-bold text-slate-900 text-sm mt-0.5">{selectedSeriesDetail.language || 'English'}</div>
+                <div className="font-bold text-slate-900 text-sm mt-0.5">{selectedSeriesDetail.language || 'Bilingual'}</div>
               </div>
             </div>
+
+            {selectedSeriesDetail.tests && selectedSeriesDetail.tests.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <BookOpen size={14} className="text-indigo-600" />
+                  <span>Tests in this Series ({selectedSeriesDetail.tests.length})</span>
+                </h4>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {selectedSeriesDetail.tests.map((t: any) => (
+                    <div key={t.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between text-xs">
+                      <div>
+                        <div className="font-bold text-slate-900">{t.title}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          {t.duration_minutes} Mins • {t.total_marks} Marks • {t.questions_count || t.question_count || 0} Questions
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[10px]">
+                        Available
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {selectedSeriesDetail.instructions && (
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-700 space-y-1">
@@ -2089,15 +2151,17 @@ export default function StudentTestSeries() {
                 >
                   Close
                 </button>
-                {selectedSeriesDetail.enrollment_status === 'APPROVED' ? (
+                {selectedSeriesDetail.enrollment_status === 'APPROVED' || selectedSeriesDetail.unlocked_via_elite_pass ? (
                   <button
                     onClick={() => {
+                      const id = selectedSeriesDetail.id;
                       setShowDetailModal(false);
-                      setActiveTab('my_series');
+                      handleGoToSeriesTests(id);
                     }}
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
                   >
-                    Go to Tests
+                    {selectedSeriesDetail.unlocked_via_elite_pass && <Crown size={13} className="text-amber-300" />}
+                    <span>Go to Tests</span>
                   </button>
                 ) : (selectedSeriesDetail.enrollment_status === 'PENDING' || selectedSeriesDetail.enrollment_status === 'PAYMENT_PENDING') ? (
                   <span className="px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-xs rounded-xl flex items-center gap-1.5">
