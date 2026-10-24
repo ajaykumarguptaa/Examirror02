@@ -54,6 +54,7 @@ import {
 import { downloadOfficialScorecardPdf } from '../../utils/scorecardPdf';
 import { WalletPurchaseConfirmModal, type PurchaseItem } from '../../components/student/WalletPurchaseConfirmModal';
 import { StudentRechargeModal } from '../../components/student/StudentRechargeModal';
+import { Skeleton, SkeletonTestSeriesCard } from '../../components/ui/Skeleton';
 
 interface Category {
   id: number;
@@ -220,6 +221,7 @@ export default function StudentTestSeries() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [paletteFilter, setPaletteFilter] = useState<'ALL' | 'ANSWERED' | 'UNANSWERED' | 'MARKED'>('ALL');
   const [showInstructionsModal, setShowInstructionsModal] = useState(false);
+  const [showBackWarningModal, setShowBackWarningModal] = useState(false);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -347,9 +349,23 @@ export default function StudentTestSeries() {
     loadData();
   }, [loadData]);
 
-  // Anti-cheating visibility detection during live exam
+  // Anti-cheating & Back Prevention during live exam
   useEffect(() => {
     if (!isTakingExam) return;
+
+    // 1. History Trapping: push state so browser back button triggers popstate instead of exiting
+    window.history.pushState({ examActive: true }, '', window.location.href);
+
+    const handlePopState = (e: PopStateEvent) => {
+      // Re-push immediately to keep candidate trapped on the active exam screen
+      window.history.pushState({ examActive: true }, '', window.location.href);
+      setAntiCheatWarnings(prev => {
+        const next = prev + 1;
+        showToast('error', `Back navigation is strictly prohibited during live examination (${next}/3).`, 'Navigation Blocked');
+        return next;
+      });
+      setShowBackWarningModal(true);
+    };
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -363,15 +379,54 @@ export default function StudentTestSeries() {
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue = 'You have an active exam in progress. Are you sure you want to leave?';
+      e.returnValue = 'You have an active examination in progress. Leaving will invalidate your session.';
     };
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent Backspace from navigating backwards outside text fields
+      if (
+        e.key === 'Backspace' &&
+        !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
+      ) {
+        e.preventDefault();
+      }
+
+      // Prevent Navigation Shortcuts: Alt+Left, Alt+ArrowLeft, Cmd+[, BrowserBack
+      if (
+        e.key === 'BrowserBack' ||
+        (e.altKey && (e.key === 'ArrowLeft' || e.key === 'Left')) ||
+        (e.metaKey && e.key === '[')
+      ) {
+        e.preventDefault();
+        setShowBackWarningModal(true);
+      }
+
+      // Prevent Reload Shortcuts: F5, Ctrl+R, Cmd+R
+      if (
+        e.key === 'F5' ||
+        ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))
+      ) {
+        e.preventDefault();
+        showToast('error', 'Page refresh is blocked during live examination.', 'Action Prevented');
+      }
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener('popstate', handlePopState);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('contextmenu', handleContextMenu);
 
     return () => {
+      window.removeEventListener('popstate', handlePopState);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('contextmenu', handleContextMenu);
     };
   }, [isTakingExam]);
 
@@ -1447,6 +1502,53 @@ export default function StudentTestSeries() {
             </div>
           </div>
         )}
+
+        {/* Back Navigation Prohibited Modal */}
+        {showBackWarningModal && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 border border-amber-200/90 shadow-2xl space-y-5">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0 shadow-xs">
+                  <ShieldAlert size={26} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Back Navigation Blocked</h3>
+                  <p className="text-xs text-amber-700 font-medium">Exam integrity protection is active</p>
+                </div>
+              </div>
+
+              <div className="bg-amber-50/70 border border-amber-200/70 rounded-2xl p-4 text-xs text-slate-700 space-y-2 leading-relaxed">
+                <p>
+                  You are attempting to use the browser back button, back navigation swipe, or keyboard shortcut.
+                </p>
+                <p className="font-semibold text-amber-950">
+                  Leaving or refreshing the examination page during a live CBT test is prohibited. Any further attempts are permanently logged as security violations ({antiCheatWarnings}/3).
+                </p>
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowBackWarningModal(false);
+                    setShowConfirmSubmit(true);
+                  }}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl cursor-pointer transition-colors"
+                >
+                  Submit Exam Instead
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowBackWarningModal(false)}
+                  className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 size={16} />
+                  <span>Resume Examination</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1521,35 +1623,46 @@ export default function StudentTestSeries() {
           <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-                <button
-                  onClick={() => {
-                    setSelectedCategory('ALL');
-                    setSelectedSubCategory('ALL');
-                  }}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${
-                    selectedCategory === 'ALL'
-                      ? 'bg-slate-900 text-white shadow-2xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                  }`}
-                >
-                  All Categories
-                </button>
-                {categories.map(cat => (
-                  <button
-                    key={cat.id}
-                    onClick={() => {
-                      setSelectedCategory(cat.id);
-                      setSelectedSubCategory('ALL');
-                    }}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${
-                      selectedCategory === cat.id
-                        ? 'bg-slate-900 text-white shadow-2xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                    }`}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
+                {loading && categories.length === 0 ? (
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-28 bg-slate-200/80 rounded-lg skeleton-shimmer" />
+                    <div className="h-8 w-36 bg-slate-200/80 rounded-lg skeleton-shimmer" />
+                    <div className="h-8 w-32 bg-slate-200/80 rounded-lg skeleton-shimmer" />
+                    <div className="h-8 w-40 bg-slate-200/80 rounded-lg skeleton-shimmer" />
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        setSelectedCategory('ALL');
+                        setSelectedSubCategory('ALL');
+                      }}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${
+                        selectedCategory === 'ALL'
+                          ? 'bg-slate-900 text-white shadow-2xs'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                      }`}
+                    >
+                      All Categories
+                    </button>
+                    {categories.map(cat => (
+                      <button
+                        key={cat.id}
+                        onClick={() => {
+                          setSelectedCategory(cat.id);
+                          setSelectedSubCategory('ALL');
+                        }}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${
+                          selectedCategory === cat.id
+                            ? 'bg-slate-900 text-white shadow-2xs'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                        }`}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
 
               <div className="flex items-center gap-3 w-full md:w-auto">
@@ -1629,9 +1742,10 @@ export default function StudentTestSeries() {
 
           {/* Test Series Grid */}
           {loading ? (
-            <div className="py-20 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent mx-auto"></div>
-              <p className="text-xs font-semibold text-slate-500 mt-3 uppercase tracking-wider">Loading Test Series...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonTestSeriesCard key={i} />
+              ))}
             </div>
           ) : filteredSeries.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

@@ -164,4 +164,60 @@ export const SkeletonPage: React.FC = () => {
   );
 };
 
+/**
+ * Modern Skeletal Test Series Card matching exact 3-column discovery layout
+ */
+export const SkeletonTestSeriesCard: React.FC<{ className?: string }> = ({ className = '' }) => {
+  return (
+    <div
+      className={`bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col justify-between ${className}`}
+      aria-hidden="true"
+    >
+      <div>
+        {/* Thumbnail skeleton with glossy shimmer */}
+        <div className="relative h-36 w-full overflow-hidden bg-slate-200/80">
+          <div className="skeleton-shimmer absolute inset-0" />
+        </div>
+
+        {/* Category & Status Badges Row */}
+        <div className="p-4 pb-3 flex items-center justify-between border-b border-slate-100 bg-slate-50/50">
+          <Skeleton className="h-5 w-20 rounded-md" />
+          <Skeleton className="h-5 w-16 rounded-md" />
+        </div>
+
+        {/* Body: Title, Description, Stats */}
+        <div className="p-5 space-y-3">
+          <div className="space-y-2">
+            <Skeleton className="h-4.5 w-4/5 rounded-md" />
+            <Skeleton className="h-3 w-full rounded" />
+            <Skeleton className="h-3 w-2/3 rounded" />
+          </div>
+
+          {/* 3-Metric Stats Grid */}
+          <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100/90 text-center">
+            <div className="space-y-1">
+              <Skeleton className="h-2 w-8 mx-auto rounded" />
+              <Skeleton className="h-3.5 w-12 mx-auto rounded" />
+            </div>
+            <div className="space-y-1">
+              <Skeleton className="h-2 w-12 mx-auto rounded" />
+              <Skeleton className="h-3.5 w-14 mx-auto rounded" />
+            </div>
+            <div className="space-y-1">
+              <Skeleton className="h-2 w-10 mx-auto rounded" />
+              <Skeleton className="h-3.5 w-14 mx-auto rounded" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer: Details link + Action Button */}
+      <div className="p-4 pt-0 flex items-center justify-between border-t border-transparent">
+        <Skeleton className="h-3.5 w-14 rounded" />
+        <Skeleton className="h-8 w-24 rounded-lg" />
+      </div>
+    </div>
+  );
+};
+
 export default Skeleton;

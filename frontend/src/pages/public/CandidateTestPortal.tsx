@@ -511,9 +511,22 @@ const CandidateTestPortal: React.FC = () => {
     });
   }, [stage, isSubmitting, submitTest]);
 
-  // Tab switch & Window Blur Listeners
+  // Tab switch, Window Blur & Navigation/Back Prevention Listeners
   useEffect(() => {
     if (stage !== 'in_progress') return;
+
+    // History trapping for browser Back button
+    window.history.pushState({ candidateExamActive: true }, '', window.location.href);
+
+    const handlePopState = () => {
+      window.history.pushState({ candidateExamActive: true }, '', window.location.href);
+      triggerViolation('Back Navigation Attempted');
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'You have an active examination in progress. Exiting will submit or invalidate your test.';
+    };
 
     const handleVisibilityChange = () => {
       if (document.hidden || document.visibilityState === 'hidden') {
@@ -535,6 +548,33 @@ const CandidateTestPortal: React.FC = () => {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Block Backspace outside text input
+      if (
+        e.key === 'Backspace' &&
+        !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
+      ) {
+        e.preventDefault();
+      }
+
+      // Block navigation shortcuts
+      if (
+        e.key === 'BrowserBack' ||
+        (e.altKey && (e.key === 'ArrowLeft' || e.key === 'Left')) ||
+        (e.metaKey && e.key === '[')
+      ) {
+        e.preventDefault();
+        triggerViolation('Back Navigation Shortcut');
+      }
+
+      // Block reload (F5, Ctrl+R, Cmd+R)
+      if (
+        e.key === 'F5' ||
+        ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))
+      ) {
+        e.preventDefault();
+        triggerViolation('Page Refresh Attempted');
+      }
+
       // Block Ctrl+C, Ctrl+V, Ctrl+U, Ctrl+P, F12, Ctrl+Shift+I, Alt+Tab
       if (
         e.key === 'F12' ||
@@ -544,6 +584,8 @@ const CandidateTestPortal: React.FC = () => {
       }
     };
 
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleBlur);
     window.addEventListener('contextmenu', handleContextMenu);
@@ -553,6 +595,8 @@ const CandidateTestPortal: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
       window.removeEventListener('contextmenu', handleContextMenu);
