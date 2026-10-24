@@ -945,26 +945,30 @@ const Home = () => {
 
               return (
                 <StaggerItem key={stat.id || idx}>
-                  <motion.div
-                    whileHover={{ y: -6, scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ duration: 0.2 }}
-                    className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-md border border-slate-200 relative overflow-hidden group flex flex-col justify-between h-full cursor-default"
+                  <Tilt3DCard
+                    maxTilt={14}
+                    scale={1.03}
+                    glare={true}
+                    className="h-full rounded-2xl"
                   >
-                    <div>
-                      <div className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight group-hover:text-blue-600 transition-colors duration-200">
-                        <NumberCounter value={stat.value} durationMs={1400} />
+                    <div
+                      className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-xl border border-slate-200/90 relative overflow-hidden group flex flex-col justify-between h-full cursor-default card-3d-elevated preserve-3d"
+                    >
+                      <div className="relative z-10">
+                        <div className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight group-hover:text-blue-600 transition-colors duration-200">
+                          <NumberCounter value={stat.value} durationMs={1400} />
+                        </div>
+                        <div className="text-[11px] sm:text-xs font-bold text-slate-600 mt-1 sm:mt-1.5 leading-snug">
+                          {stat.label}
+                        </div>
                       </div>
-                      <div className="text-[11px] sm:text-xs font-bold text-slate-600 mt-1 sm:mt-1.5 leading-snug">
-                        {stat.label}
-                      </div>
-                    </div>
 
-                    <div className="mt-3 pt-2.5 sm:mt-4 sm:pt-3 border-t border-slate-100 flex items-center justify-center gap-1 text-[10px] sm:text-[11px] font-extrabold text-blue-600">
-                      <Sparkles size={12} className="text-amber-500" />
-                      <span>Verified Milestone</span>
+                      <div className="mt-3 pt-2.5 sm:mt-4 sm:pt-3 border-t border-slate-100 flex items-center justify-center gap-1 text-[10px] sm:text-[11px] font-extrabold text-blue-600 relative z-10">
+                        <Sparkles size={12} className="text-amber-500" />
+                        <span>Verified Milestone</span>
+                      </div>
                     </div>
-                  </motion.div>
+                  </Tilt3DCard>
                 </StaggerItem>
               );
             })}
