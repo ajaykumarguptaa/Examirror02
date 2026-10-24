@@ -593,3 +593,77 @@ body,
 .badge-glow-indigo {
   box-shadow: 0 0 15px -3px rgba(99, 102, 241, 0.3);
 }
+
+/* ========================================================
+   3D IMMERSIVE DESIGN SYSTEM & DEPTH UTILITIES
+   ======================================================== */
+@keyframes float3D {
+  0%, 100% {
+    transform: translateY(0px) rotateX(0deg) rotateY(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotateX(2deg) rotateY(-2deg);
+  }
+}
+
+@keyframes floatSlow3D {
+  0%, 100% {
+    transform: translateY(0px) rotateZ(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotateZ(1deg);
+  }
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-2000 {
+  perspective: 2000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.card-3d-elevated {
+  transform-style: preserve-3d;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 
+    0 10px 30px -10px rgba(15, 23, 42, 0.08),
+    0 20px 25px -5px rgba(15, 23, 42, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+}
+
+.card-3d-elevated:hover {
+  transform: translateY(-6px) translateZ(10px) rotateX(1deg);
+  box-shadow: 
+    0 25px 50px -12px rgba(15, 23, 42, 0.16),
+    0 12px 24px -4px rgba(99, 102, 241, 0.12),
+    0 0 0 1px rgba(99, 102, 241, 0.3) inset;
+}
+
+.btn-3d-tactile {
+  position: relative;
+  transition: all 0.15s ease-out;
+  box-shadow: 0 4px 0 #3730a3, 0 8px 16px -4px rgba(79, 70, 229, 0.4);
+}
+
+.btn-3d-tactile:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 #3730a3, 0 10px 20px -4px rgba(79, 70, 229, 0.5);
+}
+
+.btn-3d-tactile:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #3730a3, 0 4px 8px -2px rgba(79, 70, 229, 0.3);
+}
+
+.animate-float-3d {
+  animation: float3D 6s ease-in-out infinite;
+}
+
+.animate-float-slow-3d {
+  animation: floatSlow3D 9s ease-in-out infinite;
+}
