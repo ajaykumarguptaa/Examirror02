@@ -1112,7 +1112,7 @@ const Home = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
 
               {/* Card 1: Center Verification */}
-              <div className={`${mobileVerifyTab === 'center' ? 'block' : 'hidden'} md:block bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden group`}>
+              <div className={`${mobileVerifyTab === 'center' ? 'block' : 'hidden'} md:block bg-white rounded-2xl border border-slate-200 shadow-sm card-hover-lift p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden group`}>
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -1219,7 +1219,7 @@ const Home = () => {
               </div>
 
               {/* Card 2: Student Verification (Highlighted Hero Card with Warm Amber Theme) */}
-              <div className={`${mobileVerifyTab === 'student' ? 'block' : 'hidden'} md:block bg-amber-400 text-slate-950 rounded-2xl border border-amber-500 shadow-sm hover:shadow-md transition-all p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden group`}>
+              <div className={`${mobileVerifyTab === 'student' ? 'block' : 'hidden'} md:block bg-amber-400 text-slate-950 rounded-2xl border border-amber-500 shadow-sm card-hover-lift p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden group`}>
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -1326,7 +1326,7 @@ const Home = () => {
               </div>
 
               {/* Card 3: Certificate Verification */}
-              <div className={`${mobileVerifyTab === 'cert' ? 'block' : 'hidden'} md:block bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden group`}>
+              <div className={`${mobileVerifyTab === 'cert' ? 'block' : 'hidden'} md:block bg-white rounded-2xl border border-slate-200 shadow-sm card-hover-lift p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden group`}>
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
