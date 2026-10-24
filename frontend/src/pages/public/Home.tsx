@@ -1116,326 +1116,347 @@ const Home = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
 
               {/* Card 1: Center Verification */}
-              <div className={`${mobileVerifyTab === 'center' ? 'block' : 'hidden'} md:block bg-white rounded-2xl border border-slate-200 shadow-sm card-hover-lift p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden group`}>
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                        <Building2 size={20} />
+              <Tilt3DCard
+                maxTilt={6}
+                scale={1.015}
+                glare={true}
+                className={`${mobileVerifyTab === 'center' ? 'block' : 'hidden'} md:block h-full rounded-2xl`}
+              >
+                <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-7 flex flex-col justify-between h-full relative overflow-hidden group card-3d-elevated preserve-3d">
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                          <Building2 size={20} />
+                        </div>
+                        <div>
+                          <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+                            Center Verification
+                          </h3>
+                          <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md inline-block">
+                            Study Center
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
-                          Center Verification
-                        </h3>
-                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md inline-block">
-                          Study Center
-                        </span>
-                      </div>
                     </div>
-                  </div>
-                  <p className="text-xs text-slate-500 mb-4 font-normal">
-                    Enter official Center Registration / Affiliation Code
-                  </p>
+                    <p className="text-xs text-slate-500 mb-4 font-normal">
+                      Enter official Center Registration / Affiliation Code
+                    </p>
 
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleVerifyCenter();
-                    }}
-                    className="space-y-3"
-                  >
-                    <div className="relative">
-                      <Building2 size={16} className="text-slate-400 absolute left-3.5 top-3" />
-                      <input
-                        type="text"
-                        value={centerInput}
-                        onChange={(e) => setCenterInput(e.target.value)}
-                        placeholder="e.g. CENT001 or 6767"
-                        required
-                        className="w-full bg-slate-50 focus:bg-white border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 rounded-xl pl-10 pr-8 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none transition-all font-medium"
-                      />
-                      {centerInput && (
-                        <button
-                          type="button"
-                          onClick={() => setCenterInput('')}
-                          className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Quick Demo Pill Suggestions */}
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                      <span className="font-semibold text-slate-400">Try:</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCenterInput('CENT001');
-                          handleVerifyCenter('CENT001');
-                        }}
-                        className="px-2 py-0.5 bg-slate-100 hover:bg-blue-100 hover:text-blue-700 font-mono text-slate-700 rounded text-[11px] transition-colors cursor-pointer"
-                      >
-                        CENT001
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCenterInput('6767');
-                          handleVerifyCenter('6767');
-                        }}
-                        className="px-2 py-0.5 bg-slate-100 hover:bg-blue-100 hover:text-blue-700 font-mono text-slate-700 rounded text-[11px] transition-colors cursor-pointer"
-                      >
-                        6767
-                      </button>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={verificationLoading !== null}
-                      className="w-full mt-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm flex items-center justify-center gap-2 text-sm transition-all active:scale-98 cursor-pointer disabled:opacity-50"
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleVerifyCenter();
+                      }}
+                      className="space-y-3"
                     >
-                      {verificationLoading === 'center' ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" />
-                          <span>Verifying Center...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Search size={15} />
-                          <span>Verify Center</span>
-                          <ArrowRight size={14} />
-                        </>
-                      )}
-                    </button>
-                  </form>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <ShieldCheck size={13} className="text-blue-600" />
-                    <span>Authorized Center Portal</span>
-                  </span>
-                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                    <CheckCircle2 size={12} /> 100% Genuine
-                  </span>
-                </div>
-              </div>
-
-              {/* Card 2: Student Verification (Highlighted Hero Card with Warm Amber Theme) */}
-              <div className={`${mobileVerifyTab === 'student' ? 'block' : 'hidden'} md:block bg-amber-400 text-slate-950 rounded-2xl border border-amber-500 shadow-sm card-hover-lift p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden group`}>
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-950 text-amber-400 flex items-center justify-center shrink-0">
-                        <GraduationCap size={20} />
+                      <div className="relative">
+                        <Building2 size={16} className="text-slate-400 absolute left-3.5 top-3" />
+                        <input
+                          type="text"
+                          value={centerInput}
+                          onChange={(e) => setCenterInput(e.target.value)}
+                          placeholder="e.g. CENT001 or 6767"
+                          required
+                          className="w-full bg-slate-50 focus:bg-white border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 rounded-xl pl-10 pr-8 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none transition-all font-medium"
+                        />
+                        {centerInput && (
+                          <button
+                            type="button"
+                            onClick={() => setCenterInput('')}
+                            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
                       </div>
-                      <div>
-                        <h3 className="text-base sm:text-lg font-bold text-slate-950 leading-snug">
-                          Student Verification
-                        </h3>
-                        <span className="text-[10px] font-bold text-amber-950 bg-amber-300 px-2 py-0.5 rounded-md inline-block">
-                          Official Record
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-amber-950 mb-4 font-medium opacity-90">
-                    Enter Student Roll No. or Enrollment ID
-                  </p>
 
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleVerifyStudent();
-                    }}
-                    className="space-y-3"
-                  >
-                    <div className="relative">
-                      <UserCheck size={16} className="text-slate-500 absolute left-3.5 top-3" />
-                      <input
-                        type="text"
-                        value={studentInput}
-                        onChange={(e) => setStudentInput(e.target.value)}
-                        placeholder="e.g. EXM-2026-1001 or ROL-10001"
-                        required
-                        className="w-full bg-white border border-amber-600/40 focus:border-slate-950 focus:ring-2 focus:ring-amber-200 rounded-xl pl-10 pr-8 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none transition-all font-medium"
-                      />
-                      {studentInput && (
+                      {/* Quick Demo Pill Suggestions */}
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                        <span className="font-semibold text-slate-400">Try:</span>
                         <button
                           type="button"
-                          onClick={() => setStudentInput('')}
-                          className="absolute right-3 top-3 text-slate-500 hover:text-slate-800"
+                          onClick={() => {
+                            setCenterInput('CENT001');
+                            handleVerifyCenter('CENT001');
+                          }}
+                          className="px-2 py-0.5 bg-slate-100 hover:bg-blue-100 hover:text-blue-700 font-mono text-slate-700 rounded text-[11px] transition-colors cursor-pointer"
                         >
-                          <X size={14} />
+                          CENT001
                         </button>
-                      )}
-                    </div>
-
-                    {/* Quick Demo Pill Suggestions */}
-                    <div className="flex items-center gap-1.5 text-[11px] text-amber-950 font-medium">
-                      <span className="opacity-80">Try:</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStudentInput('EXM-2026-1001');
-                          handleVerifyStudent('EXM-2026-1001');
-                        }}
-                        className="px-2 py-0.5 bg-amber-300 hover:bg-slate-950 hover:text-amber-400 font-mono text-slate-950 rounded text-[11px] font-semibold transition-colors cursor-pointer"
-                      >
-                        EXM-2026-1001
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStudentInput('ROL-10001');
-                          handleVerifyStudent('ROL-10001');
-                        }}
-                        className="px-2 py-0.5 bg-amber-300 hover:bg-slate-950 hover:text-amber-400 font-mono text-slate-950 rounded text-[11px] font-semibold transition-colors cursor-pointer"
-                      >
-                        ROL-10001
-                      </button>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={verificationLoading !== null}
-                      className="w-full mt-2 py-2.5 px-4 bg-slate-950 hover:bg-slate-900 text-white font-semibold rounded-xl shadow-sm flex items-center justify-center gap-2 text-sm transition-all active:scale-98 cursor-pointer disabled:opacity-50"
-                    >
-                      {verificationLoading === 'student' ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin text-amber-400" />
-                          <span>Verifying Record...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Search size={15} className="text-amber-400" />
-                          <span>Verify Student</span>
-                          <ArrowRight size={14} />
-                        </>
-                      )}
-                    </button>
-                  </form>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-amber-500/60 flex items-center justify-between text-[11px] text-amber-950 font-medium">
-                  <span className="flex items-center gap-1">
-                    <Database size={13} className="text-amber-950" />
-                    <span>Centralized Database</span>
-                  </span>
-                  <span className="text-amber-950 font-semibold flex items-center gap-1">
-                    <CheckCircle2 size={12} /> 100% Genuine
-                  </span>
-                </div>
-              </div>
-
-              {/* Card 3: Certificate Verification */}
-              <div className={`${mobileVerifyTab === 'cert' ? 'block' : 'hidden'} md:block bg-white rounded-2xl border border-slate-200 shadow-sm card-hover-lift p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden group`}>
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                        <Award size={20} />
-                      </div>
-                      <div>
-                        <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
-                          Certificate Verification
-                        </h3>
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md inline-block">
-                          Tamper-Proof
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500 mb-4 font-normal">
-                    Enter Certified Marksheet or Diploma Number
-                  </p>
-
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleVerifyCert();
-                    }}
-                    className="space-y-3"
-                  >
-                    <div className="relative">
-                      <Award size={16} className="text-slate-400 absolute left-3.5 top-3" />
-                      <input
-                        type="text"
-                        value={certInput}
-                        onChange={(e) => setCertInput(e.target.value)}
-                        placeholder="e.g. Certificate / Roll No"
-                        required
-                        className="w-full bg-slate-50 focus:bg-white border border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 rounded-xl pl-10 pr-8 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none transition-all font-medium"
-                      />
-                      {certInput && (
                         <button
                           type="button"
-                          onClick={() => setCertInput('')}
-                          className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                          onClick={() => {
+                            setCenterInput('6767');
+                            handleVerifyCenter('6767');
+                          }}
+                          className="px-2 py-0.5 bg-slate-100 hover:bg-blue-100 hover:text-blue-700 font-mono text-slate-700 rounded text-[11px] transition-colors cursor-pointer"
                         >
-                          <X size={14} />
+                          6767
                         </button>
-                      )}
-                    </div>
+                      </div>
 
-                    {/* Quick Demo Pill Suggestions */}
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                      <span className="font-semibold text-slate-400">Try:</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCertInput('EXM-2026-1001');
-                          handleVerifyCert('EXM-2026-1001');
-                        }}
-                        className="px-2 py-0.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 font-mono text-slate-700 rounded text-[11px] transition-colors cursor-pointer"
-                      >
-                        EXM-2026-1001
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCertInput('ROL-10002');
-                          handleVerifyCert('ROL-10002');
-                        }}
-                        className="px-2 py-0.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 font-mono text-slate-700 rounded text-[11px] transition-colors cursor-pointer"
-                      >
-                        ROL-10002
-                      </button>
-                    </div>
-
-                    <div className="mt-2">
                       <button
                         type="submit"
                         disabled={verificationLoading !== null}
-                        className="w-full py-2.5 px-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl shadow-sm flex items-center justify-center gap-1.5 text-xs sm:text-sm transition-all active:scale-98 cursor-pointer disabled:opacity-50"
+                        className="w-full mt-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm flex items-center justify-center gap-2 text-sm transition-all btn-3d-tactile cursor-pointer disabled:opacity-50"
                       >
-                        {verificationLoading === 'cert' ? (
+                        {verificationLoading === 'center' ? (
                           <>
-                            <Loader2 size={15} className="animate-spin" />
-                            <span>Verifying...</span>
+                            <Loader2 size={16} className="animate-spin" />
+                            <span>Verifying Center...</span>
                           </>
                         ) : (
                           <>
-                            <Search size={14} />
-                            <span>Verify ID</span>
+                            <Search size={15} />
+                            <span>Verify Center</span>
+                            <ArrowRight size={14} />
                           </>
                         )}
                       </button>
-                    </div>
-                  </form>
-                </div>
+                    </form>
+                  </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <QrCode size={13} className="text-emerald-600" />
-                    <span>QR Authenticated</span>
-                  </span>
-                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                    <CheckCircle2 size={12} /> 100% Genuine
-                  </span>
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 relative z-10">
+                    <span className="flex items-center gap-1">
+                      <ShieldCheck size={13} className="text-blue-600" />
+                      <span>Authorized Center Portal</span>
+                    </span>
+                    <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                      <CheckCircle2 size={12} /> 100% Genuine
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </Tilt3DCard>
+
+              {/* Card 2: Student Verification (Highlighted Hero Card with Warm Amber Theme) */}
+              <Tilt3DCard
+                maxTilt={6}
+                scale={1.015}
+                glare={true}
+                className={`${mobileVerifyTab === 'student' ? 'block' : 'hidden'} md:block h-full rounded-2xl`}
+              >
+                <div className="bg-amber-400 text-slate-950 rounded-2xl border border-amber-500 shadow-sm p-6 sm:p-7 flex flex-col justify-between h-full relative overflow-hidden group card-3d-elevated preserve-3d">
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-950 text-amber-400 flex items-center justify-center shrink-0">
+                          <GraduationCap size={20} />
+                        </div>
+                        <div>
+                          <h3 className="text-base sm:text-lg font-bold text-slate-950 leading-snug">
+                            Student Verification
+                          </h3>
+                          <span className="text-[10px] font-bold text-amber-950 bg-amber-300 px-2 py-0.5 rounded-md inline-block">
+                            Official Record
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-amber-950 mb-4 font-medium opacity-90">
+                      Enter Student Roll No. or Enrollment ID
+                    </p>
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleVerifyStudent();
+                      }}
+                      className="space-y-3"
+                    >
+                      <div className="relative">
+                        <UserCheck size={16} className="text-slate-500 absolute left-3.5 top-3" />
+                        <input
+                          type="text"
+                          value={studentInput}
+                          onChange={(e) => setStudentInput(e.target.value)}
+                          placeholder="e.g. EXM-2026-1001 or ROL-10001"
+                          required
+                          className="w-full bg-white border border-amber-600/40 focus:border-slate-950 focus:ring-2 focus:ring-amber-200 rounded-xl pl-10 pr-8 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none transition-all font-medium"
+                        />
+                        {studentInput && (
+                          <button
+                            type="button"
+                            onClick={() => setStudentInput('')}
+                            className="absolute right-3 top-3 text-slate-500 hover:text-slate-800"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Quick Demo Pill Suggestions */}
+                      <div className="flex items-center gap-1.5 text-[11px] text-amber-950 font-medium">
+                        <span className="opacity-80">Try:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStudentInput('EXM-2026-1001');
+                            handleVerifyStudent('EXM-2026-1001');
+                          }}
+                          className="px-2 py-0.5 bg-amber-300 hover:bg-slate-950 hover:text-amber-400 font-mono text-slate-950 rounded text-[11px] font-semibold transition-colors cursor-pointer"
+                        >
+                          EXM-2026-1001
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStudentInput('ROL-10001');
+                            handleVerifyStudent('ROL-10001');
+                          }}
+                          className="px-2 py-0.5 bg-amber-300 hover:bg-slate-950 hover:text-amber-400 font-mono text-slate-950 rounded text-[11px] font-semibold transition-colors cursor-pointer"
+                        >
+                          ROL-10001
+                        </button>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={verificationLoading !== null}
+                        className="w-full mt-2 py-2.5 px-4 bg-slate-950 hover:bg-slate-900 text-white font-semibold rounded-xl shadow-sm flex items-center justify-center gap-2 text-sm transition-all btn-3d-tactile cursor-pointer disabled:opacity-50"
+                      >
+                        {verificationLoading === 'student' ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin text-amber-400" />
+                            <span>Verifying Record...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Search size={15} className="text-amber-400" />
+                            <span>Verify Student</span>
+                            <ArrowRight size={14} />
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-amber-500/60 flex items-center justify-between text-[11px] text-amber-950 font-medium relative z-10">
+                    <span className="flex items-center gap-1">
+                      <Database size={13} className="text-amber-950" />
+                      <span>Centralized Database</span>
+                    </span>
+                    <span className="text-amber-950 font-semibold flex items-center gap-1">
+                      <CheckCircle2 size={12} /> 100% Genuine
+                    </span>
+                  </div>
+                </div>
+              </Tilt3DCard>
+
+              {/* Card 3: Certificate Verification */}
+              <Tilt3DCard
+                maxTilt={6}
+                scale={1.015}
+                glare={true}
+                className={`${mobileVerifyTab === 'cert' ? 'block' : 'hidden'} md:block h-full rounded-2xl`}
+              >
+                <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-7 flex flex-col justify-between h-full relative overflow-hidden group card-3d-elevated preserve-3d">
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                          <Award size={20} />
+                        </div>
+                        <div>
+                          <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+                            Certificate Verification
+                          </h3>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md inline-block">
+                            Tamper-Proof
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-4 font-normal">
+                      Enter Certified Marksheet or Diploma Number
+                    </p>
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleVerifyCert();
+                      }}
+                      className="space-y-3"
+                    >
+                      <div className="relative">
+                        <Award size={16} className="text-slate-400 absolute left-3.5 top-3" />
+                        <input
+                          type="text"
+                          value={certInput}
+                          onChange={(e) => setCertInput(e.target.value)}
+                          placeholder="e.g. Certificate / Roll No"
+                          required
+                          className="w-full bg-slate-50 focus:bg-white border border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 rounded-xl pl-10 pr-8 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none transition-all font-medium"
+                        />
+                        {certInput && (
+                          <button
+                            type="button"
+                            onClick={() => setCertInput('')}
+                            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Quick Demo Pill Suggestions */}
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                        <span className="font-semibold text-slate-400">Try:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCertInput('EXM-2026-1001');
+                            handleVerifyCert('EXM-2026-1001');
+                          }}
+                          className="px-2 py-0.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 font-mono text-slate-700 rounded text-[11px] transition-colors cursor-pointer"
+                        >
+                          EXM-2026-1001
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCertInput('ROL-10002');
+                            handleVerifyCert('ROL-10002');
+                          }}
+                          className="px-2 py-0.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 font-mono text-slate-700 rounded text-[11px] transition-colors cursor-pointer"
+                        >
+                          ROL-10002
+                        </button>
+                      </div>
+
+                      <div className="mt-2">
+                        <button
+                          type="submit"
+                          disabled={verificationLoading !== null}
+                          className="w-full py-2.5 px-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl shadow-sm flex items-center justify-center gap-1.5 text-xs sm:text-sm transition-all btn-3d-tactile cursor-pointer disabled:opacity-50"
+                        >
+                          {verificationLoading === 'cert' ? (
+                            <>
+                              <Loader2 size={15} className="animate-spin" />
+                              <span>Verifying...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Search size={14} />
+                              <span>Verify ID</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 relative z-10">
+                    <span className="flex items-center gap-1">
+                      <QrCode size={13} className="text-emerald-600" />
+                      <span>QR Authenticated</span>
+                    </span>
+                    <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                      <CheckCircle2 size={12} /> 100% Genuine
+                    </span>
+                  </div>
+                </div>
+              </Tilt3DCard>
 
             </div>
 
