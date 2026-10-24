@@ -27,7 +27,7 @@ Transform Examirror into an immersive, interactive 3D web experience with realis
   - Audit existing dependencies and reusable components (`Tilt3DCard`, GSAP, Framer Motion).
   - Establish a shared motion policy, `prefers-reduced-motion` handling in CSS and JS, and graceful WebGL / CSS fallbacks without duplicate systems.
 
-- [ ] **Task 8: Hero Depth / 3D Focal Point**
+- [x] **Task 8: Hero Depth / 3D Focal Point**
   - Implement a purposeful hero depth composition with isolated 3D component and lightweight perspective geometry.
   - Include loading, error, reduced-motion, and mobile fallbacks.
 

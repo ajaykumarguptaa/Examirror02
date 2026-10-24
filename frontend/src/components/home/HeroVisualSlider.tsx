@@ -434,7 +434,7 @@ export const HeroVisualSlider: React.FC<HeroVisualSliderProps> = ({
         <motion.div
           animate={badgeTopRight.animate ? { y: [0, -6, 0] } : undefined}
           transition={badgeTopRight.animate ? { duration: 4, repeat: Infinity, ease: 'easeInOut' } : undefined}
-          className="absolute -top-3 right-2 sm:-top-4 sm:-right-4 bg-white text-slate-900 border border-slate-200 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-xl flex items-center gap-2 sm:gap-2.5 z-30"
+          className="absolute -top-3 right-2 sm:-top-4 sm:-right-4 bg-white text-slate-900 border border-slate-200/90 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-xl flex items-center gap-2 sm:gap-2.5 z-30 card-3d-elevated preserve-3d"
         >
           <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl ${getBadgeThemeClass(badgeTopRight.theme).bg} text-white flex items-center justify-center shadow-xs shrink-0`}>
             {renderBadgeIcon(badgeTopRight.icon)}
@@ -451,7 +451,7 @@ export const HeroVisualSlider: React.FC<HeroVisualSliderProps> = ({
         <motion.div
           animate={badgeBottomLeft.animate ? { y: [0, 6, 0] } : undefined}
           transition={badgeBottomLeft.animate ? { duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 } : undefined}
-          className="hidden sm:flex absolute -bottom-4 -left-2 sm:-left-4 bg-white text-slate-900 border border-slate-200 px-3.5 py-2.5 rounded-2xl shadow-xl items-center gap-3 z-30"
+          className="hidden sm:flex absolute -bottom-4 -left-2 sm:-left-4 bg-white text-slate-900 border border-slate-200/90 px-3.5 py-2.5 rounded-2xl shadow-xl items-center gap-3 z-30 card-3d-elevated preserve-3d"
         >
           <div className={`w-8 h-8 rounded-xl ${getBadgeThemeClass(badgeBottomLeft.theme).bg} text-white flex items-center justify-center shadow-xs shrink-0`}>
             {renderBadgeIcon(badgeBottomLeft.icon)}

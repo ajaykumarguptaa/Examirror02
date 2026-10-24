@@ -67,3 +67,31 @@ Regressions or risks:
 
 Next task:
 - Task 8: Hero Depth / 3D Focal Point
+
+[2026-10-24 18:31] Iteration 8 — Hero Depth / 3D Focal Point
+Status: PASS
+Files inspected:
+- frontend/src/pages/public/Home.tsx
+- frontend/src/components/home/HeroVisualSlider.tsx
+- frontend/src/index.css
+
+Files changed:
+- frontend/src/pages/public/Home.tsx — Added volumetric 3D ambient depth focal background layers with slow orbital floating motion.
+- frontend/src/components/home/HeroVisualSlider.tsx — Elevated floating badges and card viewport with card-3d-elevated and preserve-3d layers.
+
+Implementation:
+- Established a unified 3D focal depth composition in the hero section: volumetric dual-color radial depth spheres behind the main hero grid, layered over the CSS perspective system.
+- Added specular borders and 3D floating badge elevation to the hero visual slider.
+
+Validation:
+- Lint: NOT_AVAILABLE
+- Type check: PASS (TypeScript via build)
+- Tests: NOT_AVAILABLE
+- Build: PASS (frontend built in 395ms with 0 errors)
+- Manual checks: Verified volumetric lighting, floating badges, and clean degradation on smaller screens without horizontal overflow.
+
+Regressions or risks:
+- None found. Hero CTAs, trust badges, and slider controls remain fully clickable and stable.
+
+Next task:
+- Task 9: Consistent Depth System for Feature Sections

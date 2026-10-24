@@ -800,6 +800,11 @@ const Home = () => {
       {/* 2. Ultra-Modern Premium Solid Light Hero Section */}
       {hero?.enabled !== false && (
         <section className="relative hero-mesh-bg pt-12 pb-10 sm:pt-16 sm:pb-12 lg:pt-16 lg:pb-14 border-b border-slate-200/80 overflow-hidden w-full">
+          {/* Volumetric 3D Ambient Depth Focal Background */}
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden z-0">
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-gradient-to-tr from-indigo-200/35 via-blue-100/20 to-transparent rounded-full blur-3xl opacity-70 animate-float-slow-3d" />
+            <div className="absolute bottom-10 right-10 w-[400px] h-[300px] bg-gradient-to-bl from-amber-100/40 via-yellow-50/20 to-transparent rounded-full blur-2xl opacity-60" />
+          </div>
 
           <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center text-center lg:text-left">
