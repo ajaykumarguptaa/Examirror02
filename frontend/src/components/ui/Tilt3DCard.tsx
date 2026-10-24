@@ -1,10 +1,11 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import gsap from 'gsap';
+import { useReducedMotion } from '../../motion/useReducedMotion';
 
 interface Tilt3DCardProps {
   children: React.ReactNode;
   className?: string;
-  maxTilt?: number; // Maximum tilt angle in degrees, default 12
+  maxTilt?: number; // Maximum tilt angle in degrees, default 10
   scale?: number; // Scale on hover, default 1.02
   glare?: boolean; // Show glossy glare reflection
   onClick?: () => void;
@@ -20,9 +21,20 @@ export const Tilt3DCard: React.FC<Tilt3DCardProps> = ({
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const glareRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+
+  // Cleanup GSAP animations on unmount
+  useEffect(() => {
+    return () => {
+      if (cardRef.current) gsap.killTweensOf(cardRef.current);
+      if (glareRef.current) gsap.killTweensOf(glareRef.current);
+    };
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
+    if (prefersReducedMotion || !cardRef.current) return;
+    if (typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches) return;
+
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -83,11 +95,11 @@ export const Tilt3DCard: React.FC<Tilt3DCardProps> = ({
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onClick={onClick}
-      style={{ transformStyle: 'preserve-3d' }}
+      style={{ transformStyle: prefersReducedMotion ? 'flat' : 'preserve-3d' }}
       className={`relative will-change-transform transition-shadow duration-300 ${className}`}
     >
       {children}
-      {glare && (
+      {glare && !prefersReducedMotion && (
         <div
           ref={glareRef}
           aria-hidden="true"
@@ -97,3 +109,4 @@ export const Tilt3DCard: React.FC<Tilt3DCardProps> = ({
     </div>
   );
 };
+

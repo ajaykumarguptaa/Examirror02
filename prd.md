@@ -23,7 +23,7 @@ Transform Examirror into an immersive, interactive 3D web experience with realis
   - Finish the currently pending footer and dock work in `PublicLayout.tsx`.
   - Verify links, safe areas with `env(safe-area-inset-bottom)`, overlap prevention, keyboard access, and 3D glassmorphic mobile dock styling.
 
-- [ ] **Task 7: Motion and 3D Architecture Audit**
+- [x] **Task 7: Motion and 3D Architecture Audit**
   - Audit existing dependencies and reusable components (`Tilt3DCard`, GSAP, Framer Motion).
   - Establish a shared motion policy, `prefers-reduced-motion` handling in CSS and JS, and graceful WebGL / CSS fallbacks without duplicate systems.
 

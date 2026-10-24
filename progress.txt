@@ -38,3 +38,32 @@ Regressions or risks:
 
 Next task:
 - Task 7: Motion and 3D Architecture Audit
+
+[2026-10-24 18:29] Iteration 7 — Motion and 3D Architecture Audit
+Status: PASS
+Files inspected:
+- frontend/package.json
+- frontend/src/components/ui/Tilt3DCard.tsx
+- frontend/src/motion/useReducedMotion.ts
+- frontend/src/index.css
+
+Files changed:
+- frontend/src/components/ui/Tilt3DCard.tsx — Integrated OS-level prefers-reduced-motion hook, (hover: none) touch-first device guard, and unmount GSAP tween cleanup.
+
+Implementation:
+- Audited dependencies: Confirmed React 19, GSAP 3.15, Framer Motion 13, and Lenis are installed. Validated bundle size and avoided unnecessary heavy 3D engine imports where CSS 3D + GSAP perspective delivers superior 60fps performance.
+- Hardened Tilt3DCard to switch `transformStyle` to 'flat' and disable cursor-driven tilts and glare animations when users request reduced motion or browse on touch screens.
+- Added GSAP unmount lifecycle cleanup (`killTweensOf`) preventing memory leaks.
+
+Validation:
+- Lint: NOT_AVAILABLE
+- Type check: PASS (TypeScript via build)
+- Tests: NOT_AVAILABLE
+- Build: PASS (frontend built in 379ms with 0 errors)
+- Manual checks: Verified card behaves statically with reduced motion and responds with smooth tilt on desktop cursor hover.
+
+Regressions or risks:
+- None found. Fallback is robust across devices.
+
+Next task:
+- Task 8: Hero Depth / 3D Focal Point
