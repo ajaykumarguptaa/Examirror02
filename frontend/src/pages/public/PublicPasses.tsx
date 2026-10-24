@@ -419,9 +419,9 @@ export const PublicPasses: React.FC = () => {
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="py-4 px-4 sm:px-6 font-bold text-slate-800">Feature</th>
                   <th className="py-4 px-3 sm:px-4 font-bold text-slate-600 text-center">Free Account</th>
-                  <th className="py-4 px-3 sm:px-4 font-bold text-indigo-700 text-center">Basic Pass (₹199)</th>
+                  <th className="py-4 px-3 sm:px-4 font-bold text-indigo-700 text-center">Basic Pass (₹{Number(basicPass.price).toFixed(0)})</th>
                   <th className="py-4 px-3 sm:px-4 font-black text-amber-900 text-center bg-amber-50 border-x border-amber-200">
-                    👑 Elite Pass (₹499)
+                    👑 Elite Pass (₹{Number(elitePass.price).toFixed(0)})
                   </th>
                 </tr>
               </thead>

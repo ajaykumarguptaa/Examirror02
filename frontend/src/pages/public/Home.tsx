@@ -159,6 +159,25 @@ const Home = () => {
     staleTime: 60 * 1000
   });
 
+  // Dynamic Student Passes from Live Database (for live Elite Pass pricing)
+  const { data: passesData } = useQuery({
+    queryKey: ['publicPasses'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/student/wallet/passes');
+        if (!res.ok) return null;
+        const json = await res.json();
+        return json.data;
+      } catch {
+        return null;
+      }
+    },
+    staleTime: 60 * 1000
+  });
+
+  const dynamicElitePass = passesData?.find((p: any) => p.pass_type === 'ELITE');
+  const elitePassPrice = dynamicElitePass?.price ? Number(dynamicElitePass.price).toFixed(0) : '299';
+
   // Dynamic Public Stats from Live Database
   const { data: publicStats } = useQuery({
     queryKey: ['publicStats'],
@@ -1849,14 +1868,14 @@ const Home = () => {
                   <span>Register Now</span>
                 </button>
 
-                <Link
-                  to="/passes"
+                <a
+                  href="#elite-pass"
                   className="btn-elastic hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-yellow-500/15 to-amber-500/10 border border-amber-300 text-amber-800 text-xs sm:text-sm font-black hover:bg-amber-100 shadow-2xs cursor-pointer transition-all"
                   title="Unlock all test series with Elite Pass"
                 >
                   <Crown size={15} className="text-amber-600 animate-pulse" />
-                  <span>Elite Pass (₹499)</span>
-                </Link>
+                  <span>Elite Pass (₹{elitePassPrice})</span>
+                </a>
 
                 <Link
                   to="/test-series"

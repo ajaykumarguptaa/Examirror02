@@ -193,7 +193,7 @@ export const StudentWallet: React.FC = () => {
               className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <Sparkles size={14} />
-              <span>{overview?.activePass?.isElite ? 'Manage Elite Pass' : 'Unlock All for ₹499'}</span>
+              <span>{overview?.activePass?.isElite ? 'Manage Elite Pass' : 'Unlock All with Elite Pass'}</span>
             </Link>
           </div>
         </div>

@@ -96,6 +96,22 @@ export default function TestSeriesPage() {
     }
   });
 
+  // Dynamic Student Passes
+  const { data: passesData } = useQuery({
+    queryKey: ['publicPasses'],
+    queryFn: async () => {
+      try {
+        const res = await axios.get('/api/student/wallet/passes');
+        return res.data?.data || [];
+      } catch {
+        return [];
+      }
+    }
+  });
+
+  const dynamicElitePass = passesData?.find((p: any) => p.pass_type === 'ELITE');
+  const elitePassPrice = dynamicElitePass?.price ? Number(dynamicElitePass.price).toFixed(0) : '299';
+
   // Filter & Sort Logic
   const filteredSeries = useMemo(() => {
     let list = [...testSeriesList];
@@ -269,7 +285,7 @@ export default function TestSeriesPage() {
                 <span>Examirror Elite Pass • 365 Days Unlimited Access</span>
               </div>
               <div className="text-xs sm:text-sm font-semibold text-white mt-0.5">
-                Don't buy individual tests! Unlock all live mock exams, solutions & All-India ranks for just <span className="text-amber-400 font-extrabold">₹499/year</span>.
+                Don't buy individual tests! Unlock all live mock exams, solutions & All-India ranks for just <span className="text-amber-400 font-extrabold">₹{elitePassPrice}/year</span>.
               </div>
             </div>
           </div>
