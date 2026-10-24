@@ -139,11 +139,11 @@ export const HomeElitePassSection: React.FC = () => {
   return (
     <section id="elite-pass" className="py-20 bg-gradient-to-b from-slate-50 via-white to-amber-50/25 text-slate-900 relative overflow-hidden border-t border-b border-slate-200/80 scroll-mt-14 font-sans">
       
-      {/* Subtle Background Lighting & Accents (Light Mode) */}
+      {/* Subtle Background Lighting & Accents (Light Mode Animated Ambient) */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none">
-        <div className="absolute -top-32 left-1/4 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 right-10 w-96 h-96 bg-blue-500/8 rounded-full blur-3xl" />
-        <div className="absolute -bottom-20 left-1/3 w-80 h-80 bg-indigo-500/8 rounded-full blur-3xl" />
+        <div className="absolute -top-32 left-1/4 w-96 h-96 bg-amber-400/15 rounded-full blur-3xl animate-ambient-breathe pointer-events-none" />
+        <div className="absolute top-1/3 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-gentle-float pointer-events-none" />
+        <div className="absolute -bottom-20 left-1/3 w-80 h-80 bg-indigo-500/8 rounded-full blur-3xl pointer-events-none" />
         
         {/* Crisp grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000006_1px,transparent_1px),linear-gradient(to_bottom,#00000006_1px,transparent_1px)] bg-[size:40px_40px] opacity-40" />
@@ -157,11 +157,14 @@ export const HomeElitePassSection: React.FC = () => {
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100/80 border border-amber-300 text-amber-900 text-xs font-black tracking-wide uppercase shadow-xs mb-4"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100/90 border border-amber-300 text-amber-900 text-xs font-black tracking-wide uppercase shadow-xs mb-4"
           >
-            <Crown size={15} className="text-amber-600 animate-bounce" />
+            <Crown size={15} className="text-amber-600 animate-crown-pulse" />
             <span>VIP Student Membership</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+            </span>
           </motion.div>
 
           <motion.h2
@@ -195,6 +198,7 @@ export const HomeElitePassSection: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
+            whileHover={{ y: -6, transition: { type: "spring", stiffness: 300, damping: 20 } }}
             viewport={{ once: true }}
             className="lg:col-span-5 bg-white border-2 border-slate-200/90 rounded-3xl p-6 sm:p-8 flex flex-col justify-between hover:border-slate-300 hover:shadow-xl transition-all shadow-sm"
           >
@@ -232,7 +236,7 @@ export const HomeElitePassSection: React.FC = () => {
               {/* Features List */}
               <div className="space-y-3 mb-8">
                 {(basicPass.features || []).map((feat, idx) => (
-                  <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700">
+                  <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 transition-transform duration-200 hover:translate-x-1">
                     {renderFeatureIcon(feat, false)}
                     <span className="leading-snug font-medium">{cleanText(feat)}</span>
                   </div>
@@ -242,36 +246,37 @@ export const HomeElitePassSection: React.FC = () => {
 
             <Link
               to={isStudentLoggedIn ? '/student/passes' : '/passes'}
-              className="w-full py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-bold text-xs sm:text-sm text-center flex items-center justify-center gap-2 transition-all shadow-xs active:scale-95"
+              className="w-full py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-bold text-xs sm:text-sm text-center flex items-center justify-center gap-2 transition-all shadow-xs active:scale-95 cursor-pointer"
             >
               <span>Explore Basic Pass</span>
               <ArrowRight size={14} />
             </Link>
           </motion.div>
 
-          {/* Card 2: Elite Pass (Light Mode Premium Gold Crown Card) */}
+          {/* Card 2: Elite Pass (Light Mode Premium Gold Crown Card with Moving Aura Border) */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
+            whileHover={{ y: -8, transition: { type: "spring", stiffness: 280, damping: 18 } }}
             viewport={{ once: true }}
-            className="lg:col-span-7 relative group rounded-3xl p-[2px] bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600 shadow-xl shadow-amber-500/10 hover:shadow-2xl hover:shadow-amber-500/20 transition-all flex flex-col justify-between"
+            className="lg:col-span-7 relative group rounded-3xl p-[2.5px] bg-gradient-to-r from-amber-400 via-yellow-300 via-amber-500 to-amber-600 animate-gold-border shadow-2xl shadow-amber-500/20 hover:shadow-amber-500/35 transition-all duration-500 flex flex-col justify-between"
           >
             {/* Top Recommended Tag */}
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
-              <span className="px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[11px] uppercase tracking-wider shadow-md flex items-center gap-1.5">
-                <Crown size={12} className="text-slate-950" />
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
+              <span className="px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 animate-gold-border text-slate-950 font-black text-[11px] uppercase tracking-wider shadow-lg shadow-amber-500/30 flex items-center gap-1.5 border border-amber-200/50">
+                <Crown size={13} className="text-slate-950 animate-crown-pulse" />
                 <span>{elitePass.badge_text || 'MOST POPULAR • BEST VALUE'}</span>
               </span>
             </div>
 
-            <div className="bg-gradient-to-b from-white via-amber-50/30 to-white rounded-[22px] p-6 sm:p-9 h-full flex flex-col justify-between relative overflow-hidden">
+            <div className="bg-gradient-to-b from-white via-amber-50/40 to-white rounded-[22px] p-6 sm:p-9 h-full flex flex-col justify-between relative overflow-hidden">
               {/* Internal Soft Golden Glow */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-amber-400/15 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute top-0 right-0 w-72 h-72 bg-amber-400/20 rounded-full blur-3xl animate-ambient-breathe pointer-events-none" />
               
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pt-1">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-black shadow-xs">
-                    <Crown size={14} className="text-amber-600" />
+                    <Crown size={14} className="text-amber-600 animate-crown-pulse" />
                     <span>ELITE ALL-ACCESS</span>
                   </div>
                   <span className="text-xs font-bold text-amber-950 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
@@ -281,7 +286,7 @@ export const HomeElitePassSection: React.FC = () => {
 
                 <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mb-1 tracking-tight flex items-center gap-2">
                   <span>{cleanTitle(elitePass.title)}</span>
-                  <Flame size={22} className="text-amber-500 shrink-0" />
+                  <Flame size={22} className="text-amber-500 shrink-0 animate-bounce" />
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 mb-6 font-medium">
                   {elitePass.subtitle}
@@ -297,7 +302,7 @@ export const HomeElitePassSection: React.FC = () => {
                       <span className="text-xl line-through text-slate-400 font-bold">
                         ₹{Number(elitePass.original_price).toFixed(0)}
                       </span>
-                      <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-xs font-black shadow-xs">
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-xs font-black shadow-xs animate-pulse">
                         {Math.round(((Number(elitePass.original_price) - Number(elitePass.price)) / Number(elitePass.original_price)) * 100)}% OFF
                       </span>
                     </>
@@ -312,14 +317,16 @@ export const HomeElitePassSection: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Features Grid (2 columns on tablet/desktop) */}
+                {/* Features Grid (Interactive animated feature chips) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
                   {(elitePass.features || []).map((feat, idx) => (
                     <div 
                       key={idx} 
-                      className="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs text-slate-800"
+                      className="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50/70 hover:bg-amber-100/90 border border-amber-200/80 hover:border-amber-300 text-xs text-slate-800 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs cursor-default group/item"
                     >
-                      {renderFeatureIcon(feat, true)}
+                      <div className="shrink-0 transition-transform duration-200 group-hover/item:scale-110">
+                        {renderFeatureIcon(feat, true)}
+                      </div>
                       <span className="leading-snug font-semibold text-slate-800">{cleanText(feat)}</span>
                     </div>
                   ))}
@@ -331,15 +338,18 @@ export const HomeElitePassSection: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCtaClick}
-                  className="w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer transition-all active:scale-95"
+                  className="relative overflow-hidden w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/40 cursor-pointer transition-all active:scale-95 group/btn"
                 >
-                  <Crown size={16} />
-                  <span>{isStudentLoggedIn ? 'Upgrade to Elite Pass Now' : 'Get Elite Pass Now'}</span>
-                  <ArrowRight size={16} />
+                  {/* Luxury Light Sheen Beam Sweep */}
+                  <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 animate-sheen-sweep pointer-events-none" />
+                  
+                  <Crown size={16} className="text-slate-950 animate-crown-pulse" />
+                  <span className="relative z-10">{isStudentLoggedIn ? 'Upgrade to Elite Pass Now' : 'Get Elite Pass Now'}</span>
+                  <ArrowRight size={16} className="relative z-10 transition-transform duration-200 group-hover/btn:translate-x-1" />
                 </button>
                 <Link
                   to="/passes"
-                  className="w-full sm:w-auto py-3.5 px-5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 hover:text-slate-900 font-bold text-xs text-center transition-all shadow-xs"
+                  className="w-full sm:w-auto py-3.5 px-5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 hover:text-slate-900 font-bold text-xs text-center transition-all shadow-xs hover:border-slate-400 active:scale-95 cursor-pointer"
                 >
                   View Full Pass Comparison
                 </Link>
@@ -350,24 +360,27 @@ export const HomeElitePassSection: React.FC = () => {
 
         </div>
 
-        {/* Trust Badges & Guarantee (Light Mode) */}
+        {/* Trust Badges & Guarantee (Light Mode with Hover Dynamics) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto pt-8 border-t border-slate-200 text-center">
-          <div className="p-3">
-            <p className="text-xl sm:text-2xl font-black text-slate-900">100%</p>
-            <p className="text-xs text-slate-500 font-semibold mt-0.5">Free Access to Paid Mocks</p>
-          </div>
-          <div className="p-3">
-            <p className="text-xl sm:text-2xl font-black text-amber-600">365 Days</p>
-            <p className="text-xs text-slate-500 font-semibold mt-0.5">Year-Round Unlimited Validity</p>
-          </div>
-          <div className="p-3">
-            <p className="text-xl sm:text-2xl font-black text-slate-900">AIR Rank</p>
-            <p className="text-xs text-slate-500 font-semibold mt-0.5">All-India Percentile Scoring</p>
-          </div>
-          <div className="p-3">
-            <p className="text-xl sm:text-2xl font-black text-emerald-600">Instant</p>
-            <p className="text-xs text-slate-500 font-semibold mt-0.5">1-Click Test Activation</p>
-          </div>
+          {[
+            { value: '100%', label: 'Free Access to Paid Mocks', color: 'text-slate-900' },
+            { value: '365 Days', label: 'Year-Round Unlimited Validity', color: 'text-amber-600' },
+            { value: 'AIR Rank', label: 'All-India Percentile Scoring', color: 'text-slate-900' },
+            { value: 'Instant', label: '1-Click Test Activation', color: 'text-emerald-600' },
+          ].map((stat, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              whileHover={{ y: -3, scale: 1.03 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08 }}
+              className="p-3 rounded-2xl hover:bg-white/80 hover:shadow-xs border border-transparent hover:border-slate-200/60 transition-all cursor-default"
+            >
+              <p className={`text-xl sm:text-2xl font-black ${stat.color} tracking-tight`}>{stat.value}</p>
+              <p className="text-xs text-slate-500 font-semibold mt-0.5">{stat.label}</p>
+            </motion.div>
+          ))}
         </div>
 
       </div>

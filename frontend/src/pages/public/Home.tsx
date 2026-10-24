@@ -1870,11 +1870,17 @@ const Home = () => {
 
                 <a
                   href="#elite-pass"
-                  className="btn-elastic hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-yellow-500/15 to-amber-500/10 border border-amber-300 text-amber-800 text-xs sm:text-sm font-black hover:bg-amber-100 shadow-2xs cursor-pointer transition-all"
+                  className="btn-elastic relative overflow-hidden hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-yellow-400/25 to-amber-500/15 border border-amber-300/90 text-amber-900 text-xs sm:text-sm font-black hover:bg-amber-100 hover:border-amber-400 shadow-2xs hover:shadow-md hover:shadow-amber-500/15 cursor-pointer transition-all active:scale-95 group"
                   title="Unlock all test series with Elite Pass"
                 >
-                  <Crown size={15} className="text-amber-600 animate-pulse" />
-                  <span>Elite Pass (₹{elitePassPrice})</span>
+                  {/* Subtle Luxury Shimmer Sweep */}
+                  <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/50 to-transparent -skew-x-12 animate-sheen-sweep pointer-events-none" />
+                  
+                  <Crown size={15} className="text-amber-600 animate-crown-pulse shrink-0" />
+                  <span className="relative z-10">Elite Pass (₹{elitePassPrice})</span>
+                  <span className="relative z-10 px-1.5 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-xs">
+                    VIP
+                  </span>
                 </a>
 
                 <Link

@@ -413,6 +413,69 @@ textarea {
   animation: ambientBreathe 2.4s ease-in-out infinite;
 }
 
+/* Luxury Moving Gold Flow Border Animation for Elite Pass VIP Card */
+@keyframes goldGradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gold-border {
+  background-size: 250% 250% !important;
+  animation: goldGradientFlow 4s ease infinite !important;
+}
+
+/* Luxury Light Sheen Beam for VIP Buttons */
+@keyframes sheenSweep {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  25%, 100% {
+    transform: translateX(250%) skewX(-20deg);
+  }
+}
+
+.animate-sheen-sweep {
+  animation: sheenSweep 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Subtle Floating Motion */
+@keyframes gentleFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-gentle-float {
+  animation: gentleFloat 4s ease-in-out infinite;
+}
+
+/* Crown VIP Glow Pulse */
+@keyframes crownPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.4));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.85));
+    transform: scale(1.08);
+  }
+}
+
+.animate-crown-pulse {
+  animation: crownPulse 2.5s ease-in-out infinite;
+}
+
+
 /* Hide scrollbar globally for Chrome, Safari, Edge and Opera while keeping smooth scrolling fully functional */
 html::-webkit-scrollbar,
 body::-webkit-scrollbar,
