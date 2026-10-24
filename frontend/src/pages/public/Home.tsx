@@ -50,7 +50,7 @@ const DirectStudentRegisterModal = lazy(() => import('../../components/DirectStu
 import HeroVisualSlider from '../../components/home/HeroVisualSlider';
 import HomeHeroSpotlightAdCard from '../../components/home/HomeHeroSpotlightAdCard';
 import { HomeElitePassSection } from '../../components/home/HomeElitePassSection';
-import { type HomeAdvertisementSettings } from '../../types/advertisement';
+import { type HomeAdvertisementSettings, DEFAULT_AD_SETTINGS } from '../../types/advertisement';
 import {
   DEFAULT_HOME_SETTINGS,
   computeImageStyles,
@@ -151,9 +151,9 @@ const Home = () => {
         const response = await fetch('/api/v1/settings/home_advertisement');
         if (!response.ok) return null;
         const json = await response.json();
-        return json.data as HomeAdvertisementSettings | null;
+        return json.data ? { ...DEFAULT_AD_SETTINGS, ...json.data } : DEFAULT_AD_SETTINGS;
       } catch (error) {
-        return null;
+        return DEFAULT_AD_SETTINGS;
       }
     },
     staleTime: 60 * 1000

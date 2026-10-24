@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Flame, Zap, ArrowRight, X, Clock, Award } from 'lucide-react';
+import { Flame, Zap, ArrowRight, X, Clock, Award } from 'lucide-react';
 import { type HomeAdvertisementSettings } from '../../types/advertisement';
 
 interface Props {
@@ -9,14 +9,26 @@ interface Props {
 }
 
 export const HomeTopAnnouncementRibbon: React.FC<Props> = ({ ad }) => {
+  const navigate = useNavigate();
   const [dismissed, setDismissed] = useState(false);
   const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
 
+  // Pick top slide or legacy title
+  const activeSlide = (ad.slides && ad.slides.length > 0) ? ad.slides[0] : null;
+  const title = activeSlide?.title || ad.title;
+  const badgeText = activeSlide?.badgeText || ad.badgeText || 'Announcement';
+  const badgeType = activeSlide?.badgeType || ad.badgeType;
+  const ctaText = activeSlide?.ctaText || ad.ctaText || 'Learn More';
+  const ctaLink = activeSlide?.ctaLink || ad.ctaLink || '/test-series';
+  const secondaryText = activeSlide?.secondaryText || ad.secondaryText;
+  const countdownEnabled = activeSlide?.countdownEnabled ?? ad.countdownEnabled;
+  const countdownEndDate = activeSlide?.countdownEndDate || ad.countdownEndDate;
+
   useEffect(() => {
-    if (!ad.countdownEnabled || !ad.countdownEndDate) return;
+    if (!countdownEnabled || !countdownEndDate) return;
 
     const calculate = () => {
-      const diff = new Date(ad.countdownEndDate!).getTime() - Date.now();
+      const diff = new Date(countdownEndDate).getTime() - Date.now();
       if (diff <= 0) {
         setTimeLeft(null);
         return;
@@ -31,20 +43,50 @@ export const HomeTopAnnouncementRibbon: React.FC<Props> = ({ ad }) => {
     calculate();
     const timer = setInterval(calculate, 1000);
     return () => clearInterval(timer);
-  }, [ad.countdownEnabled, ad.countdownEndDate]);
+  }, [countdownEnabled, countdownEndDate]);
 
-  if (!ad.enabled || !ad.displayFormats?.topRibbon || dismissed) return null;
+  if (!ad.enabled || !ad.displayFormats?.topRibbon || dismissed || !title) return null;
 
-  const getBadgeIcon = () => {
-    switch (ad.badgeType) {
-      case 'offer': return <Flame size={12} className="text-amber-400 fill-amber-400" />;
-      case 'urgent': return <Zap size={12} className="text-rose-400 fill-rose-400" />;
-      case 'exam': return <Award size={12} className="text-emerald-400" />;
-      default: return <Sparkles size={12} className="text-indigo-400 fill-indigo-400" />;
+  const handleNavigate = (link?: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
+    if (!link) return;
+    const target = link.trim();
+
+    if (target.startsWith('#')) {
+      const el = document.getElementById(target.replace('#', ''));
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+    }
+    if (target.startsWith('/#')) {
+      const hash = target.replace('/#', '');
+      if (window.location.pathname === '/') {
+        const el = document.getElementById(hash);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+      }
+    }
+    if (target.startsWith('http://') || target.startsWith('https://')) {
+      window.open(target, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    navigate(target.startsWith('/') ? target : `/${target}`);
   };
 
-  const isInternal = ad.ctaLink && (ad.ctaLink.startsWith('/') || !ad.ctaLink.startsWith('http'));
+  const getBadgeIcon = () => {
+    switch (badgeType) {
+      case 'offer': return <Flame size={12} className="text-amber-400" />;
+      case 'urgent': return <Zap size={12} className="text-rose-400" />;
+      case 'exam': return <Award size={12} className="text-emerald-400" />;
+      default: return <Zap size={12} className="text-amber-300" />;
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -53,23 +95,23 @@ export const HomeTopAnnouncementRibbon: React.FC<Props> = ({ ad }) => {
         animate={{ height: 'auto', opacity: 1 }}
         exit={{ height: 0, opacity: 0 }}
         transition={{ duration: 0.25 }}
-        className="w-full bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-950 text-white border-b border-indigo-500/20 py-2 sm:py-2.5 px-3 sm:px-6 relative z-50 text-xs shadow-md"
+        className="w-full bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white border-b border-indigo-400/20 py-2 sm:py-2.5 px-3 sm:px-6 relative z-50 text-xs shadow-md font-sans"
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
           {/* Left: Badge & Title */}
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/10 border border-white/15 text-amber-300 shrink-0">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/15 border border-white/20 text-amber-300 shrink-0">
               {getBadgeIcon()}
-              <span>{ad.badgeText || 'Announcement'}</span>
+              <span>{badgeText}</span>
             </span>
 
-            <span className="font-bold text-slate-100 text-[11px] sm:text-xs">
-              {ad.title}
+            <span className="font-bold text-white text-[11px] sm:text-xs">
+              {title}
             </span>
 
-            {ad.secondaryText && (
-              <span className="hidden lg:inline text-indigo-300 font-medium text-[11px] border-l border-white/20 pl-2.5">
-                {ad.secondaryText}
+            {secondaryText && (
+              <span className="hidden lg:inline text-blue-200 font-medium text-[11px] border-l border-white/20 pl-2.5">
+                {secondaryText}
               </span>
             )}
           </div>
@@ -77,7 +119,7 @@ export const HomeTopAnnouncementRibbon: React.FC<Props> = ({ ad }) => {
           {/* Right: Countdown & CTA */}
           <div className="flex items-center gap-3 shrink-0 ml-auto sm:ml-0">
             {timeLeft && (
-              <div className="hidden md:flex items-center gap-1 font-mono text-[11px] font-bold bg-white/10 px-2 py-0.5 rounded-md border border-white/10 text-amber-300">
+              <div className="hidden md:flex items-center gap-1 font-mono text-[11px] font-bold bg-white/10 px-2 py-0.5 rounded-md border border-white/15 text-amber-300">
                 <Clock size={11} className="mr-0.5" />
                 <span>{String(timeLeft.d).padStart(2, '0')}d :</span>
                 <span>{String(timeLeft.h).padStart(2, '0')}h :</span>
@@ -86,30 +128,20 @@ export const HomeTopAnnouncementRibbon: React.FC<Props> = ({ ad }) => {
               </div>
             )}
 
-            {isInternal ? (
-              <Link
-                to={ad.ctaLink}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-slate-950 hover:brightness-110 shadow-sm transition-all"
-              >
-                <span>{ad.ctaText || 'Learn More'}</span>
-                <ArrowRight size={12} />
-              </Link>
-            ) : (
-              <a
-                href={ad.ctaLink}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-slate-950 hover:brightness-110 shadow-sm transition-all"
-              >
-                <span>{ad.ctaText || 'Learn More'}</span>
-                <ArrowRight size={12} />
-              </a>
-            )}
+            <button
+              type="button"
+              onClick={(e) => handleNavigate(ctaLink, e)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-slate-950 hover:brightness-110 shadow-sm transition-all cursor-pointer active:scale-95"
+            >
+              <span>{ctaText}</span>
+              <ArrowRight size={12} />
+            </button>
 
             <button
+              type="button"
               onClick={() => setDismissed(true)}
-              className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
-              title="Dismiss announcement"
+              className="text-white/60 hover:text-white p-1 transition-colors cursor-pointer"
+              title="Dismiss Announcement"
             >
               <X size={14} />
             </button>

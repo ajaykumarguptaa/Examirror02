@@ -9,7 +9,7 @@ import { MobileBottomActionDock } from '../components/MobileBottomActionDock';
 import { DirectStudentRegisterModal } from '../components/DirectStudentRegisterModal';
 import { HomeTopAnnouncementRibbon } from '../components/home/HomeTopAnnouncementRibbon';
 import { HomeAdvertisementModal } from '../components/home/HomeAdvertisementModal';
-import { type HomeAdvertisementSettings } from '../types/advertisement';
+import { type HomeAdvertisementSettings, DEFAULT_AD_SETTINGS } from '../types/advertisement';
 
 const PublicLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -69,9 +69,9 @@ const PublicLayout = () => {
         const response = await fetch('/api/v1/settings/home_advertisement');
         if (!response.ok) return null;
         const json = await response.json();
-        return json.data as HomeAdvertisementSettings | null;
+        return json.data ? { ...DEFAULT_AD_SETTINGS, ...json.data } : DEFAULT_AD_SETTINGS;
       } catch (error) {
-        return null;
+        return DEFAULT_AD_SETTINGS;
       }
     },
     staleTime: 60 * 1000
