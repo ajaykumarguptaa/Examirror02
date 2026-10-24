@@ -799,10 +799,7 @@ const Home = () => {
 
       {/* 2. Ultra-Modern Premium Solid Light Hero Section */}
       {hero?.enabled !== false && (
-        <section className="relative bg-white pt-10 pb-8 sm:pt-14 sm:pb-10 lg:pt-14 lg:pb-12 border-b border-slate-200/80 overflow-hidden w-full">
-
-          {/* Clean Solid Background */}
-          <div className="absolute inset-0 bg-slate-50/20 pointer-events-none" />
+        <section className="relative hero-mesh-bg pt-12 pb-10 sm:pt-16 sm:pb-12 lg:pt-16 lg:pb-14 border-b border-slate-200/80 overflow-hidden w-full">
 
           <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center text-center lg:text-left">
@@ -814,21 +811,22 @@ const Home = () => {
                 animate="visible"
                 className="lg:col-span-6 space-y-6 flex flex-col items-center lg:items-start"
               >
-                {/* Clean Solid Admission Announcement Badge */}
+                {/* Modern Admission Announcement Badge */}
                 <motion.div
                   variants={itemFadeUp}
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200/80 shadow-xs"
+                  className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-md text-indigo-950 border border-indigo-200/80 shadow-xs badge-glow-indigo"
                 >
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Admissions Open for 2026–27 Session</span>
+                  <span className="font-bold">Admissions Open 2026–27</span>
                   <span className="text-slate-300">|</span>
-                  <span className="text-blue-600 font-bold">ISO 9001:2015 Certified</span>
+                  <span className="text-indigo-600 font-bold">Govt. Aligned & ISO 9001:2015</span>
                 </motion.div>
 
                 {/* Main Titles */}
                 <motion.div variants={itemFadeUp} className="space-y-2">
-                  <div className="text-xs sm:text-sm font-semibold text-slate-500 tracking-wider uppercase">
-                    {hero.welcomeText || 'National Skill & Vocational Education'}
+                  <div className="text-xs sm:text-sm font-semibold text-indigo-600 tracking-wider uppercase flex items-center gap-1.5 justify-center lg:justify-start">
+                    <Sparkles size={14} className="text-amber-500" />
+                    <span>{hero.welcomeText || 'National Skill & Vocational Education'}</span>
                   </div>
                   <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[44px] xl:text-5xl font-bold leading-[1.2] tracking-tight text-slate-900">
                     {hero.mainTitle || 'Empowering Youth with Job-Ready IT & Vocational Skills'}
