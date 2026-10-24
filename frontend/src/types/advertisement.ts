@@ -83,7 +83,7 @@ export const DEFAULT_AD_SLIDES: AdSlideItem[] = [
     colorTheme: 'amberSunset',
     imageUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1600&auto=format&fit=crop&q=80',
     imageFit: 'cover',
-    ctaText: 'Get Elite Pass for ₹499',
+    ctaText: 'Get Elite Pass for ₹299',
     ctaLink: '/passes',
     openInNewTab: false,
     secondaryText: 'Less than ₹1.4 / day • All Govt & Academic Exams',

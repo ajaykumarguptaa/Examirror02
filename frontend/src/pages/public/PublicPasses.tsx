@@ -55,7 +55,7 @@ const FALLBACK_PASSES: PassItem[] = [
     pass_type: 'ELITE',
     title: 'Examirror Elite Pass',
     subtitle: 'All-Access VIP Pass to ALL Test Series & Live Mocks',
-    price: 499,
+    price: 299,
     original_price: 999,
     validity_days: 365,
     features: [
@@ -178,7 +178,7 @@ export const PublicPasses: React.FC = () => {
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-amber-400 selection:text-slate-950">
       <SEO
         title="Examirror Elite Pass | Unlimited Online Test Series & Mock Tests"
-        description="Get unlimited 1-click access to all mock test series, All-India rankings, and solutions with the Examirror Elite Pass. Full 365-day validity for just ₹499."
+        description="Get unlimited 1-click access to all mock test series, All-India rankings, and solutions with the Examirror Elite Pass. Full 365-day validity for just ₹299."
         keywords={['Elite Pass', 'Examirror Pass', 'Mock Test Pass', 'Unlimited Test Series', 'Government Exam Pass', 'Online Test Subscription']}
         breadcrumbs={[
           { name: 'Home', item: '/' },

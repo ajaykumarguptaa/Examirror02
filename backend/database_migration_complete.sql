@@ -1238,3 +1238,30 @@ LOCK TABLES `admins` WRITE;
 INSERT INTO `admins` (`id`, `username`, `email`, `password_hash`, `role`, `status`, `created_at`, `updated_at`) VALUES (1, 'devAjay@108', 'devAjay@108', '$2b$10$JVYM/HZJgPjG8JiAtDcdOOFR7Gq6wpYLV1uagTZYh3RG0P3qETs/O', 'superadmin', 'active', NOW(), NOW());
 /*!40000 ALTER TABLE `admins` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Table structure and seed data for `test_passes`
+--
+
+DROP TABLE IF EXISTS `test_passes`;
+CREATE TABLE `test_passes` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `pass_type` ENUM('BASIC', 'ELITE') NOT NULL UNIQUE,
+  `title` VARCHAR(150) NOT NULL,
+  `subtitle` VARCHAR(255) NULL,
+  `price` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+  `original_price` DECIMAL(10, 2) NULL DEFAULT NULL,
+  `validity_days` INT NOT NULL DEFAULT 365,
+  `features` JSON NULL,
+  `badge_text` VARCHAR(50) NULL DEFAULT 'VIP',
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `test_passes` (`id`, `pass_type`, `title`, `subtitle`, `price`, `original_price`, `validity_days`, `features`, `badge_text`, `is_active`)
+VALUES 
+  (1, 'BASIC', 'Basic Practice Pass', 'Foundational Mock Tests & Solutions', 199.00, 399.00, 90, '["Access to Standard Mock Tests & Foundations", "Instant Scorecard & Detailed Question Solutions", "Topic-wise Performance Analytics", "Subject Weakness & Accuracy Analysis", "Valid for 90 Days"]', 'STARTER', 1),
+  (2, 'ELITE', 'Examirror Elite Pass', 'All-Access VIP Pass to ALL Test Series & Live Mocks', 299.00, 999.00, 365, '["UNLIMITED 1-Click Access to ALL Paid Test Series", "Zero Extra Payment - Instant Test Activation", "Unlimited Mock Re-attempts & Practice Rounds", "Official All India Ranking (AIR) & Percentile Cards", "Detailed Solution PDF Explanations", "VIP Candidate Verification Badge & Priority Support", "Valid for Full 365 Days (1 Year)"]', 'BEST VALUE', 1)
+ON DUPLICATE KEY UPDATE `price` = VALUES(`price`), `original_price` = VALUES(`original_price`), `title` = VALUES(`title`);
+

@@ -51,7 +51,7 @@ const FALLBACK_PASSES: PassItem[] = [
     pass_type: 'ELITE',
     title: 'Examirror Elite Pass',
     subtitle: 'All-Access VIP Pass to ALL Test Series & Live Mocks',
-    price: 499,
+    price: 299,
     original_price: 999,
     validity_days: 365,
     features: [

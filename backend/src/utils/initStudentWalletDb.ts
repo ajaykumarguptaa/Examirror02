@@ -107,7 +107,7 @@ export async function initStudentWalletDatabase() {
       INSERT INTO test_passes (pass_type, title, subtitle, price, validity_days, features, badge_text, is_active)
       VALUES 
         ('BASIC', 'Basic Practice Pass', 'Foundational Mock Tests & Solutions', 199.00, 90, ?, 'STARTER', 1),
-        ('ELITE', 'Examirror Elite Pass', 'All-Access VIP Pass to ALL Test Series & Live Mocks', 499.00, 365, ?, 'BEST VALUE', 1)
+        ('ELITE', 'Examirror Elite Pass', 'All-Access VIP Pass to ALL Test Series & Live Mocks', 299.00, 365, ?, 'BEST VALUE', 1)
     `, [basicFeatures, eliteFeatures]);
     console.log('--- Seeded Basic and Elite Passes ---');
   }
