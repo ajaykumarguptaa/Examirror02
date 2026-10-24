@@ -778,11 +778,6 @@ const Home = () => {
         </motion.div>
       )}
 
-      {/* 1.5 Top Promotional / Announcement Banner Slider (When Position is 'top' or default) */}
-      {adSettings?.enabled && adSettings?.bannerPosition !== 'below_hero' && (
-        <HomeHeroSpotlightAdCard ad={adSettings} />
-      )}
-
       {/* 2. Ultra-Modern Premium Solid Light Hero Section */}
       {hero?.enabled !== false && (
         <section className="relative bg-white pt-10 pb-8 sm:pt-14 sm:pb-10 lg:pt-14 lg:pb-12 border-b border-slate-200/80 overflow-hidden w-full">
@@ -905,8 +900,8 @@ const Home = () => {
         </section>
       )}
 
-      {/* 2.5 Hero Spotlight Campaign Banner (When Position is 'below_hero') */}
-      {adSettings?.enabled && adSettings?.bannerPosition === 'below_hero' && (
+      {/* 2.5 Hero Spotlight Campaign Card Banner (Below Hero Section) */}
+      {adSettings?.enabled && (
         <HomeHeroSpotlightAdCard ad={adSettings} />
       )}
 
