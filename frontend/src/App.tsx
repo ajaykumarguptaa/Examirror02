@@ -56,6 +56,9 @@ const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'));
 // Student Portal Pages (Code-Split)
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
 const StudentTestSeries = lazy(() => import('./pages/student/StudentTestSeries'));
+const StudentWallet = lazy(() => import('./pages/student/StudentWallet'));
+const StudentPasses = lazy(() => import('./pages/student/StudentPasses'));
+const StudentReferral = lazy(() => import('./pages/student/StudentReferral'));
 const StudentExamPortal = lazy(() => import('./pages/student/exam/StudentExamPortal'));
 
 import ScrollToTop from './components/ScrollToTop';
@@ -194,6 +197,9 @@ function App() {
           <Route index element={<StudentDashboard />} />
           <Route path="dashboard" element={<StudentDashboard />} />
           <Route path="test-series" element={<StudentTestSeries />} />
+          <Route path="passes" element={<StudentPasses />} />
+          <Route path="wallet" element={<StudentWallet />} />
+          <Route path="refer" element={<StudentReferral />} />
           <Route path="notes" element={<StudyMaterialLibrary />} />
           <Route path="notes/:id" element={<StudyMaterialPreview />} />
           <Route path="exam/:examId" element={<StudentExamPortal />} />

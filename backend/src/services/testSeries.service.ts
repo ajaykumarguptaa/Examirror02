@@ -1025,6 +1025,24 @@ export const testSeriesService = {
       ORDER BY ts.is_free DESC, ts.id DESC
     `, [centreId, safeStudentId, safeStudentId]);
 
+    // Check if student has active Elite Pass
+    if (safeStudentId) {
+      try {
+        const [stuPass]: any = await db.query(
+          `SELECT active_pass_type, pass_expires_at FROM students WHERE id = ?`,
+          [safeStudentId]
+        );
+        if (stuPass.length > 0 && stuPass[0].active_pass_type === 'ELITE' && stuPass[0].pass_expires_at) {
+          if (new Date(stuPass[0].pass_expires_at).getTime() > Date.now()) {
+            series.forEach((s: any) => {
+              s.enrollment_status = 'APPROVED';
+              s.unlocked_via_elite_pass = true;
+            });
+          }
+        }
+      } catch (err) {}
+    }
+
     // Populate tests inside each series for the student
     if (series.length > 0) {
       const seriesIds = series.map((s: any) => s.id);
@@ -1140,6 +1158,22 @@ export const testSeriesService = {
     }
 
     const series = seriesRows[0];
+
+    // Check if student has active Elite Pass
+    if (studentId) {
+      try {
+        const [stuPass]: any = await db.query(
+          `SELECT active_pass_type, pass_expires_at FROM students WHERE id = ?`,
+          [studentId]
+        );
+        if (stuPass.length > 0 && stuPass[0].active_pass_type === 'ELITE' && stuPass[0].pass_expires_at) {
+          if (new Date(stuPass[0].pass_expires_at).getTime() > Date.now()) {
+            series.enrollment_status = 'APPROVED';
+            series.unlocked_via_elite_pass = true;
+          }
+        }
+      } catch (err) {}
+    }
 
     // If payment QR is not series-specific, fetch global default
     if (!series.upi_id) {
@@ -1296,22 +1330,38 @@ export const testSeriesService = {
     if (tests.length === 0) throw new Error('Test not found or not currently available.');
     const test = tests[0];
 
-    // 2. Check student active enrollment
-    if (test.is_free) {
+    // 2. Check student active enrollment or Elite Pass
+    let hasElitePass = false;
+    let studentCenterId: number | null = null;
+    try {
+      const [stuRows]: any = await db.query(
+        `SELECT centerId, active_pass_type, pass_expires_at FROM students WHERE id = ?`,
+        [studentId]
+      );
+      if (stuRows.length > 0) {
+        studentCenterId = stuRows[0].centerId || null;
+        if (stuRows[0].active_pass_type === 'ELITE' && stuRows[0].pass_expires_at) {
+          if (new Date(stuRows[0].pass_expires_at).getTime() > Date.now()) {
+            hasElitePass = true;
+          }
+        }
+      }
+    } catch (_) {}
+
+    if (test.is_free || hasElitePass) {
       await db.query(`
         INSERT INTO test_series_enrollments (student_id, test_series_id, centre_id, enrollment_type, status, expires_at)
-        SELECT ?, ?, s.centerId, 'FREE', 'ACTIVE', DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 180 DAY)
-        FROM students s WHERE s.id = ?
+        VALUES (?, ?, ?, ?, 'ACTIVE', DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 365 DAY))
         ON DUPLICATE KEY UPDATE status = 'ACTIVE'
-      `, [studentId, test.series_id, studentId]);
+      `, [studentId, test.series_id, studentCenterId, hasElitePass ? 'ELITE_PASS' : 'FREE']);
     } else {
       const [enrollments]: any = await db.query(`
         SELECT status, expires_at FROM test_series_enrollments
         WHERE student_id = ? AND test_series_id = ?
       `, [studentId, test.series_id]);
 
-      if (enrollments.length === 0 || enrollments[0].status !== 'ACTIVE') {
-        throw new Error('Access denied. You must be actively enrolled in this Test Series to take tests.');
+      if (enrollments.length === 0 || (enrollments[0].status !== 'ACTIVE' && enrollments[0].status !== 'APPROVED')) {
+        throw new Error('Access denied. You must be actively enrolled in this Test Series or hold an active Elite Pass to take tests.');
       }
 
       if (enrollments[0].expires_at && new Date(enrollments[0].expires_at) < new Date()) {

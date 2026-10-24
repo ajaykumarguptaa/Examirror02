@@ -7,7 +7,9 @@ import path from 'path';
 import fs from 'fs';
 import db from './db';
 import studentRoutes from "./routes/student.routes";
+import studentWalletRoutes from "./routes/studentWallet.routes";
 import { initTestSeriesDatabase } from './utils/initTestSeriesDb';
+import { initStudentWalletDatabase } from './utils/initStudentWalletDb';
 import { initDatabaseIndexes } from './utils/initDatabaseIndexes';
 import { backupDatabaseToS3 } from './utils/dbBackup';
 import { isS3Configured, getS3ObjectStream, syncAllLocalUploadsToS3 } from './utils/s3Storage';
@@ -645,6 +647,9 @@ const initDbSchema = async () => {
     // Initialize Test Series Database Schema and Migrations
     await initTestSeriesDatabase();
 
+    // Initialize Student Wallet & Exam Pass Database Schema
+    await initStudentWalletDatabase();
+
     // Ensure Center Affiliation & Certificate Verification columns
     try { await db.query(`ALTER TABLE centers ADD COLUMN certificate_number VARCHAR(100)`); } catch (_) {}
     try { await db.query(`ALTER TABLE centers ADD COLUMN certificate_issued_date DATE`); } catch (_) {}
@@ -703,6 +708,8 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/center', centerRoutes);
 app.use('/api/v1/center', centerRoutes);
 app.use("/api/student", studentRoutes);
+app.use("/api/student/wallet", studentWalletRoutes);
+app.use("/api/v1/student/wallet", studentWalletRoutes);
 app.use("/api/test-series", testSeriesRoutes);
 app.use("/api/v1/test-series", testSeriesRoutes);
 app.use("/api/study-materials", studyMaterialRoutes);

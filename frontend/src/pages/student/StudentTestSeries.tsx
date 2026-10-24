@@ -46,8 +46,12 @@ import {
   Zap,
   Loader2,
   Download,
+  Wallet,
+  Crown,
 } from 'lucide-react';
 import { downloadOfficialScorecardPdf } from '../../utils/scorecardPdf';
+import { WalletPurchaseConfirmModal, type PurchaseItem } from '../../components/student/WalletPurchaseConfirmModal';
+import { StudentRechargeModal } from '../../components/student/StudentRechargeModal';
 
 interface Category {
   id: number;
@@ -80,6 +84,7 @@ interface TestSeriesItem {
   account_name?: string;
   payment_instructions?: string;
   enrollment_status?: 'NOT_ENROLLED' | 'PENDING' | 'PAYMENT_PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'FREE_AVAILABLE';
+  unlocked_via_elite_pass?: boolean;
   tests?: TestItem[];
 }
 
@@ -200,6 +205,13 @@ export default function StudentTestSeries() {
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; title?: string; message: string } | null>(null);
   const [enrolledSuccessSeries, setEnrolledSuccessSeries] = useState<TestSeriesItem | null>(null);
 
+  // Wallet Purchase & Recharge Modals
+  const [walletOverview, setWalletOverview] = useState<any | null>(null);
+  const [selectedWalletItem, setSelectedWalletItem] = useState<PurchaseItem | null>(null);
+  const [showWalletConfirmModal, setShowWalletConfirmModal] = useState(false);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [rechargeShortfall, setRechargeShortfall] = useState(100);
+
   const showToast = (type: 'success' | 'error' | 'info', message: string, title?: string) => {
     setToast({ type, message, title });
     setTimeout(() => setToast(null), 4000);
@@ -274,6 +286,15 @@ export default function StudentTestSeries() {
       if (catRes?.data?.data && Array.isArray(catRes.data.data)) {
         setCategories(catRes.data.data);
       }
+
+      // Fetch student wallet overview
+      try {
+        const walRes = await axios.get('/api/student/wallet/overview', { headers })
+          .catch(() => axios.get('http://localhost:3000/api/student/wallet/overview', { headers }));
+        if (walRes?.data?.success) {
+          setWalletOverview(walRes.data.data);
+        }
+      } catch (_) {}
     } catch (err) {
       console.error('Failed to load student test series:', err);
     } finally {
@@ -360,6 +381,25 @@ export default function StudentTestSeries() {
     setPaymentErrorMsg('');
     setShowPayModal(true);
     setShowDetailModal(false);
+  };
+
+  const handleOpenWalletBuy = (series: TestSeriesItem) => {
+    setSelectedWalletItem({
+      id: series.id,
+      title: series.title,
+      price: Number(series.price),
+      type: 'TEST_SERIES',
+      validity: `${series.validity_days} Days`,
+      category: series.category_name
+    });
+    setShowWalletConfirmModal(true);
+    setShowDetailModal(false);
+  };
+
+  const handleOpenRechargeFromModal = (shortfall: number) => {
+    setShowWalletConfirmModal(false);
+    setRechargeShortfall(Math.max(100, Math.ceil(shortfall)));
+    setShowRechargeModal(true);
   };
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
@@ -1524,7 +1564,11 @@ export default function StudentTestSeries() {
                         <span className="px-2.5 py-0.5 bg-white text-slate-700 border border-slate-200 text-[11px] font-semibold rounded-md">
                           {series.category_name || 'General'}
                         </span>
-                        {series.is_free ? (
+                        {series.unlocked_via_elite_pass ? (
+                          <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-black rounded-md flex items-center gap-1">
+                            <Crown size={12} className="text-amber-600" /> ELITE PASS
+                          </span>
+                        ) : series.is_free ? (
                           <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold rounded-md">
                             FREE
                           </span>
@@ -1571,12 +1615,13 @@ export default function StudentTestSeries() {
                         Details <ChevronRight size={15} />
                       </button>
 
-                      {isEnrolled ? (
+                      {isEnrolled || series.unlocked_via_elite_pass ? (
                         <button
                           onClick={() => setActiveTab('my_series')}
-                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
+                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
                         >
-                          Go to Tests
+                          {series.unlocked_via_elite_pass && <Crown size={13} className="text-amber-300" />}
+                          <span>Go to Tests</span>
                         </button>
                       ) : isPending ? (
                         <span className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-xs font-semibold flex items-center gap-1.5">
@@ -1590,12 +1635,22 @@ export default function StudentTestSeries() {
                           Enroll Free
                         </button>
                       ) : (
-                        <button
-                          onClick={() => handleOpenPayment(series)}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
-                        >
-                          Buy (₹{series.price})
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleOpenWalletBuy(series)}
+                            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Wallet size={13} />
+                            <span>Buy (₹{series.price})</span>
+                          </button>
+                          <button
+                            onClick={() => handleOpenPayment(series)}
+                            className="p-2 border border-slate-200 hover:bg-slate-100 text-slate-500 rounded-xl transition-colors cursor-pointer"
+                            title="Pay via UPI QR"
+                          >
+                            <QrCode size={15} />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -2596,6 +2651,29 @@ export default function StudentTestSeries() {
           </div>
         </div>
       )}
+
+      {/* WALLET SECONDARY CONFIRMATION PURCHASE MODAL */}
+      <WalletPurchaseConfirmModal
+        isOpen={showWalletConfirmModal}
+        onClose={() => setShowWalletConfirmModal(false)}
+        item={selectedWalletItem}
+        walletBalance={Number(walletOverview?.walletBalance || 0)}
+        onSuccess={() => {
+          loadData();
+          setActiveTab('my_series');
+        }}
+        onOpenRecharge={handleOpenRechargeFromModal}
+      />
+
+      {/* STUDENT WALLET RECHARGE MODAL */}
+      <StudentRechargeModal
+        isOpen={showRechargeModal}
+        onClose={() => setShowRechargeModal(false)}
+        defaultAmount={rechargeShortfall}
+        onSuccess={() => {
+          loadData();
+        }}
+      />
     </div>
   );
 }
