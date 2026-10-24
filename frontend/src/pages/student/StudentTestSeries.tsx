@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useDebounce } from '../../hooks/useDebounce';
 import {
@@ -161,7 +161,7 @@ export default function StudentTestSeries() {
         next.set('tab', tab);
       }
       return next;
-    }, { replace: true });
+    });
   }, [setSearchParams]);
 
   const setSelectedSeriesId = useCallback((seriesId: number | null) => {
@@ -174,7 +174,7 @@ export default function StudentTestSeries() {
         next.delete('seriesId');
       }
       return next;
-    }, { replace: true });
+    });
   }, [setSearchParams]);
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -429,6 +429,28 @@ export default function StudentTestSeries() {
       window.removeEventListener('contextmenu', handleContextMenu);
     };
   }, [isTakingExam]);
+
+  // Handle browser back button for open modals when NOT taking an exam
+  useEffect(() => {
+    if (isTakingExam) return;
+
+    const anyModalOpen = showDetailModal || showPayModal || showScorecardModal;
+    if (anyModalOpen) {
+      window.history.pushState({ modalOpen: true }, '', window.location.href);
+
+      const handleModalPop = () => {
+        setShowDetailModal(false);
+        setShowPayModal(false);
+        setShowScorecardModal(false);
+      };
+
+      window.addEventListener('popstate', handleModalPop);
+
+      return () => {
+        window.removeEventListener('popstate', handleModalPop);
+      };
+    }
+  }, [showDetailModal, showPayModal, showScorecardModal, isTakingExam]);
 
   // Server countdown timer loop
   useEffect(() => {
@@ -1600,6 +1622,58 @@ export default function StudentTestSeries() {
     <div className="w-full space-y-6 pb-16 font-sans">
       {/* Minimalist Header Banner */}
       <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-xs">
+        {/* Navigation Breadcrumbs & Back Navigation */}
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <nav className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <Link
+              to="/student/dashboard"
+              className="hover:text-indigo-600 transition-colors flex items-center gap-1 text-slate-600"
+            >
+              Dashboard
+            </Link>
+            <ChevronRight size={13} className="text-slate-400" />
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedSeriesId(null);
+                setActiveTab('discover');
+              }}
+              className={`hover:text-indigo-600 transition-colors cursor-pointer ${
+                activeTab === 'discover' && !selectedSeriesId ? 'text-indigo-600 font-bold' : 'text-slate-600'
+              }`}
+            >
+              Test Series
+            </button>
+            {activeTab === 'my_series' && (
+              <>
+                <ChevronRight size={13} className="text-slate-400" />
+                <span className="text-indigo-600 font-bold">My Tests</span>
+              </>
+            )}
+            {activeTab === 'achievements' && (
+              <>
+                <ChevronRight size={13} className="text-slate-400" />
+                <span className="text-indigo-600 font-bold">Achievements</span>
+              </>
+            )}
+          </nav>
+
+          {/* Explicit Quick Back when inside a test series or sub-tab */}
+          {(selectedSeriesId || activeTab !== 'discover') && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedSeriesId(null);
+                setActiveTab('discover');
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all cursor-pointer shadow-2xs active:scale-95"
+            >
+              <ArrowLeft size={13} />
+              <span>Explore All Series</span>
+            </button>
+          )}
+        </div>
+
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-lg text-xs font-semibold border border-indigo-100">
             <Trophy size={14} className="text-indigo-600" /> Online Examination & Test Series
