@@ -811,10 +811,10 @@ const Home = () => {
                 animate="visible"
                 className="lg:col-span-6 space-y-6 flex flex-col items-center lg:items-start"
               >
-                {/* Modern Admission Announcement Badge */}
+                {/* Modern 3D Floating Admission Announcement Badge */}
                 <motion.div
                   variants={itemFadeUp}
-                  className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-md text-indigo-950 border border-indigo-200/80 shadow-xs badge-glow-indigo"
+                  className="animate-float-3d inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-md text-indigo-950 border border-indigo-200/80 shadow-md badge-glow-indigo preserve-3d"
                 >
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="font-bold">Admissions Open 2026–27</span>
@@ -825,7 +825,7 @@ const Home = () => {
                 {/* Main Titles */}
                 <motion.div variants={itemFadeUp} className="space-y-2">
                   <div className="text-xs sm:text-sm font-semibold text-indigo-600 tracking-wider uppercase flex items-center gap-1.5 justify-center lg:justify-start">
-                    <Sparkles size={14} className="text-amber-500" />
+                    <Sparkles size={14} className="text-amber-500 animate-spin" style={{ animationDuration: '6s' }} />
                     <span>{hero.welcomeText || 'National Skill & Vocational Education'}</span>
                   </div>
                   <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[44px] xl:text-5xl font-bold leading-[1.2] tracking-tight text-slate-900">
@@ -841,14 +841,14 @@ const Home = () => {
                   {hero.subtitle || 'Join India’s premier certified vocational education network. Explore government-aligned diploma courses, verify credentials, or register an authorized training center.'}
                 </motion.p>
 
-                {/* Action Buttons */}
+                {/* 3D Action Buttons */}
                 <motion.div
                   variants={itemFadeUp}
                   className="pt-2 flex flex-wrap gap-3.5 justify-center lg:justify-start"
                 >
                   <Link
                     to="/courses"
-                    className="btn-glow-primary btn-shimmer btn-elastic font-bold py-3.5 px-6 rounded-2xl text-white text-xs sm:text-sm flex items-center gap-2 shadow-md cursor-pointer"
+                    className="btn-3d-tactile font-bold py-3.5 px-6 rounded-2xl bg-indigo-600 text-white text-xs sm:text-sm flex items-center gap-2 cursor-pointer"
                   >
                     <BookOpen size={16} />
                     <span>Explore Certified Courses</span>
@@ -857,7 +857,7 @@ const Home = () => {
 
                   <Link
                     to="/franchise/requirements"
-                    className="btn-elastic font-bold py-3.5 px-6 rounded-2xl bg-slate-900 hover:bg-slate-950 text-white text-xs sm:text-sm flex items-center gap-2 shadow-sm border border-slate-700/50 cursor-pointer"
+                    className="btn-elastic font-bold py-3.5 px-6 rounded-2xl bg-slate-900 hover:bg-slate-950 text-white text-xs sm:text-sm flex items-center gap-2 shadow-sm border border-slate-700/50 cursor-pointer card-3d-elevated"
                   >
                     <Building2 size={16} />
                     <span>Apply for Franchise</span>
@@ -865,32 +865,32 @@ const Home = () => {
 
                   <a
                     href="#verify-gateway"
-                    className="btn-elastic font-bold py-3.5 px-5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm flex items-center gap-1.5 border border-slate-200 cursor-pointer"
+                    className="btn-elastic font-bold py-3.5 px-5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 text-xs sm:text-sm flex items-center gap-1.5 border border-slate-200 cursor-pointer card-3d-elevated shadow-xs"
                   >
                     <ShieldCheck size={16} className="text-emerald-600" />
                     <span>Verify Credentials</span>
                   </a>
                 </motion.div>
 
-                {/* Configurable Hero Trust Badges Row */}
-                <motion.div variants={itemFadeUp} className="pt-3 flex flex-wrap items-center justify-center lg:justify-start gap-2">
-                  <span className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 shadow-xs">
+                {/* Configurable Hero Trust Badges Row with 3D Depth */}
+                <motion.div variants={itemFadeUp} className="pt-3 flex flex-wrap items-center justify-center lg:justify-start gap-2.5">
+                  <span className="text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5 shadow-xs card-3d-elevated">
                     <ShieldCheck size={14} className="text-emerald-600" />
                     <span>Govt. Registered</span>
                   </span>
-                  <span className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 shadow-xs">
+                  <span className="text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5 shadow-xs card-3d-elevated">
                     <BadgeCheck size={14} className="text-blue-600" />
                     <span>ISO 9001:2015</span>
                   </span>
-                  <span className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 shadow-xs">
+                  <span className="text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5 shadow-xs card-3d-elevated">
                     <QrCode size={14} className="text-indigo-600" />
                     <span>Centralized QR Diplomas</span>
                   </span>
-                  <span className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 shadow-xs">
+                  <span className="text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5 shadow-xs card-3d-elevated">
                     <Building2 size={14} className="text-amber-600" />
                     <span>{publicStats?.centersCount !== undefined ? `${publicStats.centersCount}+ Centers` : 'Centers'}</span>
                   </span>
-                  <span className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 shadow-xs">
+                  <span className="text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5 shadow-xs card-3d-elevated">
                     <CheckCircle2 size={14} className="text-emerald-600" />
                     <span>Industry Aligned</span>
                   </span>
