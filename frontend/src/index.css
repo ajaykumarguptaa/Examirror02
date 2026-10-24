@@ -667,3 +667,27 @@ body,
 .animate-float-slow-3d {
   animation: floatSlow3D 9s ease-in-out infinite;
 }
+
+/* Reduced motion and touch-first guards for 3D elements */
+@media (prefers-reduced-motion: reduce) {
+  .card-3d-elevated,
+  .card-3d-elevated:hover {
+    transform: none !important;
+    transition: none !important;
+  }
+  .btn-3d-tactile,
+  .btn-3d-tactile:hover,
+  .btn-3d-tactile:active {
+    transform: none !important;
+  }
+  .animate-float-3d,
+  .animate-float-slow-3d {
+    animation: none !important;
+  }
+}
+
+@media (hover: none) {
+  .card-3d-elevated:hover {
+    transform: none;
+  }
+}

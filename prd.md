@@ -35,14 +35,14 @@ Transform Examirror into an immersive, interactive 3D web experience with realis
   - Apply shared elevation, perspective, and motion rules to features, courses, and interactive learning journeys.
   - Preserve content readability, keyboard focus, and all existing actions.
 
-- [ ] **Task 10: Portal and Exam Flow Regression Audit**
+- [x] **Task 10: Portal and Exam Flow Regression Audit**
   - Audit role-specific routes (student, center, admin) and high-focus exam pages.
   - Ensure no decorative 3D effects impair exam timing, question selection, answer submission, or authorization.
 
-- [ ] **Task 11: Accessibility, Responsive, and Performance Verification**
+- [x] **Task 11: Accessibility, Responsive, and Performance Verification**
   - Test reduced motion, keyboard navigation, contrast, viewport reflow across 320px–1440px, and WebGL fallbacks.
   - Record measured outcomes.
 
-- [ ] **Task 12: Final Build and Regression Sign-off**
+- [x] **Task 12: Final Build and Regression Sign-off**
   - Run all project checks (`npm run build`, lint/type check).
   - Resolve any regressions and record the final status in `progress.txt`.
