@@ -12,6 +12,7 @@ import { getAuditLogs, logAudit } from '../utils/auditLogger';
 import { hybridCache } from '../utils/redisCache';
 import { runHousekeepingMaintenance } from '../utils/housekeeper';
 import { getSystemTelemetry, optimizeDatabaseTables } from '../utils/systemTelemetry';
+import { studentWalletService } from '../services/studentWallet.service';
 
 import { verifyAdmin } from '../middleware/auth.middleware';
 import { authRateLimiter } from '../middleware/rateLimiter';
@@ -390,6 +391,54 @@ router.post('/wallet-requests/:id/reject', async (req, res) => {
       details: { reason }
     }, req);
     res.status(200).json({ success: true, message: 'Wallet request rejected', result });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// --- STUDENT WALLET RECHARGE REQUESTS ---
+router.get('/student-wallet-requests', async (req, res) => {
+  try {
+    const status = req.query.status as string;
+    const data = await studentWalletService.getAdminWalletRequests(status);
+    res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/student-wallet-requests/:id/approve', async (req, res) => {
+  try {
+    const adminId = (req as any).user?.id || 1;
+    const result = await studentWalletService.approveWalletRequest(req.params.id, adminId);
+    await logAudit({
+      userType: 'admin',
+      userName: (req as any).user?.username || 'Super Admin',
+      action: 'STUDENT_WALLET_APPROVED',
+      entityType: 'student_wallet_request',
+      entityId: req.params.id,
+      details: result
+    }, req);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/student-wallet-requests/:id/reject', async (req, res) => {
+  try {
+    const adminId = (req as any).user?.id || 1;
+    const { reason } = req.body;
+    const result = await studentWalletService.rejectWalletRequest(req.params.id, reason, adminId);
+    await logAudit({
+      userType: 'admin',
+      userName: (req as any).user?.username || 'Super Admin',
+      action: 'STUDENT_WALLET_REJECTED',
+      entityType: 'student_wallet_request',
+      entityId: req.params.id,
+      details: { reason }
+    }, req);
+    res.status(200).json(result);
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }

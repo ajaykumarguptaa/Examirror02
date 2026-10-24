@@ -1,5 +1,6 @@
 import db from '../db';
 import { saveBase64File } from '../utils/fileStorage';
+import { realtimeService } from './realtime.service';
 
 export class StudentWalletService {
   /**
@@ -151,14 +152,24 @@ export class StudentWalletService {
       [sId, numAmount, cleanUtr, screenshotUrl]
     );
 
-    // Notify Super Admin
+    // Notify Super Admin via unified notification & realtime chime
     try {
-      await db.query(
-        `INSERT INTO test_notifications (recipient_type, title, message, link_url)
-         VALUES ('SUPER_ADMIN', 'Student Wallet Recharge Request', ?, '/admin/wallet-requests')`,
-        [`Student ${student.firstName} ${student.lastName} submitted wallet recharge of ₹${numAmount} (UTR: ${cleanUtr}).`]
+      await realtimeService.notifyAdmin(
+        '💳 Student Wallet Recharge Request',
+        `Student ${student.firstName} ${student.lastName} (Phone: ${student.phone || 'N/A'}) submitted wallet recharge of ₹${numAmount} (UTR: ${cleanUtr}).`,
+        'student_wallet_recharge',
+        { studentId: sId, amount: numAmount, utrNumber: cleanUtr, requestId: insertResult.insertId },
+        '/admin/wallet-requests?tab=student'
       );
-    } catch (e) {}
+      realtimeService.emitToAdmin('student_wallet_request_created', {
+        requestId: insertResult.insertId,
+        studentId: sId,
+        amount: numAmount,
+        utrNumber: cleanUtr
+      });
+    } catch (e) {
+      console.warn('[StudentWallet] Failed to notify admin:', e);
+    }
 
     return {
       success: true,
@@ -440,6 +451,12 @@ export class StudentWalletService {
       [studentId, amount, balanceBefore, balanceAfter, req.utr_number, `UPI QR Wallet Recharge (UTR: ${req.utr_number})`]
     );
 
+    // Notify student & emit events
+    try {
+      realtimeService.emitToAdmin('wallet-updated', { type: 'STUDENT_WALLET' });
+      realtimeService.broadcastAll('student_wallet_updated', { studentId, newBalance: balanceAfter });
+    } catch (_) {}
+
     return {
       success: true,
       creditedAmount: amount,
@@ -461,6 +478,10 @@ export class StudentWalletService {
        WHERE id = ?`,
       [reason || 'Invalid transaction details or unverified payment reference', Number(adminId) || 1, reqId]
     );
+
+    try {
+      realtimeService.emitToAdmin('wallet-updated', { type: 'STUDENT_WALLET' });
+    } catch (_) {}
 
     return {
       success: true,
