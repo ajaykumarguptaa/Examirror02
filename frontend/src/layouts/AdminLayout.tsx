@@ -25,7 +25,8 @@ import {
   PenTool,
   Tag,
   Megaphone,
-  BookOpen
+  BookOpen,
+  Crown
 } from 'lucide-react';
 import axios from 'axios';
 import NotificationBell from '../components/common/NotificationBell';
@@ -215,6 +216,13 @@ const AdminLayout = () => {
       to: '/admin/courses',
       label: 'Course Manager',
       icon: GraduationCap
+    },
+    {
+      to: '/admin/passes',
+      label: 'Elite Pass & Pricing',
+      icon: Crown,
+      badge: 'VIP',
+      highlight: true
     },
     {
       to: '/admin/test-pricing',

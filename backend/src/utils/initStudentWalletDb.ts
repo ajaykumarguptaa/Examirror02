@@ -63,6 +63,7 @@ export async function initStudentWalletDatabase() {
       title VARCHAR(150) NOT NULL,
       subtitle VARCHAR(255) NULL,
       price DECIMAL(10, 2) NOT NULL,
+      original_price DECIMAL(10, 2) NULL DEFAULT NULL,
       validity_days INT NOT NULL DEFAULT 365,
       features JSON NULL,
       badge_text VARCHAR(50) DEFAULT 'MOST POPULAR',
@@ -70,6 +71,16 @@ export async function initStudentWalletDatabase() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+
+  // Safe migration: Add original_price if missing
+  try {
+    const [cols]: any = await db.query(`SHOW COLUMNS FROM test_passes LIKE 'original_price'`);
+    if (cols.length === 0) {
+      await db.query(`ALTER TABLE test_passes ADD COLUMN original_price DECIMAL(10, 2) NULL DEFAULT NULL AFTER price`);
+      await db.query(`UPDATE test_passes SET original_price = 399.00 WHERE pass_type = 'BASIC'`);
+      await db.query(`UPDATE test_passes SET original_price = 999.00 WHERE pass_type = 'ELITE'`);
+    }
+  } catch (_) {}
 
   // 5. Seed Test Passes if empty
   const [existingPasses]: any = await db.query('SELECT COUNT(*) as count FROM test_passes');

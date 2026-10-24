@@ -27,6 +27,7 @@ interface PassItem {
   title: string;
   subtitle: string;
   price: string | number;
+  original_price?: string | number | null;
   validity_days: number;
   features: string[];
   badge_text?: string;
@@ -39,6 +40,7 @@ const FALLBACK_PASSES: PassItem[] = [
     title: 'Basic Practice Pass',
     subtitle: 'Foundational Mock Tests & Solutions',
     price: 199,
+    original_price: 399,
     validity_days: 90,
     features: [
       'Access to Standard Mock Tests & Foundations',
@@ -55,6 +57,7 @@ const FALLBACK_PASSES: PassItem[] = [
     title: 'Examirror Elite Pass',
     subtitle: 'All-Access VIP Pass to ALL Test Series & Live Mocks',
     price: 499,
+    original_price: 999,
     validity_days: 365,
     features: [
       'UNLIMITED 1-Click Access to ALL Paid Test Series',
@@ -219,6 +222,11 @@ export const HomeElitePassSection: React.FC = () => {
                 <span className="text-3xl sm:text-4xl font-extrabold text-white">
                   ₹{Number(basicPass.price).toFixed(0)}
                 </span>
+                {basicPass.original_price && Number(basicPass.original_price) > Number(basicPass.price) && (
+                  <span className="text-sm line-through text-slate-500 font-bold">
+                    ₹{Number(basicPass.original_price).toFixed(0)}
+                  </span>
+                )}
                 <span className="text-xs text-slate-400 font-medium">
                   / {basicPass.validity_days} Days
                 </span>
@@ -254,7 +262,7 @@ export const HomeElitePassSection: React.FC = () => {
             {/* Top Recommended Tag */}
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
               <span className="px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[11px] uppercase tracking-wider shadow-lg flex items-center gap-1.5">
-                <Sparkles size={12} className="text-slate-950" />
+                <Crown size={12} className="text-slate-950" />
                 <span>{elitePass.badge_text || 'MOST POPULAR • BEST VALUE'}</span>
               </span>
             </div>
@@ -270,7 +278,7 @@ export const HomeElitePassSection: React.FC = () => {
                     <span>ELITE ALL-ACCESS</span>
                   </div>
                   <span className="text-xs font-bold text-amber-200/90 bg-amber-950/60 border border-amber-800/60 px-3 py-1 rounded-full">
-                    365 Days Unlimited Access
+                    {elitePass.validity_days} Days Unlimited Access
                   </span>
                 </div>
 
@@ -287,12 +295,22 @@ export const HomeElitePassSection: React.FC = () => {
                   <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">
                     ₹{Number(elitePass.price).toFixed(0)}
                   </span>
+                  {elitePass.original_price && Number(elitePass.original_price) > Number(elitePass.price) && (
+                    <>
+                      <span className="text-xl line-through text-slate-500 font-bold">
+                        ₹{Number(elitePass.original_price).toFixed(0)}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-xs font-black">
+                        {Math.round(((Number(elitePass.original_price) - Number(elitePass.price)) / Number(elitePass.original_price)) * 100)}% OFF
+                      </span>
+                    </>
+                  )}
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-amber-300 uppercase tracking-wide">
-                      Full Year (365 Days)
+                      {elitePass.validity_days} Days Validity
                     </span>
                     <span className="text-[11px] text-slate-400">
-                      Just ₹1.36 / day • No hidden charges
+                      Just ₹{(Number(elitePass.price) / (elitePass.validity_days || 365)).toFixed(2)} / day • No hidden charges
                     </span>
                   </div>
                 </div>

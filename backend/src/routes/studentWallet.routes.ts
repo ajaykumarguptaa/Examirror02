@@ -196,4 +196,29 @@ router.post('/admin/requests/:id/reject', async (req: Request, res: Response) =>
   }
 });
 
+/**
+ * Super Admin: Get All Exam Passes Configuration
+ */
+router.get('/admin/passes', async (_req: Request, res: Response) => {
+  try {
+    const data = await studentWalletService.getAllPassesForAdmin();
+    res.json({ success: true, data });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * Super Admin: Update Exam Pass (Price, Original Price, Validity Days, Features, etc.)
+ */
+router.put('/admin/passes/:id', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const data = await studentWalletService.updatePassByAdmin(id, req.body);
+    res.json({ success: true, data, message: 'Pass configuration updated successfully' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
 export default router;

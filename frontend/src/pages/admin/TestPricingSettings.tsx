@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import {
   Award,
@@ -18,7 +19,8 @@ import {
   Check,
   X,
   AlertTriangle,
-  Clock
+  Clock,
+  Crown
 } from 'lucide-react';
 
 interface PricingConfig {
@@ -412,14 +414,23 @@ const TestPricingSettings: React.FC = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={fetchPricingData}
-          className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl text-xs font-bold shadow-sm transition-colors flex items-center gap-2 cursor-pointer"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin text-indigo-600' : ''} />
-          <span>Refresh Live Quota</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/admin/passes"
+            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 hover:brightness-105 active:scale-95 transition-all"
+          >
+            <Crown size={15} />
+            <span>Manage Student Elite Pass Pricing</span>
+          </Link>
+          <button
+            type="button"
+            onClick={fetchPricingData}
+            className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl text-xs font-bold shadow-sm transition-colors flex items-center gap-2 cursor-pointer"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin text-indigo-600' : ''} />
+            <span>Refresh Live Quota</span>
+          </button>
+        </div>
       </div>
 
       {/* Overview Analytics Bar */}

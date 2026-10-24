@@ -388,6 +388,56 @@ export class StudentWalletService {
     }));
   }
 
+  /**
+   * 7. Super Admin: Get All Passes (Including Inactive)
+   */
+  async getAllPassesForAdmin() {
+    const [rows]: any = await db.query(`SELECT * FROM test_passes ORDER BY id ASC`);
+    return rows.map((p: any) => ({
+      ...p,
+      features: typeof p.features === 'string' ? JSON.parse(p.features) : (p.features || [])
+    }));
+  }
+
+  /**
+   * 8. Super Admin: Update Pass Configuration (Price, Original Price, Validity Days, Features, etc.)
+   */
+  async updatePassByAdmin(passId: number | string, data: any) {
+    const id = Number(passId);
+    if (!id || isNaN(id)) throw new Error('Invalid pass ID');
+
+    const [existing]: any = await db.query(`SELECT * FROM test_passes WHERE id = ?`, [id]);
+    if (existing.length === 0) throw new Error('Exam pass not found');
+
+    const current = existing[0];
+    const price = data.price !== undefined ? Number(data.price) : Number(current.price);
+    const originalPrice = data.original_price !== undefined ? (data.original_price ? Number(data.original_price) : null) : current.original_price;
+    const validityDays = data.validity_days !== undefined ? Number(data.validity_days) : Number(current.validity_days);
+    const title = data.title !== undefined ? String(data.title).trim() : current.title;
+    const subtitle = data.subtitle !== undefined ? String(data.subtitle).trim() : current.subtitle;
+    const badgeText = data.badge_text !== undefined ? String(data.badge_text).trim() : current.badge_text;
+    const isActive = data.is_active !== undefined ? (data.is_active ? 1 : 0) : current.is_active;
+
+    let featuresJson = current.features;
+    if (data.features !== undefined) {
+      featuresJson = typeof data.features === 'string' ? data.features : JSON.stringify(data.features);
+    }
+
+    await db.query(
+      `UPDATE test_passes 
+       SET title = ?, subtitle = ?, price = ?, original_price = ?, validity_days = ?, features = ?, badge_text = ?, is_active = ?
+       WHERE id = ?`,
+      [title, subtitle, price, originalPrice, validityDays, featuresJson, badgeText, isActive, id]
+    );
+
+    const [updated]: any = await db.query(`SELECT * FROM test_passes WHERE id = ?`, [id]);
+    const pass = updated[0];
+    return {
+      ...pass,
+      features: typeof pass.features === 'string' ? JSON.parse(pass.features) : (pass.features || [])
+    };
+  }
+
   // =========================================================================
   // ADMIN WALLET REQUESTS MANAGEMENT
   // =========================================================================

@@ -50,6 +50,7 @@ const BackupExport = lazy(() => import('./pages/admin/BackupExport'));
 const FranchiseRequests = lazy(() => import('./pages/admin/FranchiseRequests'));
 const ContactQueries = lazy(() => import('./pages/admin/ContactQueries'));
 const TestPricingSettings = lazy(() => import('./pages/admin/TestPricingSettings'));
+const AdminPassesManager = lazy(() => import('./pages/admin/AdminPassesManager'));
 const TestSeriesManagement = lazy(() => import('./pages/admin/TestSeriesManagement'));
 const AdminCourses = lazy(() => import('./pages/admin/AdminCourses'));
 const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'));
@@ -190,6 +191,7 @@ function App() {
           <Route path="test-series" element={<TestSeriesManagement />} />
           <Route path="categories" element={<AdminCategories />} />
           <Route path="test-pricing" element={<TestPricingSettings />} />
+          <Route path="passes" element={<AdminPassesManager />} />
           <Route path="backup-export" element={<BackupExport />} />
           <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="settings/home" element={<HomeSettings />} />

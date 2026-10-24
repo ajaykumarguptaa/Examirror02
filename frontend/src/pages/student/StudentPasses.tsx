@@ -239,8 +239,8 @@ export const StudentPasses: React.FC = () => {
               {isElite && (
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap">
                   <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-slate-950 text-[11px] font-black uppercase tracking-wider shadow-lg shadow-amber-500/25 border border-amber-200">
-                    <Sparkles size={13} className="text-slate-950 fill-slate-950" />
-                    <span>MOST POPULAR • ALL-ACCESS VIP</span>
+                    <Crown size={13} className="text-slate-950" />
+                    <span>{pass.badge_text || 'MOST POPULAR • ALL-ACCESS VIP'}</span>
                   </div>
                 </div>
               )}
@@ -286,9 +286,9 @@ export const StudentPasses: React.FC = () => {
 
                 {/* Subtitle / Description */}
                 <p className={`text-xs mt-2 leading-relaxed ${isElite ? 'text-slate-300' : 'text-slate-500'}`}>
-                  {isElite 
+                  {pass.subtitle || (isElite 
                     ? 'Unrestricted access to all current and future test series, live full mocks, and national percentiles.' 
-                    : 'Targeted foundation mocks, topic-wise practice questions, and subject accuracy analysis.'
+                    : 'Targeted foundation mocks, topic-wise practice questions, and subject accuracy analysis.')
                   }
                 </p>
 
@@ -301,11 +301,18 @@ export const StudentPasses: React.FC = () => {
                   }`}
                 >
                   <div className="flex items-baseline justify-between flex-wrap gap-2">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-sm font-semibold opacity-80">₹</span>
-                      <span className="text-4xl sm:text-5xl font-black tracking-tight">{price.toFixed(0)}</span>
-                      <span className={`text-xs font-medium ml-1.5 ${isElite ? 'text-slate-400' : 'text-slate-500'}`}>
-                        / {validityDays} Days Validity
+                    <div className="flex items-baseline gap-2">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-sm font-semibold opacity-80">₹</span>
+                        <span className="text-4xl sm:text-5xl font-black tracking-tight">{price.toFixed(0)}</span>
+                      </div>
+                      {pass.original_price && Number(pass.original_price) > price && (
+                        <span className="text-base line-through text-slate-500 font-bold">
+                          ₹{Number(pass.original_price).toFixed(0)}
+                        </span>
+                      )}
+                      <span className={`text-xs font-medium ml-1 ${isElite ? 'text-slate-400' : 'text-slate-500'}`}>
+                        / {validityDays} Days
                       </span>
                     </div>
 
@@ -316,7 +323,9 @@ export const StudentPasses: React.FC = () => {
                           : 'bg-slate-200/80 border-slate-300 text-slate-700'
                       }`}
                     >
-                      {isElite ? 'Best Value • Save 75%' : 'Standard Access'}
+                      {pass.original_price && Number(pass.original_price) > price
+                        ? `${Math.round(((Number(pass.original_price) - price) / Number(pass.original_price)) * 100)}% OFF`
+                        : (isElite ? 'Best Value' : 'Standard Access')}
                     </div>
                   </div>
 
