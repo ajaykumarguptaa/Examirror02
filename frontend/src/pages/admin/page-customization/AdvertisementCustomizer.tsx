@@ -26,13 +26,22 @@ import {
   Palette,
   Layout,
   ExternalLink,
-  Crown
+  ArrowLeftRight,
+  Maximize2,
+  Monitor,
+  Maximize,
+  Sparkles,
+  Link as LinkIcon
 } from 'lucide-react';
 import { 
   type HomeAdvertisementSettings, 
   type AdSlideItem,
   type AdColorTheme,
   type AdLayoutType,
+  type AdBannerPosition,
+  type AdBannerWidth,
+  type AdBannerHeight,
+  type AdImageFit,
   DEFAULT_AD_SETTINGS,
   DEFAULT_AD_SLIDES
 } from '../../../types/advertisement';
@@ -57,16 +66,17 @@ export const AdvertisementCustomizer: React.FC = () => {
 
       if (res.data?.success && res.data?.data) {
         const data = res.data.data;
-        const normalizedSlides = (data.slides && Array.isArray(data.slides) && data.slides.length > 0)
+        const rawSlides = (data.slides && Array.isArray(data.slides) && data.slides.length > 0)
           ? data.slides
-          : (data.title ? [{
+          : (data.title || data.imageUrl ? [{
               id: 'slide-1',
-              title: data.title,
+              title: data.title || '',
               subtitle: data.subtitle || '',
               badgeText: data.badgeText,
               badgeType: data.badgeType,
               imageUrl: data.imageUrl,
-              layoutType: data.imageUrl ? 'splitCard' : 'compactCard',
+              imageFit: data.bannerFit || 'cover',
+              layoutType: data.imageUrl ? 'pureImage' : 'compactCard',
               colorTheme: 'indigoBlue',
               ctaText: data.ctaText || 'Explore Now',
               ctaLink: data.ctaLink || '/test-series',
@@ -75,9 +85,23 @@ export const AdvertisementCustomizer: React.FC = () => {
               countdownEndDate: data.countdownEndDate
             }] : DEFAULT_AD_SLIDES);
 
+        // Auto-fix any slide that has an image but was stuck in compactCard
+        const normalizedSlides = rawSlides.map((s: AdSlideItem) => {
+          if (s.imageUrl && (s.layoutType === 'compactCard' || !s.layoutType)) {
+            return { ...s, layoutType: 'pureImage' as AdLayoutType };
+          }
+          return s;
+        });
+
         setAd({
           ...DEFAULT_AD_SETTINGS,
           ...data,
+          bannerPosition: data.bannerPosition || 'top',
+          bannerWidth: data.bannerWidth || 'full',
+          bannerHeight: data.bannerHeight || 'standard',
+          bannerFit: data.bannerFit || 'cover',
+          showArrows: data.showArrows ?? true,
+          showDots: data.showDots ?? true,
           slides: normalizedSlides
         });
       }
@@ -111,11 +135,13 @@ export const AdvertisementCustomizer: React.FC = () => {
       subtitle: 'Write a compelling highlight description for students here.',
       badgeText: 'NEW LAUNCH',
       badgeType: 'launch',
-      layoutType: 'splitCard',
+      layoutType: 'pureImage',
       colorTheme: 'indigoBlue',
       imageUrl: '',
+      imageFit: ad.bannerFit || 'cover',
       ctaText: 'Explore Now',
       ctaLink: '/test-series',
+      openInNewTab: false,
       secondaryText: 'Instant Access • Unlimited Practice',
       countdownEnabled: false
     };
@@ -125,7 +151,7 @@ export const AdvertisementCustomizer: React.FC = () => {
       slides: [...prev.slides, newSlide]
     }));
     setActiveSlideIndex(ad.slides.length);
-    toast.success('New banner slide added!');
+    toast.success('New banner slide added! Upload your banner image now.');
   };
 
   const handleDeleteSlide = (index: number) => {
@@ -147,7 +173,7 @@ export const AdvertisementCustomizer: React.FC = () => {
     const duplicated: AdSlideItem = {
       ...slideToCopy,
       id: `slide-${Date.now()}`,
-      title: `${slideToCopy.title} (Copy)`
+      title: slideToCopy.title ? `${slideToCopy.title} (Copy)` : 'Banner Copy'
     };
     setAd(prev => ({
       ...prev,
@@ -157,11 +183,28 @@ export const AdvertisementCustomizer: React.FC = () => {
     toast.success('Slide duplicated');
   };
 
+  const handleMoveSlide = (index: number, direction: 'left' | 'right') => {
+    const newIndex = direction === 'left' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= ad.slides.length) return;
+    setAd(prev => {
+      const updated = [...prev.slides];
+      const temp = updated[index];
+      updated[index] = updated[newIndex];
+      updated[newIndex] = temp;
+      return { ...prev, slides: updated };
+    });
+    setActiveSlideIndex(newIndex);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
       const payload = {
         ...ad,
+        displayFormats: {
+          ...ad.displayFormats,
+          heroCard: true // Always ensure homepage banner format is enabled
+        },
         // Sync first slide as legacy fallback
         title: ad.slides[0]?.title || ad.title,
         subtitle: ad.slides[0]?.subtitle || ad.subtitle,
@@ -184,7 +227,7 @@ export const AdvertisementCustomizer: React.FC = () => {
       ));
 
       if (res.data?.success) {
-        toast.success('Advertisements & Slideshow published live to Home Page!');
+        toast.success('Banner Slider published live to Home Page!');
       } else {
         toast.success('Saved successfully!');
       }
@@ -211,16 +254,23 @@ export const AdvertisementCustomizer: React.FC = () => {
         }
       });
       if (res.data?.success && res.data?.url) {
-        updateCurrentSlide({ imageUrl: res.data.url });
-        toast.success('Banner graphic uploaded successfully!');
+        updateCurrentSlide({ 
+          imageUrl: res.data.url,
+          // Auto switch to pureImage if user uploaded an image and hasn't chosen fullBanner
+          layoutType: currentSlide.layoutType === 'compactCard' ? 'pureImage' : (currentSlide.layoutType || 'pureImage')
+        });
+        toast.success('Banner image uploaded successfully!');
       }
     } catch (err) {
       // Fallback base64
       const reader = new FileReader();
       reader.onload = (uploadEvent) => {
         if (uploadEvent.target?.result) {
-          updateCurrentSlide({ imageUrl: uploadEvent.target?.result as string });
-          toast.success('Banner graphic loaded!');
+          updateCurrentSlide({ 
+            imageUrl: uploadEvent.target?.result as string,
+            layoutType: currentSlide.layoutType === 'compactCard' ? 'pureImage' : (currentSlide.layoutType || 'pureImage')
+          });
+          toast.success('Banner image loaded!');
         }
       };
       reader.readAsDataURL(file);
@@ -229,27 +279,11 @@ export const AdvertisementCustomizer: React.FC = () => {
     }
   };
 
-  const getThemeWrapperClass = (theme?: string) => {
-    switch (theme) {
-      case 'amberSunset':
-        return 'bg-gradient-to-r from-amber-600 via-orange-600 to-rose-700 text-white border-amber-300/40';
-      case 'emeraldTeal':
-        return 'bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 text-white border-emerald-400/40';
-      case 'royalPurple':
-        return 'bg-gradient-to-r from-purple-800 via-indigo-800 to-slate-900 text-white border-purple-400/40';
-      case 'cleanLight':
-        return 'bg-gradient-to-r from-white via-blue-50/60 to-indigo-50/60 text-slate-900 border-indigo-200';
-      case 'indigoBlue':
-      default:
-        return 'bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 text-white border-blue-400/40';
-    }
-  };
-
   if (loading) {
     return (
       <div className="bg-white rounded-3xl p-12 border border-slate-200 text-center text-slate-400">
         <RefreshCw size={28} className="animate-spin mx-auto mb-3 text-indigo-600" />
-        <p className="text-sm font-semibold">Loading advertisement settings...</p>
+        <p className="text-sm font-semibold">Loading banner slider settings...</p>
       </div>
     );
   }
@@ -257,23 +291,23 @@ export const AdvertisementCustomizer: React.FC = () => {
   return (
     <div className="space-y-8 font-sans text-slate-800">
       
-      {/* Top Action Bar */}
+      {/* 1. TOP HEADER & PUBLISH BAR */}
       <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1.5">
               <Megaphone size={13} className="text-amber-600" />
-              Landing Page Campaign Manager
+              Homepage Banner Slider & Ads Engine
             </span>
             <span className="text-xs text-slate-400 font-medium">
-              Multi-Slide Banner Slideshow Engine
+              Multi-Image Carousel
             </span>
           </div>
           <h2 className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
-            Home Page Advertisements & Slideshow Banners
+            Home Page Ad & Launch Banners Slider
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Create high-impact banner slideshows, upload custom graphic posters, set color themes, and connect 1-click CTA links.
+            Upload full-width responsive banner graphics, create multi-slide carousels, set click links, and adjust banner heights.
           </p>
         </div>
 
@@ -296,8 +330,10 @@ export const AdvertisementCustomizer: React.FC = () => {
         </div>
       </div>
 
-      {/* Global Campaign Master Toggle & Format Settings */}
+      {/* 2. GLOBAL SLIDER CONFIGURATION & DISPLAY CONTROLS */}
       <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
+        
+        {/* Master Active / Pause Toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <label className="relative inline-flex items-center cursor-pointer">
@@ -311,16 +347,16 @@ export const AdvertisementCustomizer: React.FC = () => {
             </label>
             <div>
               <span className="text-sm font-black text-slate-900 block">
-                {ad.enabled ? '🟢 Campaign is ACTIVE on Live Website' : '⚪ Campaign is PAUSED'}
+                {ad.enabled ? '🟢 Banner Slider is ACTIVE on Live Home Page' : '⚪ Banner Slider is PAUSED'}
               </span>
               <span className="text-xs text-slate-500">
-                Turn on to display active banners, ribbons, or modals to website visitors.
+                When enabled, visitors will see the full-width promotional banner slider on the homepage.
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <label className="text-xs font-bold text-slate-700">Auto-slide Interval:</label>
+            <label className="text-xs font-bold text-slate-700">Autoplay Interval:</label>
             <select
               value={ad.autoSlideIntervalSeconds || 5}
               onChange={(e) => setAd(prev => ({ ...prev, autoSlideIntervalSeconds: Number(e.target.value) }))}
@@ -335,54 +371,141 @@ export const AdvertisementCustomizer: React.FC = () => {
           </div>
         </div>
 
-        {/* Display Formats Selector */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <label className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${ad.displayFormats.heroCard ? 'border-indigo-600 bg-indigo-50/40' : 'border-slate-200 hover:border-slate-300'}`}>
+        {/* Banner Layout & Size Controls */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          {/* 1. Placement */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <Monitor size={14} className="text-indigo-600" />
+              <span>Homepage Placement</span>
+            </label>
+            <select
+              value={ad.bannerPosition || 'top'}
+              onChange={(e) => setAd(prev => ({ ...prev, bannerPosition: e.target.value as AdBannerPosition }))}
+              className="w-full text-xs font-semibold p-2 rounded-xl border border-slate-200 bg-white text-slate-800"
+            >
+              <option value="top">📌 Top of Home Page (Below Header / Notice)</option>
+              <option value="below_hero">📍 Below Hero Section (Spotlight Banner)</option>
+            </select>
+            <span className="text-[10px] text-slate-500 block leading-tight">
+              'Top of Home Page' gives maximum visibility like top e-learning platforms.
+            </span>
+          </div>
+
+          {/* 2. Banner Width */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <Maximize2 size={14} className="text-indigo-600" />
+              <span>Banner Width</span>
+            </label>
+            <select
+              value={ad.bannerWidth || 'full'}
+              onChange={(e) => setAd(prev => ({ ...prev, bannerWidth: e.target.value as AdBannerWidth }))}
+              className="w-full text-xs font-semibold p-2 rounded-xl border border-slate-200 bg-white text-slate-800"
+            >
+              <option value="full">🌐 Full Width (100% Edge-to-Edge)</option>
+              <option value="container">📦 Boxed Container (Max 1600px)</option>
+            </select>
+            <span className="text-[10px] text-slate-500 block leading-tight">
+              Full Width stretches across the entire screen seamlessly.
+            </span>
+          </div>
+
+          {/* 3. Banner Height */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <Maximize size={14} className="text-indigo-600" />
+              <span>Banner Height</span>
+            </label>
+            <select
+              value={ad.bannerHeight || 'standard'}
+              onChange={(e) => setAd(prev => ({ ...prev, bannerHeight: e.target.value as AdBannerHeight }))}
+              className="w-full text-xs font-semibold p-2 rounded-xl border border-slate-200 bg-white text-slate-800"
+            >
+              <option value="standard">📐 Standard (300px - 480px, Best for Web)</option>
+              <option value="compact">📏 Compact (220px - 340px, Sleek Ribbon)</option>
+              <option value="large">📐 Large Hero (360px - 600px, High Impact)</option>
+              <option value="auto">📏 Auto Aspect Ratio (21:9 Widescreen)</option>
+            </select>
+            <span className="text-[10px] text-slate-500 block leading-tight">
+              Responsive height automatically adapts on mobile phones.
+            </span>
+          </div>
+
+          {/* 4. Image Fit */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <ImageIcon size={14} className="text-indigo-600" />
+              <span>Image Fit Mode</span>
+            </label>
+            <select
+              value={ad.bannerFit || 'cover'}
+              onChange={(e) => setAd(prev => ({ ...prev, bannerFit: e.target.value as AdImageFit }))}
+              className="w-full text-xs font-semibold p-2 rounded-xl border border-slate-200 bg-white text-slate-800"
+            >
+              <option value="cover">🔲 Cover (Fills 100% of banner area smoothly)</option>
+              <option value="contain">🔳 Contain (Shows entire image without cropping)</option>
+            </select>
+            <span className="text-[10px] text-slate-500 block leading-tight">
+              'Contain' preserves 100% text/logos on edges with soft backdrop.
+            </span>
+          </div>
+
+        </div>
+
+        {/* Navigation Arrows & Indicators Checkboxes */}
+        <div className="flex flex-wrap items-center gap-6 pt-2 text-xs font-bold text-slate-700">
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
-              checked={ad.displayFormats.heroCard}
-              onChange={(e) => setAd(prev => ({ ...prev, displayFormats: { ...prev.displayFormats, heroCard: e.target.checked } }))}
-              className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-0"
+              checked={ad.showArrows !== false}
+              onChange={(e) => setAd(prev => ({ ...prev, showArrows: e.target.checked }))}
+              className="rounded accent-indigo-600 w-4 h-4"
             />
-            <div>
-              <span className="text-xs font-bold text-slate-900 block">📌 Home Page Spotlight Slideshow</span>
-              <span className="text-[11px] text-slate-500 leading-tight block mt-0.5">High-converting carousel right below the hero banner.</span>
-            </div>
+            <span>Show Navigation Arrows (&lt; / &gt;)</span>
           </label>
 
-          <label className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${ad.displayFormats.topRibbon ? 'border-indigo-600 bg-indigo-50/40' : 'border-slate-200 hover:border-slate-300'}`}>
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
-              checked={ad.displayFormats.topRibbon}
+              checked={ad.showDots !== false}
+              onChange={(e) => setAd(prev => ({ ...prev, showDots: e.target.checked }))}
+              className="rounded accent-indigo-600 w-4 h-4"
+            />
+            <span>Show Bottom Indicator Dots (Pills)</span>
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer ml-auto text-slate-500">
+            <input
+              type="checkbox"
+              checked={ad.displayFormats?.topRibbon ?? true}
               onChange={(e) => setAd(prev => ({ ...prev, displayFormats: { ...prev.displayFormats, topRibbon: e.target.checked } }))}
-              className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-0"
+              className="rounded accent-indigo-600 w-4 h-4"
             />
-            <div>
-              <span className="text-xs font-bold text-slate-900 block">🔔 Top Announcement Ribbon</span>
-              <span className="text-[11px] text-slate-500 leading-tight block mt-0.5">Thin sticky alert bar at the very top of the webpage.</span>
-            </div>
+            <span>Top Floating Announcement Ribbon</span>
           </label>
 
-          <label className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${ad.displayFormats.popupModal ? 'border-indigo-600 bg-indigo-50/40' : 'border-slate-200 hover:border-slate-300'}`}>
+          <label className="flex items-center gap-2 cursor-pointer text-slate-500">
             <input
               type="checkbox"
-              checked={ad.displayFormats.popupModal}
+              checked={ad.displayFormats?.popupModal ?? true}
               onChange={(e) => setAd(prev => ({ ...prev, displayFormats: { ...prev.displayFormats, popupModal: e.target.checked } }))}
-              className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-0"
+              className="rounded accent-indigo-600 w-4 h-4"
             />
-            <div>
-              <span className="text-xs font-bold text-slate-900 block">💬 High-Impact Popup Modal</span>
-              <span className="text-[11px] text-slate-500 leading-tight block mt-0.5">Automated lightbox modal with countdown timer.</span>
-            </div>
+            <span>Entry Popup Ad Modal</span>
           </label>
         </div>
+
       </div>
 
-      {/* Slideshow Manager Tabs */}
+      {/* 3. MULTI-SLIDE CAROUSEL MANAGER */}
       <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
+        
+        {/* Slides Navigation Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
-          <div className="flex items-center gap-2 overflow-x-auto py-1">
-            <span className="text-xs font-black text-slate-400 uppercase tracking-wider mr-2">
+          <div className="flex items-center gap-2 overflow-x-auto py-1 max-w-full">
+            <span className="text-xs font-black text-slate-400 uppercase tracking-wider mr-2 shrink-0">
               Slides ({ad.slides.length}):
             </span>
             {ad.slides.map((s, idx) => (
@@ -390,31 +513,58 @@ export const AdvertisementCustomizer: React.FC = () => {
                 key={s.id || idx}
                 type="button"
                 onClick={() => setActiveSlideIndex(idx)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer transition-all shrink-0 ${
                   activeSlideIndex === idx
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25 ring-2 ring-indigo-300'
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
+                {/* Thumbnail Preview */}
+                {s.imageUrl ? (
+                  <img src={s.imageUrl} alt="" className="w-5 h-4 object-cover rounded shadow-xs shrink-0" />
+                ) : (
+                  <ImageIcon size={14} className="opacity-60" />
+                )}
                 <span>Slide {idx + 1}</span>
-                {s.title && <span className="max-w-[120px] truncate opacity-80 text-[10px]">({s.title})</span>}
+                {s.title && <span className="max-w-[100px] truncate opacity-75 text-[10px]">({s.title})</span>}
               </button>
             ))}
+
             <button
               type="button"
               onClick={handleAddSlide}
-              className="px-3 py-2 rounded-xl border border-dashed border-indigo-400 text-indigo-600 hover:bg-indigo-50 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl border border-dashed border-indigo-400 text-indigo-600 hover:bg-indigo-50 text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0"
             >
               <Plus size={14} />
               <span>Add Slide</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Slide Actions (Move / Duplicate / Delete) */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              disabled={activeSlideIndex === 0}
+              onClick={() => handleMoveSlide(activeSlideIndex, 'left')}
+              className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+              title="Move slide left (earlier in order)"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <button
+              type="button"
+              disabled={activeSlideIndex === ad.slides.length - 1}
+              onClick={() => handleMoveSlide(activeSlideIndex, 'right')}
+              className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+              title="Move slide right (later in order)"
+            >
+              <ChevronRight size={14} />
+            </button>
+
             <button
               type="button"
               onClick={() => handleDuplicateSlide(activeSlideIndex)}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold flex items-center gap-1"
+              className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold flex items-center gap-1 cursor-pointer"
               title="Duplicate current slide"
             >
               <Copy size={13} />
@@ -424,343 +574,378 @@ export const AdvertisementCustomizer: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleDeleteSlide(activeSlideIndex)}
-                className="px-3 py-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold flex items-center gap-1"
+                className="px-3 py-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold flex items-center gap-1 cursor-pointer"
                 title="Delete current slide"
               >
                 <Trash2 size={13} />
-                <span>Delete Slide</span>
+                <span>Delete</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Current Active Slide Editor */}
+        {/* 4. CURRENT ACTIVE SLIDE EDITOR */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Left Form: Content & Customization */}
+          {/* Left Form: Graphic Upload & Content Controls */}
           <div className="lg:col-span-7 space-y-6">
             
-            {/* 1. Layout Mode & Color Theme */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-                  <Layout size={14} className="text-indigo-600" />
-                  <span>Banner Layout Style</span>
-                </label>
-                <select
-                  value={currentSlide.layoutType || 'splitCard'}
-                  onChange={(e) => updateCurrentSlide({ layoutType: e.target.value as AdLayoutType })}
-                  className="w-full text-xs font-semibold p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800"
+            {/* Banner Mode Selector */}
+            <div>
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+                <Layout size={14} className="text-indigo-600" />
+                <span>Banner Slide Mode</span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => updateCurrentSlide({ layoutType: 'pureImage' })}
+                  className={`p-3.5 rounded-2xl border-2 text-left cursor-pointer transition-all ${
+                    currentSlide.layoutType === 'pureImage'
+                      ? 'border-indigo-600 bg-indigo-50/50 shadow-sm'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
                 >
-                  <option value="splitCard">🗂️ Split Card (Text + Graphic)</option>
-                  <option value="fullBanner">🖼️ Full Graphic Banner (Poster Only / Image-First)</option>
-                  <option value="compactCard">📄 Vibrant Gradient Text Card</option>
-                </select>
-              </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🖼️</span>
+                    <span className="text-xs font-black text-slate-900">Pure Image Banner</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1 leading-tight">
+                    Clean poster image without text overlay. Perfect for Photoshop/Canva banners.
+                  </p>
+                </button>
 
-              <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-                  <Palette size={14} className="text-indigo-600" />
-                  <span>Color Theme Preset</span>
-                </label>
-                <select
-                  value={currentSlide.colorTheme || 'indigoBlue'}
-                  onChange={(e) => updateCurrentSlide({ colorTheme: e.target.value as AdColorTheme })}
-                  className="w-full text-xs font-semibold p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800"
+                <button
+                  type="button"
+                  onClick={() => updateCurrentSlide({ layoutType: 'fullBanner' })}
+                  className={`p-3.5 rounded-2xl border-2 text-left cursor-pointer transition-all ${
+                    currentSlide.layoutType === 'fullBanner'
+                      ? 'border-indigo-600 bg-indigo-50/50 shadow-sm'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
                 >
-                  <option value="indigoBlue">🔵 Royal Cobalt & Electric Indigo</option>
-                  <option value="amberSunset">🟠 Sunset Amber & Vibrant Orange</option>
-                  <option value="emeraldTeal">🟢 Emerald & Dark Teal</option>
-                  <option value="royalPurple">🟣 Regal Violet & Deep Purple</option>
-                  <option value="cleanLight">⚪ Clean Modern Light / Pearl</option>
-                </select>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🎴</span>
+                    <span className="text-xs font-black text-slate-900">Image + Text Overlay</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1 leading-tight">
+                    Banner graphic in background with title, badge, countdown & CTA button.
+                  </p>
+                </button>
               </div>
             </div>
 
-            {/* 2. Custom Graphic Banner Poster Upload */}
+            {/* Banner Image Uploader */}
             <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                   <ImageIcon size={15} className="text-indigo-600" />
-                  <span>Custom Banner Image / Poster</span>
+                  <span>Banner Image Graphic</span>
                 </label>
-                <span className="text-[11px] text-slate-400">
-                  Recommended: 1200x400 or 1920x600 (PNG / JPG / WebP)
+                <span className="text-[11px] font-semibold text-slate-400">
+                  Recommended: 1920x600, 1600x500, or 1200x400
                 </span>
               </div>
 
               {currentSlide.imageUrl ? (
-                <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-white max-h-48 group">
+                <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 aspect-[21/9] sm:aspect-[24/8] group shadow-inner">
                   <img
                     src={currentSlide.imageUrl}
                     alt="Slide Graphic"
-                    className="w-full h-full object-cover max-h-48"
+                    className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                    <label className="px-3 py-1.5 rounded-lg bg-white text-slate-800 text-xs font-bold cursor-pointer hover:bg-slate-100">
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                    <label className="px-3.5 py-2 rounded-xl bg-white text-slate-800 text-xs font-bold cursor-pointer hover:bg-slate-100 shadow-md">
                       <span>Change Image</span>
                       <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                     </label>
                     <button
                       type="button"
                       onClick={() => updateCurrentSlide({ imageUrl: '' })}
-                      className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-bold hover:bg-rose-700"
+                      className="px-3.5 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 shadow-md cursor-pointer"
                     >
                       Remove
                     </button>
                   </div>
                 </div>
               ) : (
-                <label className="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer bg-white transition-all">
-                  <Upload size={22} className="text-indigo-600" />
-                  <span className="text-xs font-bold text-slate-700">
-                    {uploadingImage ? 'Uploading Image...' : 'Click to Upload Custom Graphic Poster'}
+                <label className="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer bg-white transition-all">
+                  <Upload size={26} className="text-indigo-600" />
+                  <span className="text-xs font-bold text-slate-800">
+                    {uploadingImage ? 'Uploading Image...' : 'Click to Upload Banner Image (JPG, PNG, WebP)'}
                   </span>
-                  <span className="text-[11px] text-slate-400">
-                    Design your poster in Canva/Photoshop and upload here for an exact custom look.
+                  <span className="text-[11px] text-slate-400 text-center max-w-sm">
+                    Design your promotional poster in Canva or Photoshop and upload here. It will display in full width on the homepage.
                   </span>
                   <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                 </label>
               )}
             </div>
 
-            {/* 3. Badge Tag & Type */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
-                  Badge Tag Text
-                </label>
+            {/* Destination Link (CTA Link) */}
+            <div className="p-4 rounded-2xl border border-slate-200 bg-white space-y-3">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <LinkIcon size={14} className="text-indigo-600" />
+                <span>Destination Click Link (Target URL)</span>
+              </label>
+
+              <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  value={currentSlide.badgeText || ''}
-                  onChange={(e) => updateCurrentSlide({ badgeText: e.target.value })}
-                  placeholder="e.g. NEW LAUNCH, 50% OFF, EXAM ALERT"
-                  className="w-full text-xs font-semibold p-2.5 rounded-xl border border-slate-200 bg-white text-slate-900"
+                  value={currentSlide.ctaLink || ''}
+                  onChange={(e) => updateCurrentSlide({ ctaLink: e.target.value })}
+                  placeholder="e.g. /test-series, /courses, /passes or https://..."
+                  className="flex-1 text-xs font-semibold p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:border-indigo-500"
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
-                  Badge Icon Category
-                </label>
-                <select
-                  value={currentSlide.badgeType || 'launch'}
-                  onChange={(e) => updateCurrentSlide({ badgeType: e.target.value as any })}
-                  className="w-full text-xs font-semibold p-2.5 rounded-xl border border-slate-200 bg-white text-slate-900"
-                >
-                  <option value="launch">⚡ Launch / New Batch</option>
-                  <option value="offer">🔥 Special Offer / Discount</option>
-                  <option value="exam">🏆 Exam / Results Alert</option>
-                  <option value="urgent">⚠️ Urgent / Admission Alert</option>
-                </select>
-              </div>
-            </div>
-
-            {/* 4. Title & Subtitle */}
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
-                  Banner Headline Title
-                </label>
-                <input
-                  type="text"
-                  value={currentSlide.title || ''}
-                  onChange={(e) => updateCurrentSlide({ title: e.target.value })}
-                  placeholder="e.g. All India SSC CGL 2026 Live Mock Tests"
-                  className="w-full text-sm font-bold p-2.5 rounded-xl border border-slate-200 bg-white text-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
-                  Sub-headline / Key Benefit
-                </label>
-                <textarea
-                  rows={2}
-                  value={currentSlide.subtitle || ''}
-                  onChange={(e) => updateCurrentSlide({ subtitle: e.target.value })}
-                  placeholder="e.g. Live timed exams, bilingual question solutions, instant AIR ranking."
-                  className="w-full text-xs font-medium p-2.5 rounded-xl border border-slate-200 bg-white text-slate-900"
-                />
-              </div>
-            </div>
-
-            {/* 5. CTA Button & 1-Click Target Link */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
-                  CTA Button Label
-                </label>
-                <input
-                  type="text"
-                  value={currentSlide.ctaText || ''}
-                  onChange={(e) => updateCurrentSlide({ ctaText: e.target.value })}
-                  placeholder="e.g. Explore Test Series"
-                  className="w-full text-xs font-semibold p-2.5 rounded-xl border border-slate-200 bg-white text-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
-                  <span>Destination Target Link</span>
-                </label>
-                <div className="space-y-2">
-                  <select
-                    value={
-                      ['/test-series', '/passes', '/courses', '/#test-series', '/#elite-pass', '/login/student'].includes(currentSlide.ctaLink)
-                        ? currentSlide.ctaLink
-                        : 'custom'
-                    }
-                    onChange={(e) => {
-                      if (e.target.value !== 'custom') {
-                        updateCurrentSlide({ ctaLink: e.target.value });
-                      }
-                    }}
-                    className="w-full text-xs font-semibold p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800"
+              {/* Quick Preset Buttons */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-1">Quick Links:</span>
+                {[
+                  { label: 'Test Series', link: '/test-series' },
+                  { label: 'Courses', link: '/courses' },
+                  { label: 'Elite Pass', link: '/passes' },
+                  { label: 'Franchise', link: '/franchise-register' },
+                  { label: 'Free Tests', link: '#free-tests' }
+                ].map(preset => (
+                  <button
+                    key={preset.link}
+                    type="button"
+                    onClick={() => updateCurrentSlide({ ctaLink: preset.link })}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 text-[10px] font-bold cursor-pointer transition-colors"
                   >
-                    <option value="/test-series">🎯 Test Series Catalog (/test-series)</option>
-                    <option value="/passes">👑 Examirror Elite Pass (/passes)</option>
-                    <option value="/#test-series">📌 Home: Test Series Section (/#test-series)</option>
-                    <option value="/#elite-pass">👑 Home: Elite Pass Section (/#elite-pass)</option>
-                    <option value="/courses">📚 Courses Catalog (/courses)</option>
-                    <option value="/login/student">👤 Student Login & Register (/login/student)</option>
-                    <option value="custom">🔗 Custom Link / External URL</option>
-                  </select>
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
 
+              <div className="flex items-center justify-between pt-1 text-xs font-semibold text-slate-600">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={currentSlide.openInNewTab ?? false}
+                    onChange={(e) => updateCurrentSlide({ openInNewTab: e.target.checked })}
+                    className="rounded accent-indigo-600"
+                  />
+                  <span>Open link in new browser tab</span>
+                </label>
+
+                <div>
+                  <span className="text-slate-400 mr-2 text-[11px]">Button Text:</span>
                   <input
                     type="text"
-                    value={currentSlide.ctaLink || ''}
-                    onChange={(e) => updateCurrentSlide({ ctaLink: e.target.value })}
-                    placeholder="Enter custom path or URL e.g. /test-series or https://..."
-                    className="w-full text-xs font-mono p-2 rounded-lg border border-slate-200 bg-white text-slate-800"
+                    value={currentSlide.ctaText || ''}
+                    onChange={(e) => updateCurrentSlide({ ctaText: e.target.value })}
+                    placeholder="e.g. Explore Now"
+                    className="text-xs font-bold px-2 py-1 rounded-lg border border-slate-200 w-32"
                   />
                 </div>
               </div>
             </div>
 
-            {/* 6. Reassurance Text & Countdown */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
-                  Secondary Assurance Note
-                </label>
-                <input
-                  type="text"
-                  value={currentSlide.secondaryText || ''}
-                  onChange={(e) => updateCurrentSlide({ secondaryText: e.target.value })}
-                  placeholder="e.g. Instant 1-Click Activation • Unlimited Practice"
-                  className="w-full text-xs font-semibold p-2.5 rounded-xl border border-slate-200 bg-white text-slate-900"
-                />
-              </div>
+            {/* Optional Overlay Text Customization (If fullBanner mode) */}
+            {currentSlide.layoutType === 'fullBanner' && (
+              <div className="p-4 rounded-2xl border border-indigo-100 bg-indigo-50/30 space-y-4">
+                <span className="text-xs font-black text-indigo-900 block flex items-center gap-1.5">
+                  <Sparkles size={14} className="text-indigo-600" />
+                  Text Overlay Content
+                </span>
 
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Countdown Timer
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Badge Tag</label>
+                    <input
+                      type="text"
+                      value={currentSlide.badgeText || ''}
+                      onChange={(e) => updateCurrentSlide({ badgeText: e.target.value })}
+                      placeholder="e.g. 50% OFF, NEW LAUNCH"
+                      className="w-full text-xs font-semibold p-2 rounded-xl border border-slate-200 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Badge Icon Category</label>
+                    <select
+                      value={currentSlide.badgeType || 'launch'}
+                      onChange={(e) => updateCurrentSlide({ badgeType: e.target.value as any })}
+                      className="w-full text-xs font-semibold p-2 rounded-xl border border-slate-200 bg-white"
+                    >
+                      <option value="launch">🚀 Launch (Rocket)</option>
+                      <option value="offer">🔥 Offer / Discount (Flame)</option>
+                      <option value="urgent">⚡ Urgent / Flash Sale (Zap)</option>
+                      <option value="exam">🏆 Exam / Results (Award)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Headline Title</label>
+                  <input
+                    type="text"
+                    value={currentSlide.title || ''}
+                    onChange={(e) => updateCurrentSlide({ title: e.target.value })}
+                    placeholder="e.g. SSC CGL & Railway NTPC Mega Mock Series"
+                    className="w-full text-xs font-bold p-2.5 rounded-xl border border-slate-200 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Subtitle Description</label>
+                  <textarea
+                    rows={2}
+                    value={currentSlide.subtitle || ''}
+                    onChange={(e) => updateCurrentSlide({ subtitle: e.target.value })}
+                    placeholder="Short highlight for students..."
+                    className="w-full text-xs font-medium p-2.5 rounded-xl border border-slate-200 bg-white"
+                  />
+                </div>
+
+                {/* Countdown Timer */}
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
                     <input
                       type="checkbox"
-                      checked={Boolean(currentSlide.countdownEnabled)}
+                      checked={currentSlide.countdownEnabled ?? false}
                       onChange={(e) => updateCurrentSlide({ countdownEnabled: e.target.checked })}
-                      className="rounded border-slate-300 text-indigo-600"
+                      className="rounded accent-indigo-600"
                     />
-                    <span>Enable</span>
+                    <span>Show Countdown Timer</span>
                   </label>
+
+                  {currentSlide.countdownEnabled && (
+                    <input
+                      type="datetime-local"
+                      value={currentSlide.countdownEndDate ? currentSlide.countdownEndDate.substring(0, 16) : ''}
+                      onChange={(e) => updateCurrentSlide({ countdownEndDate: e.target.value ? new Date(e.target.value).toISOString() : '' })}
+                      className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 bg-white"
+                    />
+                  )}
                 </div>
-                {currentSlide.countdownEnabled && (
-                  <input
-                    type="datetime-local"
-                    value={currentSlide.countdownEndDate ? new Date(currentSlide.countdownEndDate).toISOString().slice(0, 16) : ''}
-                    onChange={(e) => updateCurrentSlide({ countdownEndDate: new Date(e.target.value).toISOString() })}
-                    className="w-full text-xs font-semibold p-2.5 rounded-xl border border-slate-200 bg-white text-slate-900"
-                  />
-                )}
+
               </div>
-            </div>
+            )}
 
           </div>
 
-          {/* Right Column: Live Instant Preview */}
+          {/* Right Column: Live Interactive Slider Preview */}
           <div className="lg:col-span-5 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                 <Eye size={14} className="text-indigo-600" />
-                <span>Live Slide Preview (Slide {activeSlideIndex + 1})</span>
+                <span>Live Slider Preview</span>
               </span>
-              <span className="text-[11px] text-slate-400">
-                Shows exact visitor view
+              <span className="text-[10px] text-slate-400 font-bold">
+                Slide {activeSlideIndex + 1} of {ad.slides.length}
               </span>
             </div>
 
-            {/* Interactive Preview Box */}
-            <div className={`rounded-3xl p-6 border-2 transition-all shadow-xl relative overflow-hidden ${getThemeWrapperClass(currentSlide.colorTheme)}`}>
-              {currentSlide.layoutType === 'fullBanner' && currentSlide.imageUrl ? (
-                <div className="relative rounded-2xl overflow-hidden min-h-[180px] flex flex-col justify-end p-4">
-                  <img
-                    src={currentSlide.imageUrl}
-                    alt={currentSlide.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                  <div className="relative z-10 space-y-1">
-                    {currentSlide.badgeText && (
-                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-slate-950">
-                        {currentSlide.badgeText}
-                      </span>
+            <div className="rounded-2xl border border-slate-200 p-3 bg-slate-100 shadow-sm space-y-3">
+              <div className="text-[11px] font-semibold text-slate-500 flex items-center justify-between">
+                <span>Display: {ad.bannerPosition === 'top' ? '📌 Top of Homepage' : '📍 Below Hero'}</span>
+                <span>Width: {ad.bannerWidth === 'full' ? '100% Full Width' : 'Boxed Container'}</span>
+              </div>
+
+              {/* Card Preview Frame */}
+              <div className={`relative rounded-xl overflow-hidden bg-slate-950 aspect-[21/9] sm:aspect-[24/8] border border-slate-300 shadow-md flex items-center justify-center`}>
+                {currentSlide.imageUrl ? (
+                  <>
+                    <img
+                      src={currentSlide.imageUrl}
+                      alt="Banner Preview"
+                      className={`w-full h-full ${
+                        (currentSlide.imageFit || ad.bannerFit) === 'contain' ? 'object-contain' : 'object-cover'
+                      }`}
+                    />
+
+                    {currentSlide.layoutType === 'fullBanner' && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent p-4 flex flex-col justify-end text-left">
+                        {currentSlide.badgeText && (
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-400 text-slate-950 w-max mb-1">
+                            {currentSlide.badgeText}
+                          </span>
+                        )}
+                        {currentSlide.title && (
+                          <h4 className="text-xs sm:text-sm font-black text-white leading-tight drop-shadow truncate">
+                            {currentSlide.title}
+                          </h4>
+                        )}
+                        {currentSlide.subtitle && (
+                          <p className="text-[10px] text-slate-200 line-clamp-1 opacity-90">
+                            {currentSlide.subtitle}
+                          </p>
+                        )}
+                      </div>
                     )}
-                    <h4 className="text-base font-black text-white">{currentSlide.title}</h4>
-                    <button className="px-4 py-2 mt-2 rounded-xl bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-1 shadow-md">
-                      <span>{currentSlide.ctaText || 'Explore Now'}</span>
-                      <ArrowRight size={13} />
-                    </button>
+                  </>
+                ) : (
+                  <div className="text-center p-6 text-slate-400 space-y-2">
+                    <ImageIcon size={32} className="mx-auto opacity-40" />
+                    <p className="text-xs font-semibold">No Image Uploaded Yet</p>
+                    <p className="text-[10px] text-slate-500">Upload a banner image from the left panel to preview.</p>
+                  </div>
+                )}
+
+                {/* Simulated Arrows */}
+                <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
+                  <div className="w-6 h-6 rounded-full bg-black/40 text-white flex items-center justify-center">
+                    <ChevronLeft size={14} />
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {currentSlide.badgeText && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/20 border border-white/25">
-                      <Zap size={11} className="text-amber-300" />
-                      <span>{currentSlide.badgeText}</span>
-                    </span>
-                  )}
-                  <h4 className="text-lg font-black tracking-tight leading-snug">
-                    {currentSlide.title || 'Your Slide Title Here'}
-                  </h4>
-                  {currentSlide.subtitle && (
-                    <p className="text-xs opacity-90 line-clamp-2">
-                      {currentSlide.subtitle}
-                    </p>
-                  )}
-                  {currentSlide.imageUrl && (
-                    <div className="w-full h-28 rounded-xl overflow-hidden border border-white/20 mt-2">
-                      <img src={currentSlide.imageUrl} alt="Slide Preview" className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                  <div className="pt-2 flex items-center justify-between gap-3">
-                    <button className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md">
-                      <span>{currentSlide.ctaText || 'Explore Now'}</span>
-                      <ArrowRight size={13} />
-                    </button>
-                    {currentSlide.secondaryText && (
-                      <span className="text-[10px] font-semibold opacity-80 truncate">
-                        {currentSlide.secondaryText}
-                      </span>
-                    )}
+                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                  <div className="w-6 h-6 rounded-full bg-black/40 text-white flex items-center justify-center">
+                    <ChevronRight size={14} />
                   </div>
                 </div>
-              )}
+
+                {/* Simulated Bottom Dots */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-black/50 pointer-events-none">
+                  {ad.slides.map((_, i) => (
+                    <span
+                      key={i}
+                      className={`h-1.5 rounded-full ${
+                        activeSlideIndex === i ? 'w-4 bg-amber-400' : 'w-1.5 bg-white/50'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Slider Summary Box */}
+              <div className="bg-white rounded-xl p-3 border border-slate-200 text-xs space-y-1.5">
+                <div className="flex items-center justify-between text-slate-600 font-medium">
+                  <span>Target Link:</span>
+                  <span className="font-mono text-indigo-600 font-bold truncate max-w-[200px]">
+                    {currentSlide.ctaLink || '/test-series'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-slate-600 font-medium">
+                  <span>Slide Mode:</span>
+                  <span className="font-bold text-slate-800">
+                    {currentSlide.layoutType === 'pureImage' ? '🖼️ Pure Graphic Banner' : '🎴 Banner + Text'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-slate-600 font-medium">
+                  <span>Open in:</span>
+                  <span className="font-bold text-slate-800">
+                    {currentSlide.openInNewTab ? 'New Tab (_blank)' : 'Same Tab'}
+                  </span>
+                </div>
+              </div>
+
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-1.5">
-              <p className="font-bold text-slate-800">💡 Pro Tip for Banners:</p>
-              <p>
-                • If you design banners in Canva (1200x400), select <strong>Full Graphic Banner</strong> and upload your image directly.
-              </p>
-              <p>
-                • If you prefer text highlights, choose <strong>Split Card</strong> with Royal Cobalt or Sunset Amber theme.
-              </p>
+            {/* Quick Tips Box */}
+            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-amber-950 text-xs space-y-1.5">
+              <span className="font-black flex items-center gap-1">
+                💡 High-Converting Banner Tips
+              </span>
+              <ul className="list-disc list-inside text-[11px] text-amber-900/90 space-y-1">
+                <li>Create 1920x600 banner graphics in Canva for sharp high-resolution displays.</li>
+                <li>Set "Banner Width" to <strong>Full Width</strong> for an edge-to-edge look like top coaching portals.</li>
+                <li>Add multiple slides (e.g. 2 to 4 slides) to showcase Test Series, Courses, and Special Passes in rotation.</li>
+              </ul>
             </div>
+
           </div>
 
         </div>
