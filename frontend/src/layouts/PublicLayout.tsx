@@ -382,17 +382,7 @@ const PublicLayout = () => {
               </AnimatePresence>
             </div>
 
-            {/* Quick Action CTA Pill */}
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-200/80">
-              <button
-                type="button"
-                onClick={() => setIsRegisterModalOpen(true)}
-                className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs font-bold shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <Sparkles size={12} className="text-amber-300 animate-pulse" />
-                <span>Student CBT</span>
-              </button>
-            </div>
+
           </nav>
 
           {/* Mobile Menu Button */}
@@ -502,8 +492,8 @@ const PublicLayout = () => {
         </AnimatePresence>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-grow pb-16 md:pb-0">
+      {/* Main Content with dynamic mobile dock offset */}
+      <main className="flex-grow pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
         <PageTransition>
           <Outlet />
         </PageTransition>
@@ -512,18 +502,20 @@ const PublicLayout = () => {
       {/* Sticky Mobile Bottom Action Dock */}
       <MobileBottomActionDock />
 
-      {/* Footer with Compact Sleek Height & Dynamic Theme Colors */}
+      {/* 3D Elevated Public Footer with 4-Column Responsive Layout */}
       <footer
         style={{
           backgroundColor: theme?.footerBg || '#0f172a',
           color: theme?.footerTextColor || '#94a3b8'
         }}
-        className="pt-6 sm:pt-7 pb-4 border-t border-slate-800/80 w-full"
+        className="pt-10 sm:pt-12 pb-6 border-t border-slate-800/80 w-full relative z-10 card-3d-elevated"
       >
         <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 text-center md:text-left">
-            <div className="flex flex-col items-center md:items-start space-y-2">
-              <div className="bg-white rounded-xl flex items-center justify-center p-1.5 shadow-md max-w-[130px] overflow-hidden">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 text-left">
+            
+            {/* Col 1: Brand & Certification */}
+            <div className="space-y-3">
+              <div className="bg-white rounded-xl inline-flex items-center justify-center p-2 shadow-md max-w-[140px] overflow-hidden card-3d-elevated">
                 {topbar.logoImage ? (
                   <img
                     src={topbar.logoImage}
@@ -542,55 +534,132 @@ const PublicLayout = () => {
                 )}
               </div>
 
-              <h3 className="font-bold text-sm tracking-tight text-white">
-                {footer.companyName || 'EXAMIRROR'}
+              <h3 className="font-extrabold text-base tracking-tight text-white">
+                {footer.companyName || 'EXAMIRROR DIGITAL EDUCATION'}
               </h3>
-              <p className="text-xs max-w-xs leading-relaxed opacity-75">
-                {footer.description || 'We provide free computer franchise registration with best in class dashboard and customer support.'}
+              <p className="text-xs leading-relaxed opacity-80">
+                {footer.description || 'India’s premier certified vocational education and computer franchise network, providing government-aligned curriculums and high-speed mock test engines.'}
               </p>
+
+              <div className="pt-1 flex flex-wrap gap-2">
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 inline-flex items-center gap-1 shadow-2xs">
+                  <span>ISO 9001:2015</span>
+                </span>
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-emerald-400 inline-flex items-center gap-1 shadow-2xs">
+                  <span>Govt. Registered</span>
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <h4 className="text-white font-bold text-xs tracking-wider uppercase opacity-90">Quick Links</h4>
-              <ul className="space-y-1.5 text-xs font-medium">
-                <li><Link to="/passes" className="text-amber-400 font-bold hover:text-amber-300 transition-colors inline-flex items-center gap-1"><span>👑 Examirror Elite Pass</span></Link></li>
-                <li><Link to="/test-series" className="hover:text-white transition-colors">Test Series & Mocks</Link></li>
-                <li><Link to="/courses" className="hover:text-white transition-colors">Courses Catalog</Link></li>
-                <li><Link to="/gallery" className="hover:text-white transition-colors">Photo Gallery</Link></li>
-                <li><Link to="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link></li>
-                <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+            {/* Col 2: Academic & Assessment */}
+            <div className="space-y-3">
+              <h4 className="text-white font-bold text-xs tracking-wider uppercase opacity-95">Academic & Mocks</h4>
+              <ul className="space-y-2 text-xs font-medium">
+                <li>
+                  <Link to="/passes" className="text-amber-400 font-bold hover:text-amber-300 transition-colors inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded-sm">
+                    <span>👑 Examirror Elite Pass VIP</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/test-series" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-sm">
+                    All-India Test Series & Mocks
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/courses" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-sm">
+                    Certified Diploma Courses
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/notes" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-sm">
+                    Digital Study Material & E-Notes
+                  </Link>
+                </li>
+                <li>
+                  <a href="/#verify-gateway" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-sm">
+                    Student & Certificate Verification
+                  </a>
+                </li>
               </ul>
             </div>
 
-            <div className="space-y-2">
-              <h4 className="text-white font-bold text-xs tracking-wider uppercase opacity-90">Contact Us</h4>
-              <ul className="space-y-2 text-xs">
-                <li className="flex items-center justify-center md:justify-start space-x-2.5">
-                  <Phone size={13} className="text-indigo-400 shrink-0" />
-                  <span className="font-medium text-white">{footer.phone || ''}</span>
+            {/* Col 3: Franchise & Network */}
+            <div className="space-y-3">
+              <h4 className="text-white font-bold text-xs tracking-wider uppercase opacity-95">Franchise Network</h4>
+              <ul className="space-y-2 text-xs font-medium">
+                <li>
+                  <Link to="/franchise/requirements" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-sm">
+                    Franchise Affiliation Norms
+                  </Link>
                 </li>
-                <li className="flex items-center justify-center md:justify-start space-x-2.5">
-                  <Mail size={13} className="text-indigo-400 shrink-0" />
-                  <span className="font-medium text-white">{footer.email || 'saurabhcsjnu@gmail.com'}</span>
+                <li>
+                  <Link to="/franchise/register" className="text-blue-400 hover:text-blue-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded-sm">
+                    Apply for Training Center
+                  </Link>
                 </li>
-                <li className="flex items-start justify-center md:justify-start space-x-2.5 leading-relaxed opacity-75">
-                  <span>{footer.address || 'Gali no4, near K-14, kankarbagh, Sampatchak, Patna, Bihar- 800020'}</span>
+                <li>
+                  <Link to="/centers" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-sm">
+                    Authorized Branches & Centers
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/login/center" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-sm">
+                    Authorized Center Portal Login
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/login/student" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-sm">
+                    Candidate Student Portal Login
+                  </Link>
                 </li>
               </ul>
             </div>
+
+            {/* Col 4: Contact & Verification Support */}
+            <div className="space-y-3">
+              <h4 className="text-white font-bold text-xs tracking-wider uppercase opacity-95">Support & Head Office</h4>
+              <ul className="space-y-2.5 text-xs">
+                {footer.phone && (
+                  <li className="flex items-center space-x-2.5">
+                    <Phone size={14} className="text-indigo-400 shrink-0" />
+                    <span className="font-semibold text-white">{footer.phone}</span>
+                  </li>
+                )}
+                <li className="flex items-center space-x-2.5">
+                  <Mail size={14} className="text-indigo-400 shrink-0" />
+                  <span className="font-semibold text-white">{footer.email || 'saurabhcsjnu@gmail.com'}</span>
+                </li>
+                <li className="flex items-start space-x-2.5 leading-relaxed opacity-80">
+                  <span>{footer.address || 'Gali no4, near K-14, kankarbagh, Sampatchak, Patna, Bihar - 800020'}</span>
+                </li>
+                <li className="pt-1">
+                  <Link
+                    to="/contact"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/90 hover:bg-indigo-600 text-white font-bold text-[11px] transition-all cursor-pointer shadow-xs"
+                  >
+                    <span>Submit Query or Grievance</span>
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-medium text-slate-400">
+          {/* Bottom Bar: Dynamic Copyright & Verified Security Badges */}
+          <div className="mt-8 pt-5 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-medium text-slate-400">
             <div>
-              {footer.copyright || '© 2026 Examirror Digital Education Network. All Rights Reserved.'}
+              {footer.copyright || `© ${new Date().getFullYear()} ${footer.companyName || 'Examirror Digital Education Network'}. All Rights Reserved.`}
             </div>
-            <div className="flex items-center gap-3">
+
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+              <span>•</span>
+              <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+              <span>•</span>
               <span className="inline-flex items-center gap-1 text-emerald-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>256-Bit SSL Secured</span>
+                <span>256-Bit SSL Encrypted</span>
               </span>
-              <span>•</span>
-              <span className="text-slate-400">ISO 9001:2015 Verified</span>
             </div>
           </div>
         </div>
