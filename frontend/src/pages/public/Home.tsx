@@ -47,6 +47,8 @@ import { downloadOfficialVerificationPdf } from '../../utils/verificationPdf';
 const QrCameraScannerModal = lazy(() => import('../../components/QrCameraScannerModal').then(m => ({ default: m.QrCameraScannerModal })));
 const DirectStudentRegisterModal = lazy(() => import('../../components/DirectStudentRegisterModal').then(m => ({ default: m.DirectStudentRegisterModal })));
 import HeroVisualSlider from '../../components/home/HeroVisualSlider';
+import HomeHeroSpotlightAdCard from '../../components/home/HomeHeroSpotlightAdCard';
+import { type HomeAdvertisementSettings } from '../../types/advertisement';
 import {
   DEFAULT_HOME_SETTINGS,
   computeImageStyles,
@@ -137,6 +139,22 @@ const Home = () => {
         return DEFAULT_HOME_SETTINGS;
       }
     }
+  });
+
+  // Dynamic Landing Page Campaign Advertisement Settings
+  const { data: adSettings } = useQuery({
+    queryKey: ['homeAdvertisement'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/v1/settings/home_advertisement');
+        if (!response.ok) return null;
+        const json = await response.json();
+        return json.data as HomeAdvertisementSettings | null;
+      } catch (error) {
+        return null;
+      }
+    },
+    staleTime: 60 * 1000
   });
 
   // Dynamic Public Stats from Live Database
@@ -878,6 +896,11 @@ const Home = () => {
             </div>
           </div>
         </section>
+      )}
+
+      {/* 2.5 Hero Spotlight Campaign Banner (If Enabled by Super Admin) */}
+      {adSettings?.enabled && adSettings?.displayFormats?.heroCard && (
+        <HomeHeroSpotlightAdCard ad={adSettings} />
       )}
 
       {/* 3. Impact Stats Counters (Ultra Clean Light Floating Cards) */}

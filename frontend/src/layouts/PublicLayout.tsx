@@ -7,6 +7,9 @@ import { DEFAULT_HOME_SETTINGS, computeImageStyles } from '../pages/admin/page-c
 import { PageTransition } from '../motion';
 import { MobileBottomActionDock } from '../components/MobileBottomActionDock';
 import { DirectStudentRegisterModal } from '../components/DirectStudentRegisterModal';
+import { HomeTopAnnouncementRibbon } from '../components/home/HomeTopAnnouncementRibbon';
+import { HomeAdvertisementModal } from '../components/home/HomeAdvertisementModal';
+import { type HomeAdvertisementSettings } from '../types/advertisement';
 
 const PublicLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -56,6 +59,22 @@ const PublicLayout = () => {
     }
   });
 
+  // Fetch campaign advertisement settings
+  const { data: adSettings } = useQuery({
+    queryKey: ['homeAdvertisement'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/v1/settings/home_advertisement');
+        if (!response.ok) return null;
+        const json = await response.json();
+        return json.data as HomeAdvertisementSettings | null;
+      } catch (error) {
+        return null;
+      }
+    },
+    staleTime: 60 * 1000
+  });
+
   const settings = homeSettings || DEFAULT_HOME_SETTINGS;
   const theme = settings.theme || DEFAULT_HOME_SETTINGS.theme;
   const topbar = settings.topbar || DEFAULT_HOME_SETTINGS.topbar;
@@ -102,6 +121,16 @@ const PublicLayout = () => {
 
   return (
     <div className="min-h-screen flex flex-col font-sans text-slate-800 bg-white">
+      {/* Top Floating Announcement Ribbon */}
+      {adSettings?.enabled && adSettings?.displayFormats?.topRibbon && (
+        <HomeTopAnnouncementRibbon ad={adSettings} />
+      )}
+
+      {/* Interactive Entry Popup Ad Modal (Home Page Only) */}
+      {pathname === '/' && adSettings?.enabled && adSettings?.displayFormats?.popupModal && (
+        <HomeAdvertisementModal ad={adSettings} />
+      )}
+
       {/* Top Bar */}
       {topbar.enabled !== false && (
         <div

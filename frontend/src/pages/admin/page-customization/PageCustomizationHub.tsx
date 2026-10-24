@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Layers,
   Image,
-  Video
+  Video,
+  Megaphone
 } from 'lucide-react';
 import HomePageCustomizer from './HomePageCustomizer';
 import AboutPageCustomizer from './AboutPageCustomizer';
@@ -18,9 +19,10 @@ import ContactPageCustomizer from './ContactPageCustomizer';
 import GlobalSiteCustomizer from './GlobalSiteCustomizer';
 import GalleryCustomizer from './GalleryCustomizer';
 import TrainingVideosCustomizer from './TrainingVideosCustomizer';
+import AdvertisementCustomizer from './AdvertisementCustomizer';
 
 const PageCustomizationHub = () => {
-  const [activeTab, setActiveTab] = useState<'home' | 'about' | 'contact' | 'gallery' | 'global' | 'training'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'ads' | 'about' | 'contact' | 'gallery' | 'global' | 'training'>('home');
 
   const tabs = [
     {
@@ -28,6 +30,12 @@ const PageCustomizationHub = () => {
       label: 'Home Page',
       description: 'Hero banner, stats counters, key features, CTA',
       icon: Home
+    },
+    {
+      id: 'ads' as const,
+      label: 'Ad & Launch Banners',
+      description: 'Popup ads, course launch ribbons, countdown banners',
+      icon: Megaphone
     },
     {
       id: 'about' as const,
@@ -96,7 +104,7 @@ const PageCustomizationHub = () => {
       </div>
 
       {/* Navigation Sub-Tabs Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 sm:gap-3">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -136,6 +144,7 @@ const PageCustomizationHub = () => {
       {/* Active Page Editor Component */}
       <div className="mt-6">
         {activeTab === 'home' && <HomePageCustomizer />}
+        {activeTab === 'ads' && <AdvertisementCustomizer />}
         {activeTab === 'about' && <AboutPageCustomizer />}
         {activeTab === 'contact' && <ContactPageCustomizer />}
         {activeTab === 'gallery' && <GalleryCustomizer />}
