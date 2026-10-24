@@ -580,8 +580,18 @@ const PublicLayout = () => {
             </div>
           </div>
 
-          <div className="mt-5 pt-3 border-t border-slate-800/80 text-center text-[11px] font-medium opacity-50">
-            {footer.copyright || '© 2026 :: Examirror'}
+          <div className="mt-6 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-medium text-slate-400">
+            <div>
+              {footer.copyright || '© 2026 Examirror Digital Education Network. All Rights Reserved.'}
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-1 text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>256-Bit SSL Secured</span>
+              </span>
+              <span>•</span>
+              <span className="text-slate-400">ISO 9001:2015 Verified</span>
+            </div>
           </div>
         </div>
       </footer>
