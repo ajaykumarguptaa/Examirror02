@@ -1935,89 +1935,93 @@ const Home = () => {
                 }`}
             >
               {publicTestCategories.map((cat: any, idx: number) => (
-                <motion.div
+                <div
                   key={cat.id || idx}
-                  initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  viewport={{ once: true, margin: '-40px' }}
-                  transition={{ duration: 0.5, delay: Math.min(idx * 0.07, 0.35) }}
-                  whileHover={{ y: -6 }}
-                  className="test-card-item snap-start shrink-0 w-[290px] sm:w-[330px] lg:w-[calc(33.333%-16px)] rounded-3xl flex flex-col justify-between group relative overflow-hidden bg-white shadow-md hover:shadow-2xl hover:shadow-blue-500/15 transition-all duration-300 border border-slate-200 hover:border-blue-400"
+                  className="test-card-item snap-start shrink-0 w-[290px] sm:w-[330px] lg:w-[calc(33.333%-16px)]"
                 >
-                  {/* Category Thumbnail Image Banner */}
-                  <div className="h-44 sm:h-48 w-full relative overflow-hidden bg-slate-900 shrink-0">
-                    <img
-                      src={cat.thumbnail_url || getCategoryFallbackImage(cat.name)}
-                      alt={cat.name}
-                      className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 opacity-95"
-                      loading="lazy"
-                      decoding="async"
-                      onError={(e: any) => {
-                        e.target.onerror = null;
-                        e.target.src = getCategoryFallbackImage(cat.name);
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent" />
+                  <Tilt3DCard
+                    maxTilt={8}
+                    scale={1.02}
+                    glare={true}
+                    className="h-full rounded-3xl"
+                  >
+                    <div className="rounded-3xl flex flex-col justify-between group relative overflow-hidden bg-white shadow-md hover:shadow-2xl hover:shadow-blue-500/15 transition-all duration-300 border border-slate-200/90 hover:border-blue-400 card-3d-elevated preserve-3d h-full">
+                      {/* Category Thumbnail Image Banner */}
+                      <div className="h-44 sm:h-48 w-full relative overflow-hidden bg-slate-900 shrink-0">
+                        <img
+                          src={cat.thumbnail_url || getCategoryFallbackImage(cat.name)}
+                          alt={cat.name}
+                          className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 opacity-95"
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e: any) => {
+                            e.target.onerror = null;
+                            e.target.src = getCategoryFallbackImage(cat.name);
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent" />
 
-                    {/* Top Floating Badges */}
-                    <div className="absolute top-3 left-3">
-                      <span className="text-[10px] font-bold text-blue-200 bg-blue-900/70 backdrop-blur-md px-2.5 py-1 rounded-full border border-blue-400/30 uppercase tracking-wider inline-flex items-center gap-1 shadow-sm">
-                        <Zap size={11} className="text-amber-400" />
-                        <span>Live Assessment</span>
-                      </span>
-                    </div>
+                        {/* Top Floating Badges */}
+                        <div className="absolute top-3 left-3">
+                          <span className="text-[10px] font-bold text-blue-200 bg-blue-900/70 backdrop-blur-md px-2.5 py-1 rounded-full border border-blue-400/30 uppercase tracking-wider inline-flex items-center gap-1 shadow-sm">
+                            <Zap size={11} className="text-amber-400" />
+                            <span>Live Assessment</span>
+                          </span>
+                        </div>
 
-                    <div className="absolute top-3 right-3">
-                      <span className="text-[11px] font-black text-amber-300 bg-slate-900/85 backdrop-blur-md px-3 py-1 rounded-full inline-flex items-center gap-1.5 shadow-sm border border-amber-400/30">
-                        <Award size={12} className="text-amber-400" />
-                        <span>{cat.test_series_count || 0} Test Series</span>
-                      </span>
-                    </div>
+                        <div className="absolute top-3 right-3">
+                          <span className="text-[11px] font-black text-amber-300 bg-slate-900/85 backdrop-blur-md px-3 py-1 rounded-full inline-flex items-center gap-1.5 shadow-sm border border-amber-400/30">
+                            <Award size={12} className="text-amber-400" />
+                            <span>{cat.test_series_count || 0} Test Series</span>
+                          </span>
+                        </div>
 
-                    {/* Bottom Category Title Overlay */}
-                    <div className="absolute bottom-3 left-4 right-4">
-                      <span className="text-[10px] font-bold text-blue-200 uppercase tracking-wider block mb-0.5">
-                        Exam Category
-                      </span>
-                      <h3 className="font-black text-white text-base sm:text-lg line-clamp-1 group-hover:text-blue-300 transition-colors drop-shadow-sm">
-                        {cat.name}
-                      </h3>
-                    </div>
-                  </div>
+                        {/* Bottom Category Title Overlay */}
+                        <div className="absolute bottom-3 left-4 right-4">
+                          <span className="text-[10px] font-bold text-blue-200 uppercase tracking-wider block mb-0.5">
+                            Exam Category
+                          </span>
+                          <h3 className="font-black text-white text-base sm:text-lg line-clamp-1 group-hover:text-blue-300 transition-colors drop-shadow-sm">
+                            {cat.name}
+                          </h3>
+                        </div>
+                      </div>
 
-                  {/* Card Body & Feature Highlights */}
-                  <div className="p-5 flex-1 flex flex-col justify-between">
-                    <div>
-                      <p className="text-slate-600 text-xs line-clamp-2 leading-relaxed mb-4">
-                        {cat.description || 'Comprehensive national mock tests, topic quizzes, speed drills, and official syllabus assessments.'}
-                      </p>
+                      {/* Card Body & Feature Highlights */}
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <p className="text-slate-600 text-xs line-clamp-2 leading-relaxed mb-4">
+                            {cat.description || 'Comprehensive national mock tests, topic quizzes, speed drills, and official syllabus assessments.'}
+                          </p>
 
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md border border-slate-200/80 inline-flex items-center gap-1">
-                          <CheckCircle2 size={11} className="text-emerald-500" />
-                          <span>Instant Solutions</span>
-                        </span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md border border-indigo-200/80 inline-flex items-center gap-1">
-                          <Sparkles size={11} className="text-indigo-500" />
-                          <span>All-India Rank</span>
-                        </span>
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md border border-slate-200/80 inline-flex items-center gap-1">
+                              <CheckCircle2 size={11} className="text-emerald-500" />
+                              <span>Instant Solutions</span>
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md border border-indigo-200/80 inline-flex items-center gap-1">
+                              <Sparkles size={11} className="text-indigo-500" />
+                              <span>All-India Rank</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="pt-3.5 mt-2 border-t border-slate-100 flex items-center justify-between">
+                          <span className="text-[11px] font-semibold text-slate-500">
+                            Self-Paced / Timed
+                          </span>
+                          <Link
+                            to="/student/test-series"
+                            className="btn-elastic btn-3d-tactile inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-black transition-all cursor-pointer shadow-sm"
+                          >
+                            <span>Start Test</span>
+                            <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                          </Link>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="pt-3.5 mt-2 border-t border-slate-100 flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-slate-500">
-                        Self-Paced / Timed
-                      </span>
-                      <Link
-                        to="/student/test-series"
-                        className="btn-elastic inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white text-xs font-black transition-all cursor-pointer shadow-2xs group-hover:bg-blue-600 group-hover:text-white"
-                      >
-                        <span>Start Test</span>
-                        <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
-                      </Link>
-                    </div>
-                  </div>
-                </motion.div>
+                  </Tilt3DCard>
+                </div>
               ))}
             </div>
 

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Tilt3DCard } from '../ui/Tilt3DCard';
 
 interface PassItem {
   id: number;
@@ -195,168 +196,174 @@ export const HomeElitePassSection: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch max-w-6xl mx-auto mb-14">
           
           {/* Card 1: Basic Pass (Starter - Clean Light Minimalist) */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            whileHover={{ y: -6, transition: { type: "spring", stiffness: 300, damping: 20 } }}
-            viewport={{ once: true }}
-            className="lg:col-span-5 bg-white border-2 border-slate-200/90 rounded-3xl p-6 sm:p-8 flex flex-col justify-between hover:border-slate-300 hover:shadow-xl transition-all shadow-sm"
+          <Tilt3DCard
+            maxTilt={6}
+            scale={1.02}
+            glare={true}
+            className="lg:col-span-5 h-full rounded-3xl"
           >
-            <div>
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <span className="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-bold uppercase tracking-wider">
-                  {basicPass.badge_text || 'Starter'}
-                </span>
-                <span className="text-xs font-semibold text-slate-500">
-                  {basicPass.validity_days} Days Access
-                </span>
-              </div>
-
-              <h3 className="text-xl font-bold text-slate-900 mb-1">
-                {cleanTitle(basicPass.title)}
-              </h3>
-              <p className="text-xs text-slate-500 mb-6">
-                {basicPass.subtitle}
-              </p>
-
-              <div className="flex items-baseline gap-2 mb-6 pb-6 border-b border-slate-100">
-                <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-                  ₹{Number(basicPass.price).toFixed(0)}
-                </span>
-                {basicPass.original_price && Number(basicPass.original_price) > Number(basicPass.price) && (
-                  <span className="text-sm line-through text-slate-400 font-bold">
-                    ₹{Number(basicPass.original_price).toFixed(0)}
-                  </span>
-                )}
-                <span className="text-xs text-slate-500 font-medium">
-                  / {basicPass.validity_days} Days
-                </span>
-              </div>
-
-              {/* Features List */}
-              <div className="space-y-3 mb-8">
-                {(basicPass.features || []).map((feat, idx) => (
-                  <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 transition-transform duration-200 hover:translate-x-1">
-                    {renderFeatureIcon(feat, false)}
-                    <span className="leading-snug font-medium">{cleanText(feat)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <Link
-              to={isStudentLoggedIn ? '/student/passes' : '/passes'}
-              className="w-full py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-bold text-xs sm:text-sm text-center flex items-center justify-center gap-2 transition-all shadow-xs active:scale-95 cursor-pointer"
+            <div
+              className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 sm:p-8 flex flex-col justify-between hover:border-slate-300 hover:shadow-xl transition-all shadow-sm card-3d-elevated preserve-3d h-full"
             >
-              <span>Explore Basic Pass</span>
-              <ArrowRight size={14} />
-            </Link>
-          </motion.div>
-
-          {/* Card 2: Elite Pass (Light Mode Premium Gold Crown Card with Moving Aura Border) */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            whileHover={{ y: -8, transition: { type: "spring", stiffness: 280, damping: 18 } }}
-            viewport={{ once: true }}
-            className="lg:col-span-7 relative group rounded-3xl p-[2.5px] bg-gradient-to-r from-amber-400 via-yellow-300 via-amber-500 to-amber-600 animate-gold-border shadow-2xl shadow-amber-500/20 hover:shadow-amber-500/35 transition-all duration-500 flex flex-col justify-between"
-          >
-            {/* Top Recommended Tag */}
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
-              <span className="px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 animate-gold-border text-slate-950 font-black text-[11px] uppercase tracking-wider shadow-lg shadow-amber-500/30 flex items-center gap-1.5 border border-amber-200/50">
-                <Crown size={13} className="text-slate-950 animate-crown-pulse" />
-                <span>{elitePass.badge_text || 'MOST POPULAR • BEST VALUE'}</span>
-              </span>
-            </div>
-
-            <div className="bg-gradient-to-b from-white via-amber-50/40 to-white rounded-[22px] p-6 sm:p-9 h-full flex flex-col justify-between relative overflow-hidden">
-              {/* Internal Soft Golden Glow */}
-              <div className="absolute top-0 right-0 w-72 h-72 bg-amber-400/20 rounded-full blur-3xl animate-ambient-breathe pointer-events-none" />
-              
               <div>
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pt-1">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-black shadow-xs">
-                    <Crown size={14} className="text-amber-600 animate-crown-pulse" />
-                    <span>ELITE ALL-ACCESS</span>
-                  </div>
-                  <span className="text-xs font-bold text-amber-950 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
-                    {elitePass.validity_days} Days Unlimited Access
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <span className="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                    {basicPass.badge_text || 'Starter'}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    {basicPass.validity_days} Days Access
                   </span>
                 </div>
 
-                <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mb-1 tracking-tight flex items-center gap-2">
-                  <span>{cleanTitle(elitePass.title)}</span>
-                  <Flame size={22} className="text-amber-500 shrink-0 animate-bounce" />
+                <h3 className="text-xl font-bold text-slate-900 mb-1">
+                  {cleanTitle(basicPass.title)}
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 mb-6 font-medium">
-                  {elitePass.subtitle}
+                <p className="text-xs text-slate-500 mb-6">
+                  {basicPass.subtitle}
                 </p>
 
-                {/* Price Display */}
-                <div className="flex flex-wrap items-baseline gap-3 mb-6 pb-6 border-b border-amber-200/70">
-                  <span className="text-4xl sm:text-5xl font-black text-slate-950 tracking-tight">
-                    ₹{Number(elitePass.price).toFixed(0)}
+                <div className="flex items-baseline gap-2 mb-6 pb-6 border-b border-slate-100">
+                  <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+                    ₹{Number(basicPass.price).toFixed(0)}
                   </span>
-                  {elitePass.original_price && Number(elitePass.original_price) > Number(elitePass.price) && (
-                    <>
-                      <span className="text-xl line-through text-slate-400 font-bold">
-                        ₹{Number(elitePass.original_price).toFixed(0)}
-                      </span>
-                      <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-xs font-black shadow-xs animate-pulse">
-                        {Math.round(((Number(elitePass.original_price) - Number(elitePass.price)) / Number(elitePass.original_price)) * 100)}% OFF
-                      </span>
-                    </>
+                  {basicPass.original_price && Number(basicPass.original_price) > Number(basicPass.price) && (
+                    <span className="text-sm line-through text-slate-400 font-bold">
+                      ₹{Number(basicPass.original_price).toFixed(0)}
+                    </span>
                   )}
-                  <div className="flex flex-col">
-                    <span className="text-xs font-black text-amber-900 uppercase tracking-wide">
-                      {elitePass.validity_days} Days Validity
-                    </span>
-                    <span className="text-[11px] text-slate-500">
-                      Just ₹{(Number(elitePass.price) / (elitePass.validity_days || 365)).toFixed(2)} / day • No hidden charges
-                    </span>
-                  </div>
+                  <span className="text-xs text-slate-500 font-medium">
+                    / {basicPass.validity_days} Days
+                  </span>
                 </div>
 
-                {/* Features Grid (Interactive animated feature chips) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
-                  {(elitePass.features || []).map((feat, idx) => (
-                    <div 
-                      key={idx} 
-                      className="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50/70 hover:bg-amber-100/90 border border-amber-200/80 hover:border-amber-300 text-xs text-slate-800 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs cursor-default group/item"
-                    >
-                      <div className="shrink-0 transition-transform duration-200 group-hover/item:scale-110">
-                        {renderFeatureIcon(feat, true)}
-                      </div>
-                      <span className="leading-snug font-semibold text-slate-800">{cleanText(feat)}</span>
+                {/* Features List */}
+                <div className="space-y-3 mb-8">
+                  {(basicPass.features || []).map((feat, idx) => (
+                    <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 transition-transform duration-200 hover:translate-x-1">
+                      {renderFeatureIcon(feat, false)}
+                      <span className="leading-snug font-medium">{cleanText(feat)}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleCtaClick}
-                  className="relative overflow-hidden w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/40 cursor-pointer transition-all active:scale-95 group/btn"
-                >
-                  {/* Luxury Light Sheen Beam Sweep */}
-                  <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 animate-sheen-sweep pointer-events-none" />
-                  
-                  <Crown size={16} className="text-slate-950 animate-crown-pulse" />
-                  <span className="relative z-10">{isStudentLoggedIn ? 'Upgrade to Elite Pass Now' : 'Get Elite Pass Now'}</span>
-                  <ArrowRight size={16} className="relative z-10 transition-transform duration-200 group-hover/btn:translate-x-1" />
-                </button>
-                <Link
-                  to="/passes"
-                  className="w-full sm:w-auto py-3.5 px-5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 hover:text-slate-900 font-bold text-xs text-center transition-all shadow-xs hover:border-slate-400 active:scale-95 cursor-pointer"
-                >
-                  View Full Pass Comparison
-                </Link>
+              <Link
+                to={isStudentLoggedIn ? '/student/passes' : '/passes'}
+                className="w-full py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-bold text-xs sm:text-sm text-center flex items-center justify-center gap-2 transition-all shadow-xs active:scale-95 cursor-pointer btn-3d-tactile"
+              >
+                <span>Explore Basic Pass</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          </Tilt3DCard>
+
+          {/* Card 2: Elite Pass (Light Mode Premium Gold Crown Card with Moving Aura Border) */}
+          <Tilt3DCard
+            maxTilt={7}
+            scale={1.025}
+            glare={true}
+            className="lg:col-span-7 h-full rounded-3xl"
+          >
+            <div
+              className="relative group rounded-3xl p-[2.5px] bg-gradient-to-r from-amber-400 via-yellow-300 via-amber-500 to-amber-600 animate-gold-border shadow-2xl shadow-amber-500/20 hover:shadow-amber-500/35 transition-all duration-500 flex flex-col justify-between card-3d-elevated preserve-3d h-full"
+            >
+              {/* Top Recommended Tag */}
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
+                <span className="px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 animate-gold-border text-slate-950 font-black text-[11px] uppercase tracking-wider shadow-lg shadow-amber-500/30 flex items-center gap-1.5 border border-amber-200/50">
+                  <Crown size={13} className="text-slate-950 animate-crown-pulse" />
+                  <span>{elitePass.badge_text || 'MOST POPULAR • BEST VALUE'}</span>
+                </span>
               </div>
 
+              <div className="bg-gradient-to-b from-white via-amber-50/40 to-white rounded-[22px] p-6 sm:p-9 h-full flex flex-col justify-between relative overflow-hidden">
+                {/* Internal Soft Golden Glow */}
+                <div className="absolute top-0 right-0 w-72 h-72 bg-amber-400/20 rounded-full blur-3xl animate-ambient-breathe pointer-events-none" />
+                
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pt-1">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-black shadow-xs">
+                      <Crown size={14} className="text-amber-600 animate-crown-pulse" />
+                      <span>ELITE ALL-ACCESS</span>
+                    </div>
+                    <span className="text-xs font-bold text-amber-950 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
+                      {elitePass.validity_days} Days Unlimited Access
+                    </span>
+                  </div>
+
+                  <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mb-1 tracking-tight flex items-center gap-2">
+                    <span>{cleanTitle(elitePass.title)}</span>
+                    <Flame size={22} className="text-amber-500 shrink-0 animate-bounce" />
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-600 mb-6 font-medium">
+                    {elitePass.subtitle}
+                  </p>
+
+                  {/* Price Display */}
+                  <div className="flex flex-wrap items-baseline gap-3 mb-6 pb-6 border-b border-amber-200/70">
+                    <span className="text-4xl sm:text-5xl font-black text-slate-950 tracking-tight">
+                      ₹{Number(elitePass.price).toFixed(0)}
+                    </span>
+                    {elitePass.original_price && Number(elitePass.original_price) > Number(elitePass.price) && (
+                      <>
+                        <span className="text-xl line-through text-slate-400 font-bold">
+                          ₹{Number(elitePass.original_price).toFixed(0)}
+                        </span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-xs font-black shadow-xs animate-pulse">
+                          {Math.round(((Number(elitePass.original_price) - Number(elitePass.price)) / Number(elitePass.original_price)) * 100)}% OFF
+                        </span>
+                      </>
+                    )}
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-amber-900 uppercase tracking-wide">
+                        {elitePass.validity_days} Days Validity
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Just ₹{(Number(elitePass.price) / (elitePass.validity_days || 365)).toFixed(2)} / day • No hidden charges
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Features Grid (Interactive animated feature chips) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+                    {(elitePass.features || []).map((feat, idx) => (
+                      <div 
+                        key={idx} 
+                        className="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50/70 hover:bg-amber-100/90 border border-amber-200/80 hover:border-amber-300 text-xs text-slate-800 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs cursor-default group/item"
+                      >
+                        <div className="shrink-0 transition-transform duration-200 group-hover/item:scale-110">
+                          {renderFeatureIcon(feat, true)}
+                        </div>
+                        <span className="leading-snug font-semibold text-slate-800">{cleanText(feat)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleCtaClick}
+                    className="relative overflow-hidden w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/40 cursor-pointer transition-all active:scale-95 group/btn btn-3d-tactile"
+                  >
+                    {/* Luxury Light Sheen Beam Sweep */}
+                    <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 animate-sheen-sweep pointer-events-none" />
+                    
+                    <Crown size={16} className="text-slate-950 animate-crown-pulse" />
+                    <span className="relative z-10">{isStudentLoggedIn ? 'Upgrade to Elite Pass Now' : 'Get Elite Pass Now'}</span>
+                    <ArrowRight size={16} className="relative z-10 transition-transform duration-200 group-hover/btn:translate-x-1" />
+                  </button>
+                  <Link
+                    to="/passes"
+                    className="w-full sm:w-auto py-3.5 px-5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 hover:text-slate-900 font-bold text-xs text-center transition-all shadow-xs hover:border-slate-400 active:scale-95 cursor-pointer card-3d-elevated"
+                  >
+                    View Full Pass Comparison
+                  </Link>
+                </div>
+
+              </div>
             </div>
-          </motion.div>
+          </Tilt3DCard>
 
         </div>
 
