@@ -158,9 +158,9 @@ const PublicLayout = () => {
         </div>
       )}
 
-      {/* Main Navbar with Apple Liquid Retina Frosted Glass */}
-      <header className="apple-glass sticky top-0 z-40 shadow-xs border-b border-white/60 w-full transition-all duration-300">
-        <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 h-12 flex items-center justify-between">
+      {/* Main Navbar with Modern Frosted Glass */}
+      <header className="glass-panel sticky top-0 z-40 shadow-xs border-b border-slate-200/70 w-full transition-all duration-300">
+        <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 h-16 flex items-center justify-between">
           <div className="flex-shrink-0 flex items-center">
             {/* Logo Image or Badge */}
             <Link to="/" className={`flex items-center gap-2 ${getHoverClass(topbar.logoStyle?.hoverEffect)}`}>
@@ -380,6 +380,18 @@ const PublicLayout = () => {
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
+
+            {/* Quick Action CTA Pill */}
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200/80">
+              <button
+                type="button"
+                onClick={() => setIsRegisterModalOpen(true)}
+                className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs font-bold shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Sparkles size={12} className="text-amber-300 animate-pulse" />
+                <span>Student CBT</span>
+              </button>
             </div>
           </nav>
 
