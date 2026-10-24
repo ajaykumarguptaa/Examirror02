@@ -30,7 +30,6 @@ const StudentLayout = () => {
   const isNotesActive = location.pathname.includes('/student/notes') || location.pathname.startsWith('/notes');
   const isWalletActive = location.pathname.includes('/student/wallet');
   const isPassesActive = location.pathname.includes('/student/passes');
-  const isReferActive = location.pathname.includes('/student/refer');
 
   const searchParams = new URLSearchParams(location.search);
   const activeTabParam = searchParams.get('tab');
@@ -186,18 +185,6 @@ const StudentLayout = () => {
             </Link>
 
             <Link
-              to="/student/refer"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                isReferActive
-                  ? 'bg-indigo-50 text-indigo-700 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <Gift size={15} className="text-emerald-600" /> Refer & Earn
-              <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[10px] rounded-full font-black">₹50</span>
-            </Link>
-
-            <Link
               to="/student/notes"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 isNotesActive
@@ -332,13 +319,13 @@ const StudentLayout = () => {
         </Link>
 
         <Link
-          to="/student/refer"
+          to="/student/notes"
           className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all ${
-            isReferActive ? 'text-emerald-600 font-bold' : 'text-slate-500 hover:text-slate-900'
+            isNotesActive ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-900'
           }`}
         >
-          <Gift size={18} className="text-emerald-600" />
-          <span className="text-[10px] font-bold mt-0.5">Refer</span>
+          <BookOpen size={18} />
+          <span className="text-[10px] font-bold mt-0.5">E-Notes</span>
         </Link>
       </nav>
 

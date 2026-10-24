@@ -159,23 +159,6 @@ router.get('/passes', async (_req: Request, res: Response) => {
   }
 });
 
-/**
- * 7. Apply Referral Code
- */
-router.post('/apply-referral', async (req: Request, res: Response) => {
-  try {
-    const auth = extractAuth(req);
-    if (!auth.studentId) {
-      return res.status(401).json({ success: false, message: 'Authentication required' });
-    }
-    const { referralCode } = req.body;
-    const result = await studentWalletService.applyReferralCode(auth.studentId, referralCode);
-    res.json(result);
-  } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message || 'Failed to apply referral code' });
-  }
-});
-
 // =========================================================================
 // SUPER ADMIN WALLET VERIFICATION ENDPOINTS
 // =========================================================================

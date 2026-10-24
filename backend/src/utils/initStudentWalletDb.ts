@@ -6,13 +6,11 @@ import db from '../db';
 export async function initStudentWalletDatabase() {
   console.log('--- Initializing Student Wallet & Exam Pass Database ---');
 
-  // 1. Ensure students table has wallet, pass, and referral columns
+  // 1. Ensure students table has wallet and pass columns
   const alterColumns = [
     `ALTER TABLE students ADD COLUMN wallet_balance DECIMAL(10, 2) DEFAULT 0.00 AFTER course_fee`,
     `ALTER TABLE students ADD COLUMN active_pass_type VARCHAR(20) DEFAULT 'NONE' AFTER wallet_balance`,
-    `ALTER TABLE students ADD COLUMN pass_expires_at TIMESTAMP NULL DEFAULT NULL AFTER active_pass_type`,
-    `ALTER TABLE students ADD COLUMN referral_code VARCHAR(20) NULL UNIQUE AFTER pass_expires_at`,
-    `ALTER TABLE students ADD COLUMN referred_by INT NULL AFTER referral_code`
+    `ALTER TABLE students ADD COLUMN pass_expires_at TIMESTAMP NULL DEFAULT NULL AFTER active_pass_type`
   ];
 
   for (const query of alterColumns) {
@@ -118,17 +116,6 @@ export async function initStudentWalletDatabase() {
       KEY idx_student_pass_sub (student_id, status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
-
-  // 7. Auto-generate referral codes for existing students who do not have one
-  try {
-    await db.query(`
-      UPDATE students 
-      SET referral_code = CONCAT('EXM', LPAD(id, 5, '0')) 
-      WHERE (referral_code IS NULL OR referral_code = '') AND id > 0
-    `);
-  } catch (e: any) {
-    // safe ignore
-  }
 
   console.log('--- Student Wallet & Exam Pass Tables Ready ---');
 }

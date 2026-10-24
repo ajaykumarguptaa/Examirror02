@@ -11,19 +11,13 @@ export class StudentWalletService {
 
     // Fetch student info
     const [students]: any = await db.query(
-      `SELECT id, firstName, lastName, email, phone, wallet_balance, active_pass_type, pass_expires_at, referral_code, referred_by 
+      `SELECT id, firstName, lastName, email, phone, wallet_balance, active_pass_type, pass_expires_at 
        FROM students WHERE id = ?`,
       [sId]
     );
 
     if (students.length === 0) throw new Error('Student account not found');
     const student = students[0];
-
-    // Ensure referral code exists
-    if (!student.referral_code) {
-      student.referral_code = `EXM${String(student.id).padStart(5, '0')}`;
-      await db.query(`UPDATE students SET referral_code = ? WHERE id = ?`, [student.referral_code, student.id]);
-    }
 
     // Check pass expiration
     let activePassType = student.active_pass_type || 'NONE';
@@ -37,16 +31,6 @@ export class StudentWalletService {
 
     const hasElitePass = activePassType === 'ELITE' && !isPassExpired;
     const hasBasicPass = (activePassType === 'BASIC' || activePassType === 'ELITE') && !isPassExpired;
-
-    // Fetch referral earnings & count
-    const [refStats]: any = await db.query(
-      `SELECT 
-         COUNT(*) as total_referred_students,
-         COALESCE(SUM(amount), 0) as total_referral_bonus_earned
-       FROM student_wallet_transactions 
-       WHERE student_id = ? AND category = 'REFERRAL_BONUS'`,
-      [sId]
-    );
 
     // Fetch recent 10 transactions
     const [recentTxns]: any = await db.query(
@@ -77,12 +61,6 @@ export class StudentWalletService {
         isBasic: hasBasicPass,
         expiresAt: passExpiresAt,
         daysRemaining: passExpiresAt ? Math.max(0, Math.ceil((passExpiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0
-      },
-      referral: {
-        code: student.referral_code,
-        shareUrl: `https://examirror.in/test-series?ref=${student.referral_code}`,
-        totalReferred: Number(refStats[0]?.total_referred_students || 0),
-        bonusEarned: Number(refStats[0]?.total_referral_bonus_earned || 0)
       },
       recentTransactions: recentTxns,
       pendingRequests
@@ -397,58 +375,6 @@ export class StudentWalletService {
       ...p,
       features: typeof p.features === 'string' ? JSON.parse(p.features) : (p.features || [])
     }));
-  }
-
-  /**
-   * 7. Apply Referral Code on Registration or In-App
-   */
-  async applyReferralCode(studentId: number | string, refCode: string) {
-    const sId = Number(studentId);
-    const cleanCode = (refCode || '').trim().toUpperCase();
-
-    if (!cleanCode) throw new Error('Please enter a valid referral code');
-
-    const [studentRows]: any = await db.query(`SELECT id, referred_by FROM students WHERE id = ?`, [sId]);
-    if (studentRows.length === 0) throw new Error('Student account not found');
-    if (studentRows[0].referred_by) {
-      throw new Error('You have already applied a referral code.');
-    }
-
-    // Find referrer
-    const [referrerRows]: any = await db.query(`SELECT id, firstName, lastName, wallet_balance FROM students WHERE referral_code = ?`, [cleanCode]);
-    if (referrerRows.length === 0) {
-      throw new Error('Invalid referral code. Please check and try again.');
-    }
-    const referrer = referrerRows[0];
-    if (referrer.id === sId) {
-      throw new Error('You cannot use your own referral code.');
-    }
-
-    const BONUS_AMOUNT = 50.00;
-
-    // Credit New Student ₹50 Welcome Bonus
-    await db.query(`UPDATE students SET wallet_balance = wallet_balance + ?, referred_by = ? WHERE id = ?`, [BONUS_AMOUNT, referrer.id, sId]);
-    await db.query(
-      `INSERT INTO student_wallet_transactions (student_id, type, category, amount, balance_before, balance_after, reference_id, description)
-       VALUES (?, 'CREDIT', 'REFERRAL_BONUS', ?, 0, ?, ?, 'Referral Welcome Bonus from ' + ?)`,
-      [sId, BONUS_AMOUNT, BONUS_AMOUNT, cleanCode, `${referrer.firstName} ${referrer.lastName}`]
-    );
-
-    // Credit Referrer ₹50 Bonus
-    const referrerOldBal = Number(referrer.wallet_balance || 0);
-    const referrerNewBal = referrerOldBal + BONUS_AMOUNT;
-    await db.query(`UPDATE students SET wallet_balance = wallet_balance + ? WHERE id = ?`, [BONUS_AMOUNT, referrer.id]);
-    await db.query(
-      `INSERT INTO student_wallet_transactions (student_id, type, category, amount, balance_before, balance_after, reference_id, description)
-       VALUES (?, 'CREDIT', 'REFERRAL_BONUS', ?, ?, ?, ?, 'Referral Reward: Friend Joined via your code')`,
-      [referrer.id, BONUS_AMOUNT, referrerOldBal, referrerNewBal, String(sId)]
-    );
-
-    return {
-      success: true,
-      bonusAmount: BONUS_AMOUNT,
-      message: `Referral applied! ₹${BONUS_AMOUNT} bonus credited to your wallet!`
-    };
   }
 
   // =========================================================================

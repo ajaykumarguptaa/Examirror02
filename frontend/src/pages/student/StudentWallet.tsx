@@ -199,30 +199,6 @@ export const StudentWallet: React.FC = () => {
         </div>
       </div>
 
-      {/* Refer & Earn Banner Strip */}
-      <div className="rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border border-indigo-100 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-600/25">
-            <Share2 size={18} />
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-slate-900">
-              Refer a Friend & Earn ₹50 Wallet Bonus!
-            </h4>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Your friend gets ₹50 on joining and you get ₹50 credited directly to your wallet.
-            </p>
-          </div>
-        </div>
-        <Link
-          to="/student/refer"
-          className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
-        >
-          <span>Get Referral Link</span>
-          <ArrowUpRight size={14} />
-        </Link>
-      </div>
-
       {/* Pending Recharge Requests (if any) */}
       {overview?.pendingRequests && overview.pendingRequests.length > 0 && (
         <div className="space-y-3">
