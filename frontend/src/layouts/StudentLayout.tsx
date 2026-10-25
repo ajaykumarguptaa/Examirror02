@@ -115,7 +115,9 @@ const StudentLayout = () => {
   }, [token, user?.id]);
 
   const walletBalance = Number(walletOverview?.walletBalance || 0);
-  const isElite = walletOverview?.activePass?.isElite;
+  const activePass = walletOverview?.activePass;
+  const isElite = Boolean(activePass?.isElite);
+  const daysRemaining = Number(activePass?.daysRemaining ?? 0);
   const showLowBalanceBanner = !dismissLowBalance && walletOverview?.isLowBalance;
 
   return (
@@ -169,8 +171,13 @@ const StudentLayout = () => {
                   : 'text-amber-700 hover:text-amber-900 hover:bg-amber-50'
               }`}
             >
-              <Crown size={15} className="text-amber-500" /> Elite Pass
-              <span className="px-1.5 py-0.2 bg-amber-500 text-slate-950 text-[10px] rounded-full font-black">VIP</span>
+              <Crown size={15} className={isElite ? "text-amber-600 fill-amber-500" : "text-amber-500"} />
+              <span>{isElite ? 'VIP Pass' : 'Elite Pass'}</span>
+              <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-black ${
+                isElite ? 'bg-amber-400 text-slate-950 ring-1 ring-amber-500/50' : 'bg-amber-500 text-slate-950'
+              }`}>
+                {isElite ? 'VIP ACTIVE' : 'VIP'}
+              </span>
             </Link>
 
             <Link
@@ -199,14 +206,61 @@ const StudentLayout = () => {
 
         {/* Right Section: Pass Badge, Wallet Pill, Notifications, Logout */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Elite Pass Badge */}
-          {isElite && (
+          {/* Top Corner Elite Pass / VIP Member Badge */}
+          {isElite ? (
+            <div className="relative group">
+              <Link
+                to="/student/passes"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 shadow-md shadow-amber-400/25 ring-1 ring-amber-400/60 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+                title="VIP Member: Active Elite Pass"
+              >
+                <Crown size={14} className="text-amber-950 fill-amber-900 shrink-0" />
+                <span className="tracking-tight uppercase font-black">VIP MEMBER</span>
+                <span className="hidden md:inline-flex items-center gap-1 pl-1 border-l border-amber-950/20 text-[10px] font-extrabold text-amber-950">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                  </span>
+                  <span>{daysRemaining > 0 ? `${daysRemaining}d` : 'ACTIVE'}</span>
+                </span>
+              </Link>
+
+              {/* VIP Member Interactive Hover Popover */}
+              <div className="absolute right-0 top-full mt-2 w-72 p-3.5 bg-slate-950/95 backdrop-blur-xl text-white rounded-2xl shadow-2xl border border-amber-400/40 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                  <div className="flex items-center gap-1.5 text-amber-400 font-black text-xs">
+                    <Crown size={15} className="fill-amber-400" />
+                    <span>VIP MEMBER • ELITE PASS</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    ACTIVE
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-2 leading-relaxed">
+                  You are an active <strong className="text-amber-300">VIP Member</strong>! All test series, mock exams, and analytics are completely unlocked for you.
+                </p>
+                <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400">
+                    Validity: <strong className="text-amber-300">{daysRemaining > 0 ? `${daysRemaining} Days Left` : 'Active'}</strong>
+                  </span>
+                  <span className="text-amber-400 font-bold">
+                    View Pass →
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
             <Link
               to="/student/passes"
-              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-xs hover:scale-105 transition-transform"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold bg-amber-50 hover:bg-amber-100/90 text-amber-900 border border-amber-300/80 shadow-2xs hover:scale-105 active:scale-95 transition-all"
+              title="Unlock all test series with Elite Pass"
             >
-              <Crown size={13} />
-              <span>ELITE PASS</span>
+              <Crown size={13} className="text-amber-600" />
+              <span>Elite Pass</span>
+              <span className="px-1.5 py-0.2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-[9px] font-black rounded-full">
+                VIP
+              </span>
             </Link>
           )}
 
@@ -248,7 +302,9 @@ const StudentLayout = () => {
           <div className="flex items-center gap-2 max-w-3xl">
             <AlertTriangle size={16} className="shrink-0 text-slate-950" />
             <span>
-              Low Wallet Balance (₹{walletBalance.toFixed(2)}). Recharge your wallet to enjoy 1-click test series unlocking & Elite Pass benefits!
+              {isElite
+                ? `Low Wallet Balance (₹${walletBalance.toFixed(2)}). As an active VIP Elite Pass member, all test series remain 100% unlocked for you!`
+                : `Low Wallet Balance (₹${walletBalance.toFixed(2)}). Recharge your wallet to enjoy 1-click test series unlocking & Elite Pass benefits!`}
             </span>
           </div>
 
@@ -300,12 +356,18 @@ const StudentLayout = () => {
 
         <Link
           to="/student/passes"
-          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all ${
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all relative ${
             isPassesActive ? 'text-amber-600 font-bold' : 'text-slate-500 hover:text-slate-900'
           }`}
         >
-          <Crown size={18} className="text-amber-500" />
-          <span className="text-[10px] font-bold mt-0.5">Elite Pass</span>
+          <Crown size={18} className={isElite ? "text-amber-500 fill-amber-500" : "text-amber-500"} />
+          <span className="text-[10px] font-bold mt-0.5">{isElite ? 'VIP Member' : 'Elite Pass'}</span>
+          {isElite && (
+            <span className="absolute top-1 right-2 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+          )}
         </Link>
 
         <Link
