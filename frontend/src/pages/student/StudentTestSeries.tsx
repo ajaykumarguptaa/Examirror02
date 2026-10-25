@@ -157,12 +157,12 @@ const cleanQuestionText = (text: string) => {
 export default function StudentTestSeries() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const activeTab: 'discover' | 'my_series' | 'achievements' =
-    (tabParam === 'my_series' || tabParam === 'achievements') ? tabParam : 'discover';
+  const activeTab: 'discover' | 'my_series' | 'history' | 'achievements' =
+    (tabParam === 'my_series' || tabParam === 'achievements' || tabParam === 'history') ? tabParam : 'discover';
 
   const selectedSeriesId = searchParams.get('seriesId') ? Number(searchParams.get('seriesId')) : null;
 
-  const setActiveTab = useCallback((tab: 'discover' | 'my_series' | 'achievements') => {
+  const setActiveTab = useCallback((tab: 'discover' | 'my_series' | 'history' | 'achievements') => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       if (tab === 'discover') {
@@ -255,6 +255,11 @@ export default function StudentTestSeries() {
   const [scorecardData, setScorecardData] = useState<any | null>(null);
   const [isScorecardFullWidth, setIsScorecardFullWidth] = useState(false);
 
+  // Test History State
+  const [historyAttempts, setHistoryAttempts] = useState<any[]>([]);
+  const [historyStats, setHistoryStats] = useState<any>({});
+  const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
+
   // Styled Toast & Celebration Modal State
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; title?: string; message: string } | null>(null);
   const [enrolledSuccessSeries, setEnrolledSuccessSeries] = useState<TestSeriesItem | null>(null);
@@ -304,7 +309,7 @@ export default function StudentTestSeries() {
       const studentId = getStudentId();
       const headers = getAuthHeader();
 
-      const [seriesRes, mySeriesRes, achieveRes] = await Promise.all([
+      const [seriesRes, mySeriesRes, achieveRes, historyRes] = await Promise.all([
         axios.get('/api/student/test-series/available', { headers, params: { studentId } })
           .catch(() => axios.get('http://localhost:3000/api/student/test-series/available', { headers, params: { studentId } }))
           .catch(() => ({ data: { success: false, data: [] } })),
@@ -312,7 +317,10 @@ export default function StudentTestSeries() {
           .catch(() => axios.get('http://localhost:3000/api/student/test-series/my-series', { headers, params: { studentId } }))
           .catch(() => ({ data: { success: false, data: [] } })),
         axios.get('/api/student/test-series/achievements', { headers })
-          .catch(() => ({ data: { data: [] } }))
+          .catch(() => ({ data: { data: [] } })),
+        axios.get('/api/student/test-series/history', { headers, params: { studentId } })
+          .catch(() => axios.get('http://localhost:3000/api/student/test-series/history', { headers, params: { studentId } }))
+          .catch(() => ({ data: { success: false, data: { attempts: [], stats: {} } } }))
       ]);
 
       const dedupe = (list: any[]) => {
@@ -337,6 +345,10 @@ export default function StudentTestSeries() {
       }
       if (achieveRes?.data?.data && Array.isArray(achieveRes.data.data)) {
         setAchievements(achieveRes.data.data || []);
+      }
+      if (historyRes?.data?.data) {
+        setHistoryAttempts(historyRes.data.data.attempts || []);
+        setHistoryStats(historyRes.data.data.stats || {});
       }
 
       const catRes = await axios.get('/api/student/test-series/categories', { headers })
@@ -1855,6 +1867,23 @@ export default function StudentTestSeries() {
       </button>
       <button
         type="button"
+        onClick={() => setActiveTab('history')}
+        className={`px-3 sm:px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+          activeTab === 'history'
+            ? 'bg-white text-indigo-700 shadow-2xs font-black'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+        } ${isMobile ? 'flex-1' : ''}`}
+      >
+        <History size={13} />
+        <span>Test History</span>
+        {historyAttempts.length > 0 && (
+          <span className="px-1.5 py-0.2 bg-slate-200 text-slate-800 font-bold rounded-full text-[10px]">
+            {historyAttempts.length}
+          </span>
+        )}
+      </button>
+      <button
+        type="button"
         onClick={() => setActiveTab('achievements')}
         className={`px-3 sm:px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
           activeTab === 'achievements'
@@ -2315,6 +2344,12 @@ export default function StudentTestSeries() {
                   <>
                     <ChevronRight size={11} className="text-slate-300" />
                     <span className="text-indigo-600 font-bold">My Tests</span>
+                  </>
+                )}
+                {activeTab === 'history' && (
+                  <>
+                    <ChevronRight size={11} className="text-slate-300" />
+                    <span className="text-indigo-600 font-bold">Test History</span>
                   </>
                 )}
                 {activeTab === 'achievements' && (
@@ -3070,6 +3105,194 @@ export default function StudentTestSeries() {
         </div>
       );
     })()}
+
+      {/* TEST HISTORY TAB - COMPREHENSIVE ATTEMPT RECORDS */}
+      {activeTab === 'history' && (() => {
+        const attempts = Array.isArray(historyAttempts) ? historyAttempts : [];
+        const stats = historyStats || {};
+        const totalAttemptsCount = stats.testsAttempted || attempts.length;
+
+        return (
+          <div className="space-y-6">
+            {/* Header & Aggregate Stats Banner */}
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-5 sm:p-6 text-white border border-slate-800 shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-full bg-radial from-indigo-500/20 via-transparent to-transparent pointer-events-none" />
+              
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-[11px] font-bold uppercase tracking-wider">
+                    <History size={13} />
+                    <span>Candidate Examination History</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                    My Test Attempt Records
+                  </h2>
+                  <p className="text-xs text-slate-300 max-w-xl">
+                    Every mock test session and formal assessment is logged per-student. Review scorecards, solutions, and historical progression.
+                  </p>
+                </div>
+
+                {/* Aggregate Mini Metrics */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 shrink-0">
+                  <div className="bg-white/10 backdrop-blur-xs border border-white/10 p-2.5 sm:p-3 rounded-xl text-center">
+                    <div className="text-[10px] uppercase font-bold text-slate-300">Total Attempts</div>
+                    <div className="text-lg sm:text-xl font-black text-white mt-0.5">{totalAttemptsCount}</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-xs border border-white/10 p-2.5 sm:p-3 rounded-xl text-center">
+                    <div className="text-[10px] uppercase font-bold text-slate-300">Highest Score</div>
+                    <div className="text-lg sm:text-xl font-black text-amber-300 mt-0.5">{stats.highestScore || 0}</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-xs border border-white/10 p-2.5 sm:p-3 rounded-xl text-center">
+                    <div className="text-[10px] uppercase font-bold text-slate-300">Avg Accuracy</div>
+                    <div className="text-lg sm:text-xl font-black text-emerald-300 mt-0.5">{stats.averageAccuracy || 0}%</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-xs border border-white/10 p-2.5 sm:p-3 rounded-xl text-center">
+                    <div className="text-[10px] uppercase font-bold text-slate-300">Avg Score</div>
+                    <div className="text-lg sm:text-xl font-black text-indigo-200 mt-0.5">{stats.averageScore || 0}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Data Retention & Expiry Policy Warning */}
+              <div className="mt-4 pt-3.5 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-300">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
+                  <span>
+                    Records are stored on a per-student basis and preserved for your active course duration. Records are automatically purged upon course expiry as per Terms.
+                  </span>
+                </span>
+                <Link to="/terms" target="_blank" className="text-indigo-300 hover:text-white font-bold underline shrink-0">
+                  Read Data Retention Policy
+                </Link>
+              </div>
+            </div>
+
+            {/* List of Attempts */}
+            {attempts.length === 0 ? (
+              <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 mx-auto flex items-center justify-center shadow-inner">
+                  <History size={28} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">No Test Attempts Recorded Yet</h3>
+                  <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                    You haven't attempted any tests yet. Go to 'Explore Series' to start your first mock examination and build your performance record!
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('discover')}
+                  className="btn-3d-yoyo-indigo px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <span>Explore Test Series</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
+                  <span className="flex items-center gap-1.5">
+                    <span>All Recorded Submissions</span>
+                    <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[10px]">{attempts.length} Records</span>
+                  </span>
+                  <span className="text-slate-400 text-[11px]">Chronological Order (Latest First)</span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {attempts.map((att: any, idx: number) => {
+                    const passingMarks = Number(att.test_passing_marks || att.passing_marks || 40);
+                    const isPassed = att.is_passed !== undefined
+                      ? Boolean(att.is_passed)
+                      : Number(att.final_score || 0) >= passingMarks;
+
+                    const dateStr = att.submitted_at
+                      ? new Date(att.submitted_at).toLocaleString()
+                      : 'Recently Submitted';
+
+                    return (
+                      <div
+                        key={att.id || idx}
+                        className="card-3d-interactive bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:border-indigo-300 p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all"
+                      >
+                        {/* Test Info */}
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`px-2.5 py-0.5 text-[11px] font-black rounded-md flex items-center gap-1 shadow-2xs ${
+                              isPassed
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-rose-600 text-white'
+                            }`}>
+                              {isPassed ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                              <span>{isPassed ? 'PASSED' : 'FAILED'}</span>
+                            </span>
+
+                            {att.test_series_title && (
+                              <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold text-[10px] rounded-md truncate max-w-[200px]">
+                                {att.test_series_title}
+                              </span>
+                            )}
+
+                            <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                              <Clock size={11} /> {dateStr}
+                            </span>
+                          </div>
+
+                          <h3 className="font-bold text-slate-900 text-base tracking-tight truncate">
+                            {att.test_title || 'Examination Test'}
+                          </h3>
+
+                          {/* Quick Answer Breakdown */}
+                          <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium">
+                            <span className="text-emerald-600 font-bold">✓ {att.correct_answers || 0} Correct</span>
+                            <span className="text-rose-600 font-bold">✗ {att.incorrect_answers || 0} Incorrect</span>
+                            <span className="text-slate-400">○ {att.unanswered || 0} Skipped</span>
+                          </div>
+                        </div>
+
+                        {/* Performance Score Metrics */}
+                        <div className="grid grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 text-center shrink-0 min-w-[220px]">
+                          <div>
+                            <div className="text-[9px] uppercase font-bold text-slate-400">Score</div>
+                            <div className="text-sm sm:text-base font-black text-slate-900 mt-0.5">
+                              {Number(att.final_score || 0).toFixed(1)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[9px] uppercase font-bold text-slate-400">Percent</div>
+                            <div className="text-sm sm:text-base font-black text-slate-900 mt-0.5">
+                              {Number(att.percentage || 0).toFixed(0)}%
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[9px] uppercase font-bold text-slate-400">Accuracy</div>
+                            <div className={`text-sm sm:text-base font-black mt-0.5 ${
+                              Number(att.accuracy || 0) >= 60 ? 'text-emerald-600' : 'text-slate-700'
+                            }`}>
+                              {Number(att.accuracy || 0).toFixed(0)}%
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action: Open Detailed Scorecard */}
+                        <div className="shrink-0 flex items-center justify-end">
+                          <button
+                            type="button"
+                            onClick={() => handleViewScorecard(att.id)}
+                            className="btn-3d-yoyo-emerald px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5 w-full sm:w-auto justify-center"
+                          >
+                            <span>View Scorecard</span>
+                            <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ACHIEVEMENTS TAB - 3D ANIMATED GAMIFIED TROPHY HALL */}
       {activeTab === 'achievements' && (() => {

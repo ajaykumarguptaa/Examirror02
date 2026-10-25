@@ -605,7 +605,25 @@ const handleGetAchievements = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, data: [] });
   }
 };
-router.get('/student/analytics', handleGetAchievements);
-router.get('/student/test-series/achievements', handleGetAchievements);
+const handleGetTestHistory = async (req: Request, res: Response) => {
+  try {
+    const user = extractUser(req);
+    const targetStudentId = user.studentId || (req.headers['x-student-id'] as string) || (req.query.studentId as string);
+    if (!targetStudentId) {
+      return res.status(200).json({ success: true, data: { attempts: [], stats: {} } });
+    }
+    const data = await testSeriesService.getStudentAnalyticsAndStars(String(targetStudentId));
+    res.status(200).json({
+      success: true,
+      data: {
+        attempts: data.attempts || [],
+        stats: data.stats || {}
+      }
+    });
+  } catch (error: any) {
+    res.status(200).json({ success: true, data: { attempts: [], stats: {} } });
+  }
+};
+router.get('/student/test-series/history', handleGetTestHistory);
 
 export default router;
