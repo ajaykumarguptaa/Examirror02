@@ -2274,45 +2274,91 @@ export default function StudentTestSeries() {
 
   return (
     <div className="w-full space-y-6 pb-16 font-sans">
-      {/* Minimalist Header Banner */}
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-xs">
-        {/* Navigation Breadcrumbs & Back Navigation */}
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <nav className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-            <Link
-              to="/student/dashboard"
-              className="hover:text-indigo-600 transition-colors flex items-center gap-1 text-slate-600"
-            >
-              Dashboard
-            </Link>
-            <ChevronRight size={13} className="text-slate-400" />
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedSeriesId(null);
-                setActiveTab('discover');
-              }}
-              className={`hover:text-indigo-600 transition-colors cursor-pointer ${
-                activeTab === 'discover' && !selectedSeriesId ? 'text-indigo-600 font-bold' : 'text-slate-600'
-              }`}
-            >
-              Test Series
-            </button>
-            {activeTab === 'my_series' && (
-              <>
-                <ChevronRight size={13} className="text-slate-400" />
-                <span className="text-indigo-600 font-bold">My Tests</span>
-              </>
-            )}
-            {activeTab === 'achievements' && (
-              <>
-                <ChevronRight size={13} className="text-slate-400" />
-                <span className="text-indigo-600 font-bold">Achievements</span>
-              </>
-            )}
-          </nav>
+      {/* Ultra-Compact High-Impact Header Banner */}
+      <div className="bg-white/95 backdrop-blur-xs px-4 py-2.5 sm:px-5 sm:py-3 rounded-2xl border border-slate-200/90 shadow-2xs transition-all">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
+          {/* Left: Breadcrumbs + Gradient Title */}
+          <div className="flex flex-col gap-1 min-w-0">
+            {/* Top Micro-Row: Breadcrumb + Tag Badge */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <nav className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400">
+                <Link
+                  to="/student/dashboard"
+                  className="hover:text-indigo-600 transition-colors flex items-center gap-1 text-slate-500"
+                >
+                  Dashboard
+                </Link>
+                <ChevronRight size={11} className="text-slate-300" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSeriesId(null);
+                    setActiveTab('discover');
+                  }}
+                  className={`hover:text-indigo-600 transition-colors cursor-pointer ${
+                    activeTab === 'discover' && !selectedSeriesId ? 'text-indigo-600 font-bold' : 'text-slate-500'
+                  }`}
+                >
+                  Test Series
+                </button>
+                {activeTab === 'my_series' && (
+                  <>
+                    <ChevronRight size={11} className="text-slate-300" />
+                    <span className="text-indigo-600 font-bold">My Tests</span>
+                  </>
+                )}
+                {activeTab === 'achievements' && (
+                  <>
+                    <ChevronRight size={11} className="text-slate-300" />
+                    <span className="text-indigo-600 font-bold">Achievements</span>
+                  </>
+                )}
+              </nav>
 
-          {/* Explicit Quick Back when inside a test series or sub-tab */}
+              <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-slate-300" />
+
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-gradient-to-r from-amber-500/10 via-amber-400/15 to-amber-500/10 text-amber-900 border border-amber-300/80 shadow-2xs">
+                <Crown size={11} className="text-amber-600 fill-amber-500 shrink-0" />
+                <span>Online Examination & Test Series</span>
+              </div>
+            </div>
+
+            {/* Bottom Title Row with VIP-Pass Style Vibrant Gradient Typography */}
+            <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0.5">
+              <h1 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 tracking-tight leading-tight flex items-baseline flex-wrap gap-1.5">
+                <span>Practice, Compete & Excel.</span>
+                <span className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-amber-600 bg-clip-text text-transparent font-black drop-shadow-2xs">
+                  Unlimited Practice & Mock Tests.
+                </span>
+              </h1>
+              <span className="hidden xl:inline text-[11px] text-slate-400 font-medium">
+                • Full-length mock tests & instant scorecard analytics
+              </span>
+            </div>
+          </div>
+
+          {/* Right: Navigation Sub-Tabs & Quick Back Button */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
+            {(selectedSeriesId || activeTab !== 'discover') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedSeriesId(null);
+                  setActiveTab('discover');
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-2xs active:scale-95"
+              >
+                <ArrowLeft size={13} />
+                <span>Explore All</span>
+              </button>
+            )}
+
+            {renderNavTabs(false)}
+          </div>
+        </div>
+
+        {/* Mobile Navigation Sub-Tabs (< md screens) */}
+        <div className="md:hidden mt-2 pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
           {(selectedSeriesId || activeTab !== 'discover') && (
             <button
               type="button"
@@ -2320,27 +2366,15 @@ export default function StudentTestSeries() {
                 setSelectedSeriesId(null);
                 setActiveTab('discover');
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all cursor-pointer shadow-2xs active:scale-95"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-2xs shrink-0"
             >
-              <ArrowLeft size={13} />
-              <span>Explore All Series</span>
+              <ArrowLeft size={12} />
+              <span>Back</span>
             </button>
           )}
-        </div>
-
-        <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-lg text-xs font-semibold border border-indigo-100">
-            <Trophy size={14} className="text-indigo-600" /> Online Examination & Test Series
+          <div className="flex-1 min-w-0">
+            {renderNavTabs(true)}
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Practice, Compete & Excel</h1>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
-            Full-length mock tests, weekly test releases, instant scorecard analytics, and achievement badges.
-          </p>
-        </div>
-
-        {/* Mobile Navigation Sub-Tabs (< sm screens) */}
-        <div className="sm:hidden mt-4 pt-3 border-t border-slate-100">
-          {renderNavTabs(true)}
         </div>
       </div>
 
