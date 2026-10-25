@@ -1813,10 +1813,87 @@ export const testSeriesService = {
     attempt.pass_status = isPassed ? 'PASSED' : 'FAILED';
     attempt.passing_marks = passingMarks;
 
+    // Query historical attempts for this test & student to calculate improvement vs previous attempt
+    const [allAttempts]: any = await db.query(`
+      SELECT 
+        id,
+        final_score,
+        percentage,
+        accuracy,
+        correct_answers,
+        incorrect_answers,
+        unanswered,
+        duration_seconds,
+        ranking,
+        submitted_at,
+        created_at
+      FROM test_attempts
+      WHERE student_id = ? AND test_id = ? AND status IN ('SUBMITTED', 'AUTO_SUBMITTED')
+      ORDER BY submitted_at ASC, id ASC
+    `, [studentId, attempt.test_id]);
+
+    const attemptsList = allAttempts || [];
+    const currentIdx = attemptsList.findIndex((a: any) => Number(a.id) === Number(attemptId));
+    const prevAttempt = currentIdx > 0 ? attemptsList[currentIdx - 1] : null;
+
+    const attemptsHistory = attemptsList.map((a: any, index: number) => ({
+      attempt_number: index + 1,
+      id: Number(a.id),
+      final_score: Number(a.final_score || 0),
+      percentage: Number(a.percentage || 0),
+      accuracy: Number(a.accuracy || 0),
+      duration_seconds: Number(a.duration_seconds || 0),
+      correct_answers: Number(a.correct_answers || 0),
+      incorrect_answers: Number(a.incorrect_answers || 0),
+      unanswered: Number(a.unanswered || 0),
+      submitted_at: a.submitted_at || a.created_at,
+      is_current: Number(a.id) === Number(attemptId)
+    }));
+
+    const scoreDiff = prevAttempt ? Number((Number(attempt.final_score || 0) - Number(prevAttempt.final_score || 0)).toFixed(2)) : 0;
+    const percentageDiff = prevAttempt ? Number((Number(attempt.percentage || 0) - Number(prevAttempt.percentage || 0)).toFixed(2)) : 0;
+    const accuracyDiff = prevAttempt ? Number((Number(attempt.accuracy || 0) - Number(prevAttempt.accuracy || 0)).toFixed(2)) : 0;
+    const timeDiffSeconds = prevAttempt ? (Number(prevAttempt.duration_seconds || 0) - Number(attempt.duration_seconds || 0)) : 0;
+
+    let improvementStatus: 'FIRST_ATTEMPT' | 'IMPROVED' | 'DECLINED' | 'SAME' = 'FIRST_ATTEMPT';
+    if (prevAttempt) {
+      if (scoreDiff > 0 || (scoreDiff === 0 && percentageDiff > 0)) {
+        improvementStatus = 'IMPROVED';
+      } else if (scoreDiff < 0 || percentageDiff < 0) {
+        improvementStatus = 'DECLINED';
+      } else {
+        improvementStatus = 'SAME';
+      }
+    }
+
+    const comparison = {
+      attempt_number: currentIdx >= 0 ? currentIdx + 1 : attemptsList.length || 1,
+      total_attempts: attemptsList.length || 1,
+      has_previous: Boolean(prevAttempt),
+      previous_attempt: prevAttempt ? {
+        id: prevAttempt.id,
+        final_score: Number(prevAttempt.final_score || 0),
+        percentage: Number(prevAttempt.percentage || 0),
+        accuracy: Number(prevAttempt.accuracy || 0),
+        duration_seconds: Number(prevAttempt.duration_seconds || 0),
+        submitted_at: prevAttempt.submitted_at || prevAttempt.created_at
+      } : null,
+      score_diff: scoreDiff,
+      percentage_diff: percentageDiff,
+      accuracy_diff: accuracyDiff,
+      time_diff_seconds: timeDiffSeconds,
+      improvement_status: improvementStatus,
+      attempts_history: attemptsHistory
+    };
+
+    attempt.comparison = comparison;
+    attempt.attempts_history = attemptsHistory;
+
     return {
       attempt,
       questions,
-      achievements
+      achievements,
+      comparison
     };
   },
 

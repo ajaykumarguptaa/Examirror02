@@ -58,6 +58,9 @@ import {
   GraduationCap,
   Brain,
   LayoutGrid,
+  TrendingUp,
+  TrendingDown,
+  History,
 } from 'lucide-react';
 import { downloadOfficialScorecardPdf } from '../../utils/scorecardPdf';
 import { WalletPurchaseConfirmModal, type PurchaseItem } from '../../components/student/WalletPurchaseConfirmModal';
@@ -250,6 +253,7 @@ export default function StudentTestSeries() {
   // Scorecard State
   const [showScorecardModal, setShowScorecardModal] = useState(false);
   const [scorecardData, setScorecardData] = useState<any | null>(null);
+  const [isScorecardFullWidth, setIsScorecardFullWidth] = useState(false);
 
   // Styled Toast & Celebration Modal State
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; title?: string; message: string } | null>(null);
@@ -771,8 +775,14 @@ export default function StudentTestSeries() {
         const formatted = data?.attempt ? {
           ...data.attempt,
           question_analysis: data.questions,
-          achievements: data.achievements
-        } : data;
+          achievements: data.achievements,
+          comparison: data.comparison || data.attempt?.comparison,
+          attempts_history: data.comparison?.attempts_history || data.attempt?.attempts_history || []
+        } : {
+          ...data,
+          comparison: data?.comparison,
+          attempts_history: data?.comparison?.attempts_history || []
+        };
         setScorecardData(formatted);
         setShowScorecardModal(true);
       }
@@ -3653,12 +3663,16 @@ export default function StudentTestSeries() {
 
       {/* DETAILED SCORECARD MODAL */}
       {showScorecardModal && scorecardData && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 sm:p-7 border border-slate-200 shadow-xl space-y-5 max-h-[90vh] overflow-y-auto font-sans">
-            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
+          <div className={`bg-white rounded-2xl w-full border border-slate-200 shadow-2xl transition-all duration-300 flex flex-col font-sans ${
+            isScorecardFullWidth
+              ? 'max-w-[98vw] h-[96vh] p-5 sm:p-7'
+              : 'max-w-3xl max-h-[90vh] p-6 sm:p-7'
+          }`}>
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4 shrink-0">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold rounded-md">
+                  <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold rounded-md shadow-2xs">
                     Examination Result
                   </span>
                   {(() => {
@@ -3685,9 +3699,24 @@ export default function StudentTestSeries() {
                 <p className="text-xs text-slate-500 mt-0.5">Submitted on {new Date(scorecardData.submitted_at).toLocaleString()}</p>
               </div>
               <div className="flex items-center gap-2">
+                {/* Full Width Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsScorecardFullWidth(!isScorecardFullWidth)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-semibold text-xs transition-colors cursor-pointer shadow-2xs ${
+                    isScorecardFullWidth
+                      ? 'bg-indigo-600 text-white border-indigo-700 hover:bg-indigo-700'
+                      : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                  }`}
+                  title={isScorecardFullWidth ? "Standard View" : "Full Width View"}
+                >
+                  {isScorecardFullWidth ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                  <span className="hidden sm:inline">{isScorecardFullWidth ? 'Standard View' : 'Full Width'}</span>
+                </button>
+
                 <button
                   onClick={handleDownloadScorecardPdf}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium text-xs rounded-lg border border-indigo-200 transition-colors cursor-pointer shadow-2xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs rounded-lg border border-indigo-200 transition-colors cursor-pointer shadow-2xs"
                   title="Download Official PDF Marksheet"
                 >
                   <Download size={14} />
@@ -3701,6 +3730,166 @@ export default function StudentTestSeries() {
                 </button>
               </div>
             </div>
+
+            {/* Scrollable Modal Content */}
+            <div className="flex-1 overflow-y-auto space-y-5 pr-1 pt-4">
+
+              {/* COMPARATIVE IMPROVEMENT INTELLIGENCE CARD (Pichle Baar se Kitna Improvement Hua) */}
+              {(() => {
+                const comp = scorecardData.comparison;
+                const hasPrev = Boolean(comp?.has_previous);
+                const scoreDiff = Number(comp?.score_diff || 0);
+                const pctDiff = Number(comp?.percentage_diff || 0);
+                const accDiff = Number(comp?.accuracy_diff || 0);
+                const timeDiff = Number(comp?.time_diff_seconds || 0);
+                const attemptNum = comp?.attempt_number || 1;
+                const totalAtts = comp?.total_attempts || 1;
+                const prevDate = comp?.previous_attempt?.submitted_at
+                  ? new Date(comp.previous_attempt.submitted_at).toLocaleDateString()
+                  : null;
+
+                if (!hasPrev) {
+                  return (
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 border border-indigo-200/90 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-xs shrink-0">
+                          <Sparkles size={20} className="text-amber-300" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-extrabold text-sm text-indigo-950">
+                              Baseline Attempt Recorded (Attempt #{attemptNum})
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full bg-indigo-200/80 text-indigo-800 text-[10px] font-bold">
+                              Initial Benchmark
+                            </span>
+                          </div>
+                          <p className="text-xs text-indigo-900/80 mt-0.5 leading-relaxed">
+                            Yeh aapka pehla attempt hai ({Number(scorecardData.final_score || 0).toFixed(2)} Marks). Dobara test dekar apna progress aur pichle baar se improvement track karein!
+                          </p>
+                        </div>
+                      </div>
+                      {totalAtts > 1 && (
+                        <span className="text-[11px] font-bold text-indigo-700 bg-white/90 px-3 py-1 rounded-xl border border-indigo-200 shrink-0 shadow-2xs">
+                          {totalAtts} Total Attempts
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
+
+                const isImproved = scoreDiff > 0 || (scoreDiff === 0 && pctDiff > 0);
+                const isDeclined = scoreDiff < 0 || pctDiff < 0;
+
+                return (
+                  <div className={`p-4 rounded-2xl border shadow-xs transition-all space-y-3 ${
+                    isImproved
+                      ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-emerald-300 text-emerald-950'
+                      : isDeclined
+                        ? 'bg-gradient-to-r from-rose-50 via-amber-50 to-rose-50 border-rose-300 text-rose-950'
+                        : 'bg-gradient-to-r from-sky-50 via-slate-50 to-sky-50 border-sky-300 text-sky-950'
+                  }`}>
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-black/5">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black shadow-xs shrink-0 ${
+                          isImproved
+                            ? 'bg-emerald-600 text-white shadow-emerald-500/20'
+                            : isDeclined
+                              ? 'bg-rose-600 text-white shadow-rose-500/20'
+                              : 'bg-sky-600 text-white shadow-sky-500/20'
+                        }`}>
+                          {isImproved ? <TrendingUp size={24} /> : isDeclined ? <TrendingDown size={24} /> : <Target size={24} />}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-extrabold text-sm sm:text-base">
+                              {isImproved
+                                ? `🎉 Pichle Attempt se Zabardast Improvement! (${scoreDiff > 0 ? `+${scoreDiff.toFixed(2)}` : scoreDiff.toFixed(2)} Marks)`
+                                : isDeclined
+                                  ? `⚠️ Pichle Attempt se Score Dip (${scoreDiff.toFixed(2)} Marks)`
+                                  : `🎯 Consistent Performance (${Number(scorecardData.final_score || 0).toFixed(2)} Marks)`
+                              }
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                              isImproved
+                                ? 'bg-emerald-200 text-emerald-900 border border-emerald-300'
+                                : isDeclined
+                                  ? 'bg-rose-200 text-rose-900 border border-rose-300'
+                                  : 'bg-sky-200 text-sky-900 border border-sky-300'
+                            }`}>
+                              Attempt #{attemptNum} of {totalAtts}
+                            </span>
+                          </div>
+                          <p className="text-xs opacity-85 mt-0.5 leading-relaxed">
+                            {isImproved
+                              ? `Pichle attempt (${comp.previous_attempt?.final_score} Marks on ${prevDate}) ki tulna me aapne ${scoreDiff > 0 ? `+${scoreDiff.toFixed(2)} marks` : ''} (${pctDiff > 0 ? `+${pctDiff.toFixed(2)}%` : ''}) zyada score kiya!`
+                              : isDeclined
+                                ? `Pichle attempt (${comp.previous_attempt?.final_score} Marks on ${prevDate}) se thoda kam score aaya. Niche weak topics ka revision karein aur dobara try karein!`
+                                : `Aapka score pichle attempt (${prevDate}) ke barabar raha. Agle attempt me higher accuracy ka target banayein!`
+                            }
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Progress Metrics Badges */}
+                      <div className="flex items-center gap-2 flex-wrap text-xs font-bold shrink-0">
+                        <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 shadow-2xs ${
+                          scoreDiff >= 0
+                            ? 'bg-emerald-100/90 text-emerald-900 border-emerald-300'
+                            : 'bg-rose-100/90 text-rose-900 border-rose-300'
+                        }`}>
+                          <Award size={13} className={scoreDiff >= 0 ? 'text-emerald-700' : 'text-rose-700'} />
+                          <span>Marks:</span>
+                          <span>{scoreDiff > 0 ? `+${scoreDiff.toFixed(2)}` : scoreDiff.toFixed(2)}</span>
+                        </div>
+                        <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 shadow-2xs ${
+                          accDiff >= 0
+                            ? 'bg-emerald-100/90 text-emerald-900 border-emerald-300'
+                            : 'bg-rose-100/90 text-rose-900 border-rose-300'
+                        }`}>
+                          <Target size={13} className={accDiff >= 0 ? 'text-emerald-700' : 'text-rose-700'} />
+                          <span>Accuracy:</span>
+                          <span>{accDiff > 0 ? `+${accDiff.toFixed(1)}%` : `${accDiff.toFixed(1)}%`}</span>
+                        </div>
+                        <div className="px-3 py-1.5 rounded-xl border bg-white/90 text-slate-800 border-slate-200 flex items-center gap-1.5 shadow-2xs">
+                          <Clock size={13} className="text-slate-500" />
+                          <span>{timeDiff > 0 ? `${timeDiff}s faster ⚡` : timeDiff < 0 ? `${Math.abs(timeDiff)}s slower` : 'Same time'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Historical Attempts Timeline / Selector */}
+                    {Array.isArray(scorecardData.attempts_history) && scorecardData.attempts_history.length > 1 && (
+                      <div className="pt-1 flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1 shrink-0">
+                          <History size={12} /> Har Attempt Ka Record:
+                        </span>
+                        {scorecardData.attempts_history.map((att: any) => {
+                          const isCurrent = Number(att.id) === Number(scorecardData.id);
+                          return (
+                            <button
+                              key={att.id}
+                              type="button"
+                              onClick={() => handleViewScorecard(att.id)}
+                              className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+                                isCurrent
+                                  ? 'bg-slate-900 text-white shadow-xs ring-2 ring-indigo-500/40'
+                                  : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                              }`}
+                            >
+                              <span>Attempt #{att.attempt_number}</span>
+                              <span className={isCurrent ? 'text-amber-300 font-extrabold' : 'text-slate-500'}>
+                                ({Number(att.final_score).toFixed(1)}m • {Number(att.accuracy).toFixed(0)}%)
+                              </span>
+                              {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
             {/* Score Banner */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
@@ -3895,8 +4084,9 @@ export default function StudentTestSeries() {
                 </div>
               </div>
             )}
+            </div>
 
-            <div className="pt-3 border-t border-slate-100 flex justify-end">
+            <div className="pt-3 border-t border-slate-100 flex justify-end shrink-0">
               <button
                 onClick={() => setShowScorecardModal(false)}
                 className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
