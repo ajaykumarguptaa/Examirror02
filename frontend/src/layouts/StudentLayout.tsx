@@ -121,11 +121,11 @@ const StudentLayout = () => {
   const showLowBalanceBanner = !dismissLowBalance && walletOverview?.isLowBalance;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans w-full overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans w-full overflow-x-clip">
       <SEO title="Student Dashboard | Examirror" noindex={true} />
       
-      {/* Top Header with Apple Frosted Glass */}
-      <header className="apple-glass border-b border-white/60 px-3.5 sm:px-8 lg:px-10 py-3 flex justify-between items-center sticky top-0 z-40 shadow-2xs w-full transition-all duration-300">
+      {/* Top Header Fixed on Scroll */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-3.5 sm:px-8 lg:px-10 py-3 flex justify-between items-center sticky top-0 z-40 shadow-xs w-full transition-all duration-200">
         <div className="flex items-center gap-4 sm:gap-6">
           <Link to="/student" className="flex items-center gap-2 text-indigo-700 font-bold text-base sm:text-lg">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-xs sm:text-sm shadow-2xs shrink-0">

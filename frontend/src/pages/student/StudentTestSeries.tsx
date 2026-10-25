@@ -186,9 +186,9 @@ export default function StudentTestSeries() {
   }, [setSearchParams]);
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<number | 'ALL'>('ALL');
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<number | 'ALL'>('ALL');
+  const [selectedSubCategoryIds, setSelectedSubCategoryIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 250);
   const [mySeriesSearchQuery, setMySeriesSearchQuery] = useState('');
@@ -869,12 +869,16 @@ export default function StudentTestSeries() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Auto-expand selected category
+  // Auto-expand selected categories
   useEffect(() => {
-    if (selectedCategory !== 'ALL') {
-      setExpandedCategories(prev => ({ ...prev, [selectedCategory]: true }));
+    if (selectedCategoryIds.length > 0) {
+      setExpandedCategories(prev => {
+        const next = { ...prev };
+        selectedCategoryIds.forEach(id => { next[id] = true; });
+        return next;
+      });
     }
-  }, [selectedCategory]);
+  }, [selectedCategoryIds]);
 
   const toggleCategoryExpand = (catId: number, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -882,6 +886,55 @@ export default function StudentTestSeries() {
       ...prev,
       [catId]: !prev[catId]
     }));
+  };
+
+  // Multi-Category Toggle
+  const toggleCategory = (catId: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedCategoryIds(prev => {
+      const isSelected = prev.includes(catId);
+      if (isSelected) {
+        // Also remove any selected subcategories that belonged to this category
+        const subIdsOfCat = allSubCategoriesList
+          .filter(sc => Number(sc.category_id) === catId)
+          .map(sc => Number(sc.id));
+        setSelectedSubCategoryIds(subPrev => subPrev.filter(id => !subIdsOfCat.includes(id)));
+        return prev.filter(id => id !== catId);
+      } else {
+        setExpandedCategories(exp => ({ ...exp, [catId]: true }));
+        return [...prev, catId];
+      }
+    });
+  };
+
+  // Multi-Subcategory Toggle
+  const toggleSubCategory = (scId: number, catId: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedSubCategoryIds(prev => {
+      const isSelected = prev.includes(scId);
+      if (isSelected) {
+        return prev.filter(id => id !== scId);
+      } else {
+        setSelectedCategoryIds(catPrev => catPrev.includes(catId) ? catPrev : [...catPrev, catId]);
+        return [...prev, scId];
+      }
+    });
+  };
+
+  // Select all in a category (clears specific subcategory filters for this category)
+  const selectAllInCat = (catId: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedCategoryIds(prev => prev.includes(catId) ? prev : [...prev, catId]);
+    const subIdsOfCat = allSubCategoriesList
+      .filter(sc => Number(sc.category_id) === catId)
+      .map(sc => Number(sc.id));
+    setSelectedSubCategoryIds(subPrev => subPrev.filter(id => !subIdsOfCat.includes(id)));
+  };
+
+  // Reset all filters to show everything
+  const resetCategoryFilters = () => {
+    setSelectedCategoryIds([]);
+    setSelectedSubCategoryIds([]);
   };
 
   const getCategoryIcon = (name: string, isSelected: boolean) => {
@@ -998,28 +1051,55 @@ export default function StudentTestSeries() {
   }, [allCategoriesList, allSubCategoriesList, sidebarSearch]);
 
   const activeSubCategories = useMemo(() => {
-    if (selectedCategory === 'ALL') {
+    if (selectedCategoryIds.length === 0) {
       return allSubCategoriesList;
     }
-    return allSubCategoriesList.filter(sc => Number(sc.category_id) === Number(selectedCategory));
-  }, [allSubCategoriesList, selectedCategory]);
+    return allSubCategoriesList.filter(sc => selectedCategoryIds.includes(Number(sc.category_id)));
+  }, [allSubCategoriesList, selectedCategoryIds]);
 
   const filteredSeries = useMemo(() => {
     const q = debouncedSearchQuery.toLowerCase().trim();
+    const hasCatFilter = selectedCategoryIds.length > 0;
+    const hasSubCatFilter = selectedSubCategoryIds.length > 0;
+
     return availableSeries.filter(s => {
-      const matchesCat = selectedCategory === 'ALL' || Number(s.category_id) === Number(selectedCategory);
-      const matchesSubCat = selectedSubCategory === 'ALL' || (
-        s.sub_category_id != null && Number(s.sub_category_id) === Number(selectedSubCategory)
-      ) || (
-        s.sub_category_name && allSubCategoriesList.some(
-          sc => Number(sc.id) === Number(selectedSubCategory) && sc.name.toLowerCase().trim() === s.sub_category_name?.toLowerCase().trim()
-        )
-      );
+      const catId = Number(s.category_id);
+      const subId = s.sub_category_id != null ? Number(s.sub_category_id) : null;
+
+      // 1. Category Matching:
+      if (hasCatFilter && !selectedCategoryIds.includes(catId)) {
+        return false;
+      }
+
+      // 2. Subcategory Matching:
+      if (hasSubCatFilter) {
+        // Are any subcategories of this test's category selected?
+        const subsOfThisCat = allSubCategoriesList
+          .filter(sc => Number(sc.category_id) === catId)
+          .map(sc => Number(sc.id));
+        const hasSubSelectedForThisCat = subsOfThisCat.some(id => selectedSubCategoryIds.includes(id));
+
+        if (hasSubSelectedForThisCat) {
+          const matches = (subId != null && selectedSubCategoryIds.includes(subId)) || (
+            s.sub_category_name && allSubCategoriesList.some(
+              sc => selectedSubCategoryIds.includes(Number(sc.id)) && sc.name.toLowerCase().trim() === s.sub_category_name?.toLowerCase().trim()
+            )
+          );
+          if (!matches) return false;
+        }
+      }
+
+      // 3. Search matching
       const matchesSearch = !q || s.title.toLowerCase().includes(q) || (s.description && s.description.toLowerCase().includes(q));
+      if (!matchesSearch) return false;
+
+      // 4. Type matching
       const matchesType = filterType === 'ALL' || (filterType === 'FREE' && s.is_free) || (filterType === 'PAID' && !s.is_free);
-      return matchesCat && matchesSubCat && matchesSearch && matchesType;
+      if (!matchesType) return false;
+
+      return true;
     });
-  }, [availableSeries, selectedCategory, selectedSubCategory, debouncedSearchQuery, filterType, allSubCategoriesList]);
+  }, [availableSeries, selectedCategoryIds, selectedSubCategoryIds, debouncedSearchQuery, filterType, allSubCategoriesList]);
 
   if (isTakingExam && activeTest) {
     const currentQ = examQuestions[currentQIndex];
@@ -1882,16 +1962,20 @@ export default function StudentTestSeries() {
               </span>
               <div className="flex flex-col flex-1 min-w-0">
                 <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-                  {selectedCategory === 'ALL' ? 'Browsing All' : 'Active Category'}
+                  {selectedCategoryIds.length === 0 ? 'Browsing All' : 'Active Filters'}
                 </span>
                 <span className="font-black text-xs break-words leading-tight">
-                  {selectedCategory === 'ALL'
+                  {selectedCategoryIds.length === 0
                     ? 'All Categories'
-                    : (allCategoriesList.find(c => Number(c.id) === Number(selectedCategory))?.name || 'Category')}
+                    : selectedCategoryIds.length === 1
+                      ? (allCategoriesList.find(c => Number(c.id) === selectedCategoryIds[0])?.name || '1 Category')
+                      : `${selectedCategoryIds.length} Categories Selected`}
                 </span>
-                {selectedSubCategory !== 'ALL' && (
+                {selectedSubCategoryIds.length > 0 && (
                   <span className="text-[10px] text-indigo-400 font-semibold truncate">
-                    ↳ {allSubCategoriesList.find(sc => Number(sc.id) === Number(selectedSubCategory))?.name}
+                    ↳ {selectedSubCategoryIds.length === 1
+                      ? allSubCategoriesList.find(sc => Number(sc.id) === selectedSubCategoryIds[0])?.name
+                      : `${selectedSubCategoryIds.length} Sub-Categories Selected`}
                   </span>
                 )}
               </div>
@@ -1901,11 +1985,7 @@ export default function StudentTestSeries() {
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                 isCategoriesDropdownOpen ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
               }`}>
-                {selectedSubCategory !== 'ALL'
-                  ? (subCategoryCounts[Number(selectedSubCategory)] || 0)
-                  : selectedCategory === 'ALL' 
-                    ? availableSeries.length 
-                    : (categoryCounts[Number(selectedCategory)] || 0)}
+                {filteredSeries.length}
               </span>
               <ChevronDown
                 size={16}
@@ -1923,19 +2003,18 @@ export default function StudentTestSeries() {
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedCategory('ALL');
-                  setSelectedSubCategory('ALL');
+                  resetCategoryFilters();
                   if (isMobile) setMobileFilterOpen(false);
                 }}
                 className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
-                  selectedCategory === 'ALL'
+                  selectedCategoryIds.length === 0 && selectedSubCategoryIds.length === 0
                     ? 'bg-indigo-600 text-white shadow-2xs font-black'
                     : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/70'
                 }`}
               >
                 <div className="flex items-center gap-2.5 flex-1 min-w-0 pr-2">
                   <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                    selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-indigo-50 text-indigo-600'
+                    selectedCategoryIds.length === 0 && selectedSubCategoryIds.length === 0 ? 'bg-white/20 text-white' : 'bg-indigo-50 text-indigo-600'
                   }`}>
                     <LayoutGrid size={14} />
                   </span>
@@ -1943,27 +2022,29 @@ export default function StudentTestSeries() {
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
-                    selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                    selectedCategoryIds.length === 0 && selectedSubCategoryIds.length === 0 ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
                   }`}>
                     {availableSeries.length}
                   </span>
-                  {selectedCategory === 'ALL' && <Check size={13} className="text-white" />}
+                  {selectedCategoryIds.length === 0 && selectedSubCategoryIds.length === 0 && <Check size={13} className="text-white" />}
                 </div>
               </button>
 
               <div className="border-t border-slate-200/80 my-1" />
 
-              {/* Dynamic Categories List inside the Dropdown */}
+              {/* Dynamic Categories List inside the Dropdown with Multi-Selection */}
               {filteredCategoriesForSidebar.length === 0 ? (
                 <div className="text-center py-4 text-xs text-slate-400">
                   No categories match "{sidebarSearch}"
                 </div>
               ) : (
                 filteredCategoriesForSidebar.map(cat => {
-                  const isCatSelected = Number(selectedCategory) === Number(cat.id);
+                  const catId = Number(cat.id);
+                  const isCatSelected = selectedCategoryIds.includes(catId);
                   const isExpanded = expandedCategories[cat.id] ?? isCatSelected;
-                  const catSubs = allSubCategoriesList.filter(sc => Number(sc.category_id) === Number(cat.id));
-                  const totalInCat = categoryCounts[cat.id] || 0;
+                  const catSubs = allSubCategoriesList.filter(sc => Number(sc.category_id) === catId);
+                  const totalInCat = categoryCounts[catId] || 0;
+                  const selectedSubsInThisCat = catSubs.filter(sc => selectedSubCategoryIds.includes(Number(sc.id)));
 
                   return (
                     <div
@@ -1974,21 +2055,28 @@ export default function StudentTestSeries() {
                           : 'border-slate-200/70 hover:border-slate-300 bg-white'
                       }`}
                     >
-                      {/* Category Header Row */}
+                      {/* Category Header Row with Checkbox */}
                       <div
-                        onClick={() => {
-                          setSelectedCategory(cat.id);
-                          setSelectedSubCategory('ALL');
-                          setExpandedCategories(prev => ({ ...prev, [cat.id]: !prev[cat.id] }));
+                        onClick={(e) => {
+                          toggleCategory(catId, e);
                           if (isMobile && catSubs.length === 0) setMobileFilterOpen(false);
                         }}
                         className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer group select-none ${
                           isCatSelected
-                            ? 'text-indigo-950 font-black'
+                            ? 'text-indigo-950 font-black bg-indigo-50/40'
                             : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center gap-2.5 flex-1 min-w-0 pr-1.5">
+                          {/* Multi-Select Checkbox */}
+                          <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all shrink-0 ${
+                            isCatSelected
+                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-2xs'
+                              : 'border-slate-300 bg-white group-hover:border-indigo-400'
+                          }`}>
+                            {isCatSelected && <Check size={11} strokeWidth={3} />}
+                          </div>
+
                           <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                             isCatSelected ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600'
                           }`}>
@@ -2021,20 +2109,19 @@ export default function StudentTestSeries() {
                         </div>
                       </div>
 
-                      {/* Subcategories Dropdown Tree inside this Category */}
+                      {/* Subcategories Dropdown Tree inside this Category with Multi-Selection */}
                       {isExpanded && catSubs.length > 0 && (
                         <div className="pb-2.5 pt-1 px-2.5 space-y-1 bg-slate-50/80 rounded-b-xl border-t border-slate-100">
                           <div className="border-l-2 border-indigo-200 ml-2.5 pl-2.5 space-y-1 my-1">
                             {/* All in this category */}
                             <button
                               type="button"
-                              onClick={() => {
-                                setSelectedCategory(cat.id);
-                                setSelectedSubCategory('ALL');
+                              onClick={(e) => {
+                                selectAllInCat(catId, e);
                                 if (isMobile) setMobileFilterOpen(false);
                               }}
                               className={`w-full text-left py-2 px-2.5 rounded-lg text-[11px] font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                                isCatSelected && selectedSubCategory === 'ALL'
+                                isCatSelected && selectedSubsInThisCat.length === 0
                                   ? 'bg-indigo-600 text-white font-bold shadow-2xs'
                                   : 'text-slate-600 hover:text-indigo-700 hover:bg-white'
                               }`}
@@ -2044,40 +2131,46 @@ export default function StudentTestSeries() {
                               </span>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                                  isCatSelected && selectedSubCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                                  isCatSelected && selectedSubsInThisCat.length === 0 ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
                                 }`}>
                                   {totalInCat}
                                 </span>
-                                {isCatSelected && selectedSubCategory === 'ALL' && <Check size={11} className="text-white" />}
+                                {isCatSelected && selectedSubsInThisCat.length === 0 && <Check size={11} className="text-white" />}
                               </div>
                             </button>
 
-                            {/* Individual Subcategories */}
+                            {/* Individual Subcategories with Checkboxes */}
                             {catSubs.map(sc => {
-                              const isSubSelected = isCatSelected && (
-                                Number(selectedSubCategory) === Number(sc.id) ||
-                                (sc.name && String(selectedSubCategory).toLowerCase().trim() === sc.name.toLowerCase().trim())
-                              );
-                              const subCount = subCategoryCounts[Number(sc.id)] || 0;
+                              const scId = Number(sc.id);
+                              const isSubSelected = selectedSubCategoryIds.includes(scId);
+                              const subCount = subCategoryCounts[scId] || 0;
 
                               return (
                                 <button
                                   type="button"
                                   key={sc.id}
-                                  onClick={() => {
-                                    setSelectedCategory(cat.id);
-                                    setSelectedSubCategory(sc.id);
+                                  onClick={(e) => {
+                                    toggleSubCategory(scId, catId, e);
                                     if (isMobile) setMobileFilterOpen(false);
                                   }}
-                                  className={`w-full text-left py-2 px-2.5 rounded-lg text-[11px] font-medium flex items-center justify-between transition-all cursor-pointer ${
+                                  className={`w-full text-left py-2 px-2.5 rounded-lg text-[11px] font-medium flex items-center justify-between transition-all cursor-pointer group ${
                                     isSubSelected
                                       ? 'bg-indigo-600 text-white font-bold shadow-2xs'
                                       : 'text-slate-600 hover:text-indigo-700 hover:bg-white'
                                   }`}
                                 >
-                                  <span className="leading-snug break-words text-left flex-1 min-w-0 pr-2">
-                                    {sc.name}
-                                  </span>
+                                  <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
+                                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all shrink-0 ${
+                                      isSubSelected
+                                        ? 'bg-white text-indigo-700 border-white shadow-2xs'
+                                        : 'border-slate-300 bg-white group-hover:border-indigo-400'
+                                    }`}>
+                                      {isSubSelected && <Check size={10} strokeWidth={3} />}
+                                    </div>
+                                    <span className="leading-snug break-words text-left flex-1 min-w-0">
+                                      {sc.name}
+                                    </span>
+                                  </div>
                                   <div className="flex items-center gap-1.5 shrink-0">
                                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                                       isSubSelected
@@ -2088,7 +2181,6 @@ export default function StudentTestSeries() {
                                     }`}>
                                       {subCount}
                                     </span>
-                                    {isSubSelected && <Check size={11} className="text-white" />}
                                   </div>
                                 </button>
                               );
@@ -2105,12 +2197,11 @@ export default function StudentTestSeries() {
         </div>
 
         {/* Clear Filters Button (when filtered) */}
-        {(selectedCategory !== 'ALL' || selectedSubCategory !== 'ALL' || filterType !== 'ALL' || searchQuery || sidebarSearch) && (
+        {(selectedCategoryIds.length > 0 || selectedSubCategoryIds.length > 0 || filterType !== 'ALL' || searchQuery || sidebarSearch) && (
           <button
             type="button"
             onClick={() => {
-              setSelectedCategory('ALL');
-              setSelectedSubCategory('ALL');
+              resetCategoryFilters();
               setFilterType('ALL');
               setSearchQuery('');
               setSidebarSearch('');
@@ -2221,7 +2312,7 @@ export default function StudentTestSeries() {
       {activeTab === 'discover' && (
         <div className="flex flex-col lg:flex-row items-start gap-6 w-full">
           {/* Desktop Category & Sub-Category Explorer Sidebar (lg+) */}
-          <aside className="hidden lg:block w-84 xl:w-96 shrink-0 sticky top-20 max-h-[calc(100vh-6.5rem)] overflow-y-auto pr-1">
+          <aside className="hidden lg:block w-84 xl:w-96 shrink-0 sticky top-[4.5rem] self-start max-h-[calc(100vh-5.5rem)] overflow-y-auto pr-1 z-30">
             {renderCategorySidebar(false)}
           </aside>
 
@@ -2252,22 +2343,26 @@ export default function StudentTestSeries() {
                   <SlidersHorizontal size={14} />
                   <span>
                     Categories
-                    {selectedCategory !== 'ALL' && ' (1)'}
+                    {selectedCategoryIds.length > 0 && ` (${selectedCategoryIds.length})`}
                   </span>
                 </button>
 
                 {/* Category Breadcrumb Title & Count */}
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
                   <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate">
-                    {selectedCategory === 'ALL'
+                    {selectedCategoryIds.length === 0
                       ? 'All Test Series'
-                      : (categories.find(c => c.id === selectedCategory)?.name || 'Category')}
+                      : selectedCategoryIds.length === 1
+                        ? (allCategoriesList.find(c => Number(c.id) === selectedCategoryIds[0])?.name || 'Category')
+                        : `${selectedCategoryIds.length} Categories Selected`}
                   </h2>
-                  {selectedSubCategory !== 'ALL' && (
+                  {selectedSubCategoryIds.length > 0 && (
                     <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 shrink-0">
                       <ChevronRight size={12} />
                       <span className="text-indigo-600 font-bold">
-                        {subCategories.find(s => s.id === selectedSubCategory)?.name}
+                        {selectedSubCategoryIds.length === 1
+                          ? allSubCategoriesList.find(s => Number(s.id) === selectedSubCategoryIds[0])?.name
+                          : `${selectedSubCategoryIds.length} Sub-Categories`}
                       </span>
                     </span>
                   )}
@@ -2299,34 +2394,53 @@ export default function StudentTestSeries() {
               </div>
             </div>
 
-            {/* Active Filters Tag Pills */}
-            {(selectedCategory !== 'ALL' || selectedSubCategory !== 'ALL' || filterType !== 'ALL' || debouncedSearchQuery) && (
+            {/* Active Filters Tag Pills with Multi-Select Support */}
+            {(selectedCategoryIds.length > 0 || selectedSubCategoryIds.length > 0 || filterType !== 'ALL' || debouncedSearchQuery) && (
               <div className="flex items-center gap-1.5 flex-wrap text-xs bg-white/70 p-2.5 px-3 rounded-xl border border-slate-200/60">
                 <span className="text-slate-400 font-semibold text-[11px]">Filtered by:</span>
-                {selectedCategory !== 'ALL' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-lg text-xs font-bold">
-                    <span>{categories.find(c => c.id === selectedCategory)?.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => { setSelectedCategory('ALL'); setSelectedSubCategory('ALL'); }}
-                      className="hover:text-indigo-900 cursor-pointer"
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                )}
-                {selectedSubCategory !== 'ALL' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-lg text-xs font-bold">
-                    <span>{subCategories.find(s => s.id === selectedSubCategory)?.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedSubCategory('ALL')}
-                      className="hover:text-indigo-900 cursor-pointer"
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                )}
+                
+                {/* Category Pills (only shown if no subcategories of this category are selected, to avoid redundancy) */}
+                {selectedCategoryIds.map(catId => {
+                  const cat = allCategoriesList.find(c => Number(c.id) === catId);
+                  const subsInThisCat = allSubCategoriesList
+                    .filter(sc => Number(sc.category_id) === catId)
+                    .map(sc => Number(sc.id));
+                  const hasSelectedSubs = subsInThisCat.some(id => selectedSubCategoryIds.includes(id));
+                  if (hasSelectedSubs) return null;
+
+                  return (
+                    <span key={`cat-${catId}`} className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-lg text-xs font-bold">
+                      <span>{cat?.name || `Category ${catId}`}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => toggleCategory(catId, e)}
+                        className="hover:text-indigo-900 cursor-pointer"
+                        title="Remove category filter"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  );
+                })}
+
+                {/* Subcategory Pills */}
+                {selectedSubCategoryIds.map(scId => {
+                  const sc = allSubCategoriesList.find(s => Number(s.id) === scId);
+                  return (
+                    <span key={`sub-${scId}`} className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-2xs">
+                      <span>{sc?.name || `Sub-Category ${scId}`}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => toggleSubCategory(scId, Number(sc?.category_id || 0), e)}
+                        className="hover:text-white/80 cursor-pointer"
+                        title="Remove subcategory filter"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  );
+                })}
+
                 {filterType !== 'ALL' && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold">
                     <span>{filterType === 'FREE' ? 'Free Only' : 'VIP Elite Pass Only'}</span>
@@ -2339,6 +2453,7 @@ export default function StudentTestSeries() {
                     </button>
                   </span>
                 )}
+
                 {debouncedSearchQuery && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold">
                     <span>"{debouncedSearchQuery}"</span>
@@ -2351,15 +2466,15 @@ export default function StudentTestSeries() {
                     </button>
                   </span>
                 )}
+
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedCategory('ALL');
-                    setSelectedSubCategory('ALL');
+                    resetCategoryFilters();
                     setFilterType('ALL');
                     setSearchQuery('');
                   }}
-                  className="text-indigo-600 hover:text-indigo-800 text-[11px] font-bold underline ml-1 cursor-pointer"
+                  className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold ml-1 cursor-pointer underline"
                 >
                   Clear all
                 </button>
@@ -2507,41 +2622,29 @@ export default function StudentTestSeries() {
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-slate-900">
-                  {selectedSubCategory !== 'ALL'
-                    ? `No Tests in "${allSubCategoriesList.find(sc => Number(sc.id) === Number(selectedSubCategory))?.name || 'this Sub-Category'}"`
-                    : selectedCategory !== 'ALL'
-                      ? `No Tests in "${allCategoriesList.find(c => Number(c.id) === Number(selectedCategory))?.name || 'this Category'}"`
+                  {selectedSubCategoryIds.length > 0
+                    ? `No Tests Found in Selected Sub-Categories`
+                    : selectedCategoryIds.length > 0
+                      ? `No Tests Found in Selected Categories`
                       : 'No Test Series Found'}
                 </h3>
                 <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                  {selectedSubCategory !== 'ALL'
-                    ? `There are no mock test series currently active in this specific sub-category. You can view all tests available in the parent category or reset all filters.`
+                  {selectedSubCategoryIds.length > 0 || selectedCategoryIds.length > 0
+                    ? `No mock test series match your active combination of categories, sub-categories, or access tiers. Try resetting filters or choosing other categories.`
                     : `No mock test series match your current filters or search query.`}
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                {selectedSubCategory !== 'ALL' && selectedCategory !== 'ALL' && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSubCategory('ALL')}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs"
-                  >
-                    <FolderTree size={14} />
-                    <span>View All {allCategoriesList.find(c => Number(c.id) === Number(selectedCategory))?.name || 'Category'} Tests ({categoryCounts[selectedCategory] || 0})</span>
-                  </button>
-                )}
-
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedCategory('ALL');
-                    setSelectedSubCategory('ALL');
+                    resetCategoryFilters();
                     setFilterType('ALL');
                     setSearchQuery('');
                     setSidebarSearch('');
                   }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-xs"
                 >
                   <RotateCcw size={13} />
                   <span>Reset All Filters ({availableSeries.length})</span>
