@@ -75,6 +75,18 @@ export const HomeAdvertisementModal: React.FC<Props> = ({ ad }) => {
     return () => clearInterval(interval);
   }, [countdownEnabled, countdownEndDate]);
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, dontShowToday]);
+
   const handleClose = () => {
     if (dontShowToday) {
       localStorage.setItem('examirror_ad_dismissed_until', String(Date.now() + 24 * 60 * 60 * 1000));
@@ -119,59 +131,68 @@ export const HomeAdvertisementModal: React.FC<Props> = ({ ad }) => {
 
   const getBadgeIcon = () => {
     switch (badgeType) {
-      case 'offer': return <Flame size={14} className="text-amber-400" />;
-      case 'urgent': return <Zap size={14} className="text-rose-400" />;
-      case 'exam': return <Award size={14} className="text-emerald-400" />;
-      default: return <Zap size={14} className="text-amber-300" />;
+      case 'offer': return <Flame size={13} className="text-amber-400" />;
+      case 'urgent': return <Zap size={13} className="text-rose-400" />;
+      case 'exam': return <Award size={13} className="text-emerald-400" />;
+      default: return <Zap size={13} className="text-amber-300" />;
     }
   };
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200">
+      {/* Backdrop overlay: Clicking anywhere outside closes the modal */}
+      <div
+        onClick={handleClose}
+        className="fixed inset-0 z-[110] flex items-center justify-center p-2.5 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200 cursor-pointer"
+        aria-modal="true"
+        role="dialog"
+      >
         <motion.div
-          initial={{ opacity: 0, scale: 0.92, y: 16 }}
+          initial={{ opacity: 0, scale: 0.94, y: 14 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.92, y: 16 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="relative bg-slate-900 text-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-indigo-500/30 font-sans"
+          exit={{ opacity: 0, scale: 0.94, y: 14 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+          onClick={(e) => e.stopPropagation()}
+          className="relative bg-slate-900 text-white rounded-2xl sm:rounded-3xl w-[95%] sm:w-full max-w-[490px] max-h-[92vh] sm:max-h-[90vh] flex flex-col shadow-2xl border border-indigo-500/30 font-sans cursor-default overflow-hidden my-auto"
         >
-          {/* Close Button */}
+          {/* Close Button - Always visible on top right with high z-index */}
           <button
+            type="button"
             onClick={handleClose}
-            className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors cursor-pointer border border-white/20"
-            title="Close"
+            className="absolute top-2.5 right-2.5 sm:top-3.5 sm:right-3.5 z-30 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all cursor-pointer border border-white/20 shadow-lg active:scale-95"
+            title="Close announcement"
+            aria-label="Close announcement"
           >
-            <X size={16} />
+            <X size={15} />
           </button>
 
-          {/* Poster Image (if provided) */}
+          {/* Poster Image (Responsive scaling with top header) */}
           {imageUrl && (
-            <div className="relative w-full max-h-56 overflow-hidden bg-slate-950 border-b border-white/10">
+            <div className="relative w-full max-h-36 sm:max-h-48 md:max-h-56 shrink-0 overflow-hidden bg-slate-950 border-b border-white/10">
               <img
                 src={imageUrl}
                 alt={title}
                 className="w-full h-full object-cover object-center"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
             </div>
           )}
 
-          {/* Modal Content */}
-          <div className="relative z-10 p-6 sm:p-8 space-y-5">
+          {/* Scrollable Content Container (Guarantees full visibility on small phones & landscape mode) */}
+          <div className="relative z-10 p-4 sm:p-6 md:p-7 space-y-3.5 sm:space-y-4 md:space-y-5 overflow-y-auto overscroll-contain flex-1 modal-dark-scroll">
             {/* Badge */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white/10 border border-white/15 text-amber-300 shadow-sm">
+            <div className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider bg-white/10 border border-white/15 text-amber-300 shadow-sm">
               {getBadgeIcon()}
               <span>{badgeText}</span>
             </div>
 
             {/* Title & Subtitle */}
-            <div>
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
+            <div className="space-y-1 sm:space-y-1.5">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white tracking-tight leading-snug">
                 {title}
               </h2>
               {subtitle && (
-                <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                   {subtitle}
                 </p>
               )}
@@ -179,70 +200,71 @@ export const HomeAdvertisementModal: React.FC<Props> = ({ ad }) => {
 
             {/* Countdown Timer Box */}
             {timeLeft && (
-              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-white/10">
-                <div className="flex items-center justify-between text-xs text-slate-400 font-semibold mb-2">
+              <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-slate-950/85 border border-white/10 shadow-inner">
+                <div className="flex items-center justify-between text-[11px] sm:text-xs text-slate-400 font-semibold mb-1.5 sm:mb-2">
                   <span className="flex items-center gap-1 text-amber-300">
-                    <Clock size={13} />
+                    <Clock size={12} className="shrink-0" />
                     <span>Special Offer Ends In:</span>
                   </span>
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider">Limited Time</span>
+                  <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-mono">Limited Time</span>
                 </div>
-                <div className="grid grid-cols-4 gap-2 text-center font-mono">
-                  <div className="bg-slate-900 p-2 rounded-xl border border-white/10">
-                    <div className="text-lg font-black text-white">{String(timeLeft.d).padStart(2, '0')}</div>
-                    <div className="text-[9px] uppercase text-slate-400">Days</div>
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-2 text-center font-mono">
+                  <div className="bg-slate-900 p-1.5 sm:p-2 rounded-lg sm:rounded-xl border border-white/10">
+                    <div className="text-base sm:text-lg md:text-xl font-black text-white">{String(timeLeft.d).padStart(2, '0')}</div>
+                    <div className="text-[8px] sm:text-[9px] uppercase text-slate-400 mt-0.5">Days</div>
                   </div>
-                  <div className="bg-slate-900 p-2 rounded-xl border border-white/10">
-                    <div className="text-lg font-black text-white">{String(timeLeft.h).padStart(2, '0')}</div>
-                    <div className="text-[9px] uppercase text-slate-400">Hours</div>
+                  <div className="bg-slate-900 p-1.5 sm:p-2 rounded-lg sm:rounded-xl border border-white/10">
+                    <div className="text-base sm:text-lg md:text-xl font-black text-white">{String(timeLeft.h).padStart(2, '0')}</div>
+                    <div className="text-[8px] sm:text-[9px] uppercase text-slate-400 mt-0.5">Hours</div>
                   </div>
-                  <div className="bg-slate-900 p-2 rounded-xl border border-white/10">
-                    <div className="text-lg font-black text-white">{String(timeLeft.m).padStart(2, '0')}</div>
-                    <div className="text-[9px] uppercase text-slate-400">Mins</div>
+                  <div className="bg-slate-900 p-1.5 sm:p-2 rounded-lg sm:rounded-xl border border-white/10">
+                    <div className="text-base sm:text-lg md:text-xl font-black text-white">{String(timeLeft.m).padStart(2, '0')}</div>
+                    <div className="text-[8px] sm:text-[9px] uppercase text-slate-400 mt-0.5">Mins</div>
                   </div>
-                  <div className="bg-slate-900 p-2 rounded-xl border border-white/10">
-                    <div className="text-lg font-black text-amber-400">{String(timeLeft.s).padStart(2, '0')}</div>
-                    <div className="text-[9px] uppercase text-slate-400">Secs</div>
+                  <div className="bg-slate-900 p-1.5 sm:p-2 rounded-lg sm:rounded-xl border border-white/10">
+                    <div className="text-base sm:text-lg md:text-xl font-black text-amber-400">{String(timeLeft.s).padStart(2, '0')}</div>
+                    <div className="text-[8px] sm:text-[9px] uppercase text-slate-400 mt-0.5">Secs</div>
                   </div>
                 </div>
               </div>
             )}
 
             {/* CTA Button */}
-            <div className="space-y-3 pt-1">
+            <div className="space-y-2 sm:space-y-2.5 pt-0.5">
               <button
                 type="button"
                 onClick={(e) => handleNavigate(ctaLink, e)}
-                className="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-xl shadow-amber-500/25 transition-all duration-200 active:scale-[0.99] cursor-pointer"
+                className="w-full py-3 sm:py-3.5 md:py-4 px-4 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-xl shadow-amber-500/25 transition-all duration-200 active:scale-[0.99] cursor-pointer"
               >
                 <span>{ctaText}</span>
-                <ArrowRight size={14} />
+                <ArrowRight size={15} />
               </button>
 
               {/* Reassurance text */}
               {secondaryText && (
-                <div className="text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5 font-medium">
-                  <ShieldCheck size={13} className="text-emerald-400" />
+                <div className="text-center text-[10px] sm:text-[11px] text-slate-400 flex items-center justify-center gap-1.5 font-medium">
+                  <ShieldCheck size={13} className="text-emerald-400 shrink-0" />
                   <span>{secondaryText}</span>
                 </div>
               )}
             </div>
 
             {/* Don't show again today footer */}
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400">
-              <label className="flex items-center gap-2 cursor-pointer select-none hover:text-slate-300">
+            <div className="pt-2 sm:pt-2.5 border-t border-white/10 flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-400">
+              <label className="flex items-center gap-2 cursor-pointer select-none hover:text-slate-200">
                 <input
                   type="checkbox"
                   checked={dontShowToday}
                   onChange={(e) => setDontShowToday(e.target.checked)}
-                  className="rounded border-slate-700 text-indigo-600 focus:ring-0 cursor-pointer"
+                  className="rounded border-slate-700 text-indigo-600 focus:ring-0 cursor-pointer w-3.5 h-3.5"
                 />
                 <span>Don't show this announcement again today</span>
               </label>
 
               <button
+                type="button"
                 onClick={handleClose}
-                className="hover:text-white underline cursor-pointer"
+                className="hover:text-white underline cursor-pointer self-end xs:self-auto py-0.5"
               >
                 Dismiss
               </button>
