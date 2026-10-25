@@ -4027,7 +4027,7 @@ export default function StudentTestSeries() {
                             </span>
                           </div>
                           <p className="text-xs text-indigo-900/80 mt-0.5 leading-relaxed">
-                            Yeh aapka pehla attempt hai ({Number(scorecardData.final_score || 0).toFixed(2)} Marks). Dobara test dekar apna progress aur pichle baar se improvement track karein!
+                            This is your initial benchmark attempt ({Number(scorecardData.final_score || 0).toFixed(2)} Marks). Re-take this test anytime to track your progress and score improvement!
                           </p>
                         </div>
                       </div>
@@ -4066,9 +4066,9 @@ export default function StudentTestSeries() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-extrabold text-sm sm:text-base">
                               {isImproved
-                                ? `🎉 Pichle Attempt se Zabardast Improvement! (${scoreDiff > 0 ? `+${scoreDiff.toFixed(2)}` : scoreDiff.toFixed(2)} Marks)`
+                                ? `🎉 Significant Score Improvement! (${scoreDiff > 0 ? `+${scoreDiff.toFixed(2)}` : scoreDiff.toFixed(2)} Marks)`
                                 : isDeclined
-                                  ? `⚠️ Pichle Attempt se Score Dip (${scoreDiff.toFixed(2)} Marks)`
+                                  ? `⚠️ Score Dip Compared to Previous Attempt (${scoreDiff.toFixed(2)} Marks)`
                                   : `🎯 Consistent Performance (${Number(scorecardData.final_score || 0).toFixed(2)} Marks)`
                               }
                             </span>
@@ -4084,10 +4084,10 @@ export default function StudentTestSeries() {
                           </div>
                           <p className="text-xs opacity-85 mt-0.5 leading-relaxed">
                             {isImproved
-                              ? `Pichle attempt (${comp.previous_attempt?.final_score} Marks on ${prevDate}) ki tulna me aapne ${scoreDiff > 0 ? `+${scoreDiff.toFixed(2)} marks` : ''} (${pctDiff > 0 ? `+${pctDiff.toFixed(2)}%` : ''}) zyada score kiya!`
+                              ? `You scored ${scoreDiff > 0 ? `+${scoreDiff.toFixed(2)} marks` : ''} (${pctDiff > 0 ? `+${pctDiff.toFixed(2)}%` : ''}) higher than your previous attempt (${comp.previous_attempt?.final_score} Marks on ${prevDate}). Great work!`
                               : isDeclined
-                                ? `Pichle attempt (${comp.previous_attempt?.final_score} Marks on ${prevDate}) se thoda kam score aaya. Niche weak topics ka revision karein aur dobara try karein!`
-                                : `Aapka score pichle attempt (${prevDate}) ke barabar raha. Agle attempt me higher accuracy ka target banayein!`
+                                ? `Your score was slightly lower than your previous attempt (${comp.previous_attempt?.final_score} Marks on ${prevDate}). Review the topic analysis below to strengthen weak areas and try again!`
+                                : `Your performance remained consistent with your previous attempt on ${prevDate}. Target higher accuracy on your next session!`
                             }
                           </p>
                         </div>
@@ -4124,7 +4124,7 @@ export default function StudentTestSeries() {
                     {Array.isArray(scorecardData.attempts_history) && scorecardData.attempts_history.length > 1 && (
                       <div className="pt-1 flex items-center gap-2 flex-wrap">
                         <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1 shrink-0">
-                          <History size={12} /> Har Attempt Ka Record:
+                          <History size={12} /> Attempt History Records:
                         </span>
                         {scorecardData.attempts_history.map((att: any) => {
                           const isCurrent = Number(att.id) === Number(scorecardData.id);
