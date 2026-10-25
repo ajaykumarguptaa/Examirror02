@@ -398,9 +398,10 @@ router.get('/test-categories', async (req, res) => {
   try {
     const [rows]: any = await db.query(`
       SELECT tc.id, tc.name, tc.slug, tc.description, tc.icon, tc.thumbnail_url, tc.display_order,
-             COUNT(ts.id) AS test_series_count
+             COUNT(DISTINCT ts.id) AS test_series_count
       FROM test_categories tc
-      LEFT JOIN test_series ts ON ts.category_id = tc.id AND ts.status = 'PUBLISHED'
+      LEFT JOIN test_series_categories tsc ON tsc.category_id = tc.id
+      LEFT JOIN test_series ts ON (ts.id = tsc.test_series_id OR ts.category_id = tc.id) AND ts.status = 'PUBLISHED'
       WHERE tc.status = 'ACTIVE'
       GROUP BY tc.id
       ORDER BY tc.display_order ASC, tc.id ASC

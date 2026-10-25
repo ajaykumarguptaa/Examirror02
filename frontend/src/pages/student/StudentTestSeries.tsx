@@ -91,6 +91,8 @@ interface TestSeriesItem {
   slug: string;
   category_name?: string;
   category_id: number;
+  category_ids?: number[];
+  assigned_categories?: { id: number; name: string }[];
   sub_category_name?: string;
   sub_category_id?: number | null;
   description: string;
@@ -1125,9 +1127,15 @@ export default function StudentTestSeries() {
       const catId = Number(s.category_id);
       const subId = s.sub_category_id != null ? Number(s.sub_category_id) : null;
 
-      // 1. Category Matching:
-      if (hasCatFilter && !selectedCategoryIds.includes(catId)) {
-        return false;
+      // 1. Category Matching (Supports tests placed in multiple categories):
+      if (hasCatFilter) {
+        const seriesCatIds: number[] = Array.isArray(s.category_ids) && s.category_ids.length > 0
+          ? s.category_ids.map(Number)
+          : [catId];
+        const matchesCat = selectedCategoryIds.some(selId => seriesCatIds.includes(selId));
+        if (!matchesCat) {
+          return false;
+        }
       }
 
       // 2. Subcategory Matching:
@@ -2662,6 +2670,14 @@ export default function StudentTestSeries() {
                           <span className="px-2.5 py-0.5 bg-white text-slate-700 border border-slate-200 text-[11px] font-semibold rounded-md shadow-2xs">
                             {series.category_name || 'General'}
                           </span>
+                          {Array.isArray(series.assigned_categories) && series.assigned_categories.length > 1 && (
+                            <span
+                              className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-bold rounded-md shadow-2xs cursor-help"
+                              title={`Also in: ${series.assigned_categories.map((c: any) => c.name).join(', ')}`}
+                            >
+                              +{series.assigned_categories.length - 1} more
+                            </span>
+                          )}
                           {series.sub_category_name && (
                             <span className="px-2 py-0.5 bg-indigo-50/70 text-indigo-700 border border-indigo-200/60 text-[10px] font-semibold rounded-md flex items-center gap-1 shadow-2xs">
                               <FolderTree size={11} className="text-indigo-500" />

@@ -236,8 +236,35 @@ export const testSeriesService = {
 
     const [rows]: any = await db.query(query, params);
 
-    // Fetch allowed centres for each series
+    // Fetch allowed centres and assigned categories for each series
+    const seriesIds = rows.map((r: any) => r.id);
+    let catMap = new Map<number, any[]>();
+    if (seriesIds.length > 0) {
+      const [allCats]: any = await db.query(`
+        SELECT tsc.test_series_id, tsc.category_id, tc.name as category_name
+        FROM test_series_categories tsc
+        JOIN test_categories tc ON tsc.category_id = tc.id
+        WHERE tsc.test_series_id IN (?)
+      `, [seriesIds]);
+
+      for (const c of allCats) {
+        const sId = Number(c.test_series_id);
+        if (!catMap.has(sId)) catMap.set(sId, []);
+        catMap.get(sId)!.push({
+          id: Number(c.category_id),
+          name: c.category_name
+        });
+      }
+    }
+
     for (const s of rows) {
+      const cats = catMap.get(Number(s.id)) || [];
+      s.assigned_categories = cats;
+      s.category_ids = cats.map(c => c.id);
+      if (s.category_id && !s.category_ids.includes(Number(s.category_id))) {
+        s.category_ids.push(Number(s.category_id));
+      }
+
       if (s.publish_scope === 'SELECTED_CENTRES') {
         const [centres]: any = await db.query(`
           SELECT centre_id FROM test_series_centres WHERE test_series_id = ?
@@ -310,6 +337,24 @@ export const testSeriesService = {
     ]);
 
     const seriesId = result.insertId;
+
+    // Save multi-category assignments in test_series_categories
+    const allCatIds = new Set<number>();
+    if (data.category_id && Number(data.category_id) > 0) {
+      allCatIds.add(Number(data.category_id));
+    }
+    if (Array.isArray(data.category_ids)) {
+      data.category_ids.forEach((cId: any) => {
+        if (Number(cId) > 0) allCatIds.add(Number(cId));
+      });
+    }
+    for (const cId of allCatIds) {
+      const subCat = (cId === Number(data.category_id)) ? (data.sub_category_id ? Number(data.sub_category_id) : null) : null;
+      await db.query(`
+        INSERT IGNORE INTO test_series_categories (test_series_id, category_id, sub_category_id)
+        VALUES (?, ?, ?)
+      `, [seriesId, cId, subCat]);
+    }
 
     // Save allowed centres if scope is SELECTED_CENTRES
     if (data.publish_scope === 'SELECTED_CENTRES' && Array.isArray(data.allowed_centre_ids)) {
@@ -403,6 +448,29 @@ export const testSeriesService = {
       id
     ]);
 
+    // Update multi-category assignments if provided
+    if (Array.isArray(data.category_ids) || data.category_id !== undefined) {
+      const allCatIds = new Set<number>();
+      if (data.category_id && Number(data.category_id) > 0) {
+        allCatIds.add(Number(data.category_id));
+      }
+      if (Array.isArray(data.category_ids)) {
+        data.category_ids.forEach((cId: any) => {
+          if (Number(cId) > 0) allCatIds.add(Number(cId));
+        });
+      }
+      if (allCatIds.size > 0) {
+        await db.query('DELETE FROM test_series_categories WHERE test_series_id = ?', [id]);
+        for (const cId of allCatIds) {
+          const subCat = (cId === Number(data.category_id)) ? (data.sub_category_id ? Number(data.sub_category_id) : null) : null;
+          await db.query(`
+            INSERT IGNORE INTO test_series_categories (test_series_id, category_id, sub_category_id)
+            VALUES (?, ?, ?)
+          `, [id, cId, subCat]);
+        }
+      }
+    }
+
     // Update allowed centres if provided
     if (data.publish_scope === 'SELECTED_CENTRES' && Array.isArray(data.allowed_centre_ids)) {
       await db.query('DELETE FROM test_series_centres WHERE test_series_id = ?', [id]);
@@ -461,6 +529,12 @@ export const testSeriesService = {
     ]);
 
     const newSeriesId = resSeries.insertId;
+
+    // Clone assigned categories
+    const [sourceCats]: any = await db.query('SELECT category_id, sub_category_id FROM test_series_categories WHERE test_series_id = ?', [id]);
+    for (const cat of sourceCats) {
+      await db.query('INSERT IGNORE INTO test_series_categories (test_series_id, category_id, sub_category_id) VALUES (?, ?, ?)', [newSeriesId, cat.category_id, cat.sub_category_id]);
+    }
 
     // 2. Clone allowed centres if SELECTED_CENTRES
     const [centres]: any = await db.query('SELECT centre_id FROM test_series_centres WHERE test_series_id = ?', [id]);
@@ -1156,9 +1230,38 @@ export const testSeriesService = {
       for (const s of series) {
         s.tests = testsBySeries.get(s.id) || [];
       }
+
+      // Populate assigned categories for multi-category filtering in student portal
+      const [allCats]: any = await db.query(`
+        SELECT tsc.test_series_id, tsc.category_id, tc.name as category_name
+        FROM test_series_categories tsc
+        JOIN test_categories tc ON tsc.category_id = tc.id
+        WHERE tsc.test_series_id IN (?)
+      `, [seriesIds]);
+
+      const catMap = new Map<number, any[]>();
+      for (const c of allCats) {
+        const sId = Number(c.test_series_id);
+        if (!catMap.has(sId)) catMap.set(sId, []);
+        catMap.get(sId)!.push({
+          id: Number(c.category_id),
+          name: c.category_name
+        });
+      }
+
+      for (const s of series) {
+        const cats = catMap.get(Number(s.id)) || [];
+        s.assigned_categories = cats;
+        s.category_ids = cats.map(c => c.id);
+        if (s.category_id && !s.category_ids.includes(Number(s.category_id))) {
+          s.category_ids.push(Number(s.category_id));
+        }
+      }
     } else {
       for (const s of series) {
         s.tests = [];
+        s.assigned_categories = [];
+        s.category_ids = s.category_id ? [Number(s.category_id)] : [];
       }
     }
 

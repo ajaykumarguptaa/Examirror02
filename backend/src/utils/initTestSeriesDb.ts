@@ -148,6 +148,34 @@ export async function initTestSeriesDatabase() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
+  // 4b. Multi-Category Placement Junction Table (Allows placing a single test series in multiple categories)
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS test_series_categories (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      test_series_id INT NOT NULL,
+      category_id INT NOT NULL,
+      sub_category_id INT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_series_cat (test_series_id, category_id),
+      KEY idx_tsc_category (category_id),
+      KEY idx_tsc_series (test_series_id),
+      FOREIGN KEY (test_series_id) REFERENCES test_series(id) ON DELETE CASCADE,
+      FOREIGN KEY (category_id) REFERENCES test_categories(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  try {
+    // Auto-sync existing primary categories into junction table
+    await db.query(`
+      INSERT IGNORE INTO test_series_categories (test_series_id, category_id, sub_category_id)
+      SELECT id, category_id, sub_category_id
+      FROM test_series
+      WHERE category_id IS NOT NULL
+    `);
+  } catch (e) {
+    // Ignore migration catch
+  }
+
   // 5. Individual Tests inside Series
   await db.query(`
     CREATE TABLE IF NOT EXISTS tests (
