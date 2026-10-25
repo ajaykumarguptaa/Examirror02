@@ -50,6 +50,14 @@ import {
   Wallet,
   Crown,
   FolderTree,
+  ChevronDown,
+  SlidersHorizontal,
+  Filter,
+  Layers,
+  Cpu,
+  GraduationCap,
+  Brain,
+  LayoutGrid,
 } from 'lucide-react';
 import { downloadOfficialScorecardPdf } from '../../utils/scorecardPdf';
 import { WalletPurchaseConfirmModal, type PurchaseItem } from '../../components/student/WalletPurchaseConfirmModal';
@@ -185,6 +193,11 @@ export default function StudentTestSeries() {
   const debouncedSearchQuery = useDebounce(searchQuery, 250);
   const [mySeriesSearchQuery, setMySeriesSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'FREE' | 'PAID'>('ALL');
+
+  // Category & Sub-Category Sidebar State
+  const [sidebarSearch, setSidebarSearch] = useState('');
+  const [expandedCategories, setExpandedCategories] = useState<Record<number, boolean>>({});
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   const [availableSeries, setAvailableSeries] = useState<TestSeriesItem[]>([]);
   const [mySeries, setMySeries] = useState<TestSeriesItem[]>([]);
@@ -852,6 +865,85 @@ export default function StudentTestSeries() {
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Auto-expand selected category
+  useEffect(() => {
+    if (selectedCategory !== 'ALL') {
+      setExpandedCategories(prev => ({ ...prev, [selectedCategory]: true }));
+    }
+  }, [selectedCategory]);
+
+  const toggleCategoryExpand = (catId: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setExpandedCategories(prev => ({
+      ...prev,
+      [catId]: !prev[catId]
+    }));
+  };
+
+  const getCategoryIcon = (name: string, isSelected: boolean) => {
+    const n = name.toLowerCase();
+    const className = `shrink-0 transition-colors ${isSelected ? 'text-indigo-600' : 'text-slate-500 group-hover:text-indigo-600'}`;
+    if (n.includes('computer') || n.includes('it') || n.includes('tech') || n.includes('code') || n.includes('software')) {
+      return <Cpu size={16} className={className} />;
+    }
+    if (n.includes('ssc') || n.includes('cgl') || n.includes('chsl') || n.includes('govt')) {
+      return <ShieldCheck size={16} className={className} />;
+    }
+    if (n.includes('bank') || n.includes('ibps') || n.includes('sbi') || n.includes('po') || n.includes('clerk')) {
+      return <CreditCard size={16} className={className} />;
+    }
+    if (n.includes('rail') || n.includes('rrb') || n.includes('ntpc')) {
+      return <Target size={16} className={className} />;
+    }
+    if (n.includes('reason') || n.includes('aptitude') || n.includes('quant') || n.includes('math')) {
+      return <Brain size={16} className={className} />;
+    }
+    if (n.includes('academic') || n.includes('school') || n.includes('diploma') || n.includes('degree') || n.includes('dca')) {
+      return <GraduationCap size={16} className={className} />;
+    }
+    return <BookOpen size={16} className={className} />;
+  };
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<number | string, number> = { ALL: availableSeries.length };
+    availableSeries.forEach(s => {
+      if (s.category_id) {
+        counts[s.category_id] = (counts[s.category_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [availableSeries]);
+
+  const subCategoryCounts = useMemo(() => {
+    const counts: Record<number, number> = {};
+    availableSeries.forEach(s => {
+      if (s.sub_category_id) {
+        counts[s.sub_category_id] = (counts[s.sub_category_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [availableSeries]);
+
+  const freeSeriesCount = useMemo(() => {
+    return availableSeries.filter(s => s.is_free).length;
+  }, [availableSeries]);
+
+  const paidSeriesCount = useMemo(() => {
+    return availableSeries.filter(s => !s.is_free).length;
+  }, [availableSeries]);
+
+  const filteredCategoriesForSidebar = useMemo(() => {
+    const q = sidebarSearch.toLowerCase().trim();
+    if (!q) return categories;
+    return categories.filter(cat => {
+      const matchCat = cat.name.toLowerCase().includes(q);
+      const matchSub = subCategories.some(
+        sc => sc.category_id === cat.id && sc.name.toLowerCase().includes(q)
+      );
+      return matchCat || matchSub;
+    });
+  }, [categories, subCategories, sidebarSearch]);
 
   const activeSubCategories = useMemo(() => {
     if (selectedCategory === 'ALL') {
@@ -1618,6 +1710,292 @@ export default function StudentTestSeries() {
     </div>
   );
 
+  const renderCategorySidebar = (isMobile: boolean = false) => {
+    return (
+      <div className={`bg-white rounded-3xl border border-slate-200/90 shadow-xs p-4 sm:p-5 flex flex-col gap-4 ${isMobile ? 'h-full' : ''}`}>
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center shadow-xs shrink-0">
+              <FolderTree size={16} />
+            </span>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 leading-tight">Categories & Exams</h2>
+              <p className="text-[10px] text-slate-400 font-medium">Select a category to filter tests</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-black border border-indigo-100">
+              {availableSeries.length} Tests
+            </span>
+            {isMobile && (
+              <button
+                type="button"
+                onClick={() => setMobileFilterOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                title="Close sidebar"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Search within Sidebar */}
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search categories & exams..."
+            value={sidebarSearch}
+            onChange={e => setSidebarSearch(e.target.value)}
+            className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 hover:bg-slate-100/70 border border-slate-200/80 rounded-xl text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
+          />
+          {sidebarSearch && (
+            <button
+              type="button"
+              onClick={() => setSidebarSearch('')}
+              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        {/* Tier Quick Filter Buttons (All, Free, VIP) */}
+        <div>
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+            Test Access Tier
+          </label>
+          <div className="grid grid-cols-3 gap-1 bg-slate-100/80 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setFilterType('ALL')}
+              className={`py-1.5 text-center text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                filterType === 'ALL'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              All ({availableSeries.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterType('FREE')}
+              className={`py-1.5 text-center text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                filterType === 'FREE'
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'text-emerald-700 hover:bg-emerald-50'
+              }`}
+            >
+              Free ({freeSeriesCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterType('PAID')}
+              className={`py-1.5 text-center text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                filterType === 'PAID'
+                  ? 'bg-amber-500 text-slate-950 shadow-2xs'
+                  : 'text-amber-800 hover:bg-amber-50'
+              }`}
+            >
+              VIP ({paidSeriesCount})
+            </button>
+          </div>
+        </div>
+
+        {/* Categories Accordion List */}
+        <div className="space-y-1.5 flex-1 overflow-y-auto pr-1">
+          {/* Overarching "All Categories" option */}
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedCategory('ALL');
+              setSelectedSubCategory('ALL');
+              if (isMobile) setMobileFilterOpen(false);
+            }}
+            className={`w-full flex items-center justify-between p-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer group ${
+              selectedCategory === 'ALL'
+                ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-900'
+                : 'bg-slate-50/70 hover:bg-slate-100/90 text-slate-700 border border-slate-100'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-white border border-slate-200 text-indigo-600'
+              }`}>
+                <LayoutGrid size={15} />
+              </span>
+              <span>All Categories</span>
+            </div>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-700'
+            }`}>
+              {availableSeries.length}
+            </span>
+          </button>
+
+          {/* Dynamic Categories */}
+          {filteredCategoriesForSidebar.map(cat => {
+            const isCatSelected = selectedCategory === cat.id;
+            const isExpanded = expandedCategories[cat.id] ?? isCatSelected;
+            const catSubs = subCategories.filter(sc => sc.category_id === cat.id);
+            const totalInCat = categoryCounts[cat.id] || 0;
+
+            return (
+              <div
+                key={cat.id}
+                className={`rounded-2xl transition-all border ${
+                  isCatSelected
+                    ? 'border-indigo-200 bg-indigo-50/40 shadow-2xs'
+                    : 'border-slate-100 hover:border-slate-200 bg-white'
+                }`}
+              >
+                {/* Category Header Row */}
+                <div
+                  onClick={() => {
+                    setSelectedCategory(cat.id);
+                    setSelectedSubCategory('ALL');
+                    setExpandedCategories(prev => ({ ...prev, [cat.id]: true }));
+                    if (isMobile && catSubs.length === 0) setMobileFilterOpen(false);
+                  }}
+                  className={`flex items-center justify-between p-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer group select-none ${
+                    isCatSelected
+                      ? 'text-indigo-900'
+                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                      isCatSelected ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600'
+                    }`}>
+                      {getCategoryIcon(cat.name, isCatSelected)}
+                    </span>
+                    <span className="truncate">{cat.name}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                      isCatSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {totalInCat}
+                    </span>
+                    {catSubs.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => toggleCategoryExpand(cat.id, e)}
+                        className="p-1 rounded-md hover:bg-black/5 text-slate-400 hover:text-slate-700 transition-transform cursor-pointer"
+                        title={isExpanded ? 'Collapse' : 'Expand'}
+                      >
+                        <ChevronDown
+                          size={14}
+                          className={`transition-transform duration-200 ${isExpanded ? 'rotate-180 text-indigo-600' : ''}`}
+                        />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sub-Categories Tree (Expanded) */}
+                {isExpanded && catSubs.length > 0 && (
+                  <div className="pb-2 pt-0.5 px-3 space-y-1">
+                    <div className="border-l-2 border-indigo-100 ml-3.5 pl-3 space-y-1">
+                      {/* All in this category */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategory(cat.id);
+                          setSelectedSubCategory('ALL');
+                          if (isMobile) setMobileFilterOpen(false);
+                        }}
+                        className={`w-full text-left py-1.5 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                          isCatSelected && selectedSubCategory === 'ALL'
+                            ? 'bg-indigo-600 text-white font-bold shadow-2xs'
+                            : 'text-slate-600 hover:text-indigo-700 hover:bg-indigo-50/60'
+                        }`}
+                      >
+                        <span>All {cat.name}</span>
+                        <span className="text-[10px] opacity-80">{totalInCat}</span>
+                      </button>
+
+                      {/* Individual Subcategories */}
+                      {catSubs.map(sc => {
+                        const isSubSelected = isCatSelected && selectedSubCategory === sc.id;
+                        const subCount = subCategoryCounts[sc.id] || 0;
+
+                        return (
+                          <button
+                            type="button"
+                            key={sc.id}
+                            onClick={() => {
+                              setSelectedCategory(cat.id);
+                              setSelectedSubCategory(sc.id);
+                              if (isMobile) setMobileFilterOpen(false);
+                            }}
+                            className={`w-full text-left py-1.5 px-2 rounded-lg text-[11px] font-medium flex items-center justify-between transition-all cursor-pointer ${
+                              isSubSelected
+                                ? 'bg-indigo-600 text-white font-bold shadow-2xs'
+                                : 'text-slate-600 hover:text-indigo-700 hover:bg-indigo-50/60'
+                            }`}
+                          >
+                            <span className="truncate pr-2">{sc.name}</span>
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full shrink-0 font-bold ${
+                              isSubSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                            }`}>
+                              {subCount}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Clear Filters Button (when filtered) */}
+        {(selectedCategory !== 'ALL' || selectedSubCategory !== 'ALL' || filterType !== 'ALL' || searchQuery || sidebarSearch) && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedCategory('ALL');
+              setSelectedSubCategory('ALL');
+              setFilterType('ALL');
+              setSearchQuery('');
+              setSidebarSearch('');
+            }}
+            className="w-full py-2 px-3 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200/80 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <RotateCcw size={13} />
+            <span>Clear All Filters</span>
+          </button>
+        )}
+
+        {/* Elite Pass All-Access Promo Mini Card */}
+        <div className="pt-2 border-t border-slate-100 mt-auto">
+          <Link
+            to="/student/passes"
+            className="block p-3 rounded-2xl bg-gradient-to-br from-amber-500/15 via-yellow-500/10 to-amber-500/5 border border-amber-300/80 hover:border-amber-400 hover:shadow-xs transition-all group"
+          >
+            <div className="flex items-center gap-1.5 text-amber-950 font-black text-xs">
+              <Crown size={14} className="text-amber-600 fill-amber-500 shrink-0" />
+              <span>Examirror Elite Pass</span>
+            </div>
+            <p className="text-[10px] text-amber-900 mt-1 leading-snug">
+              Unlock all test series across every category with 1 click.
+            </p>
+            <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-amber-800 group-hover:text-amber-950">
+              <span>View VIP Pass</span>
+              <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </Link>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="w-full space-y-6 pb-16 font-sans">
       {/* Minimalist Header Banner */}
@@ -1690,131 +2068,156 @@ export default function StudentTestSeries() {
         </div>
       </div>
 
-      {/* DISCOVER TAB */}
+      {/* DISCOVER TAB: Interactive Category & Sub-Category Explorer Sidebar */}
       {activeTab === 'discover' && (
-        <div className="space-y-6">
-          {/* Filters & Search */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-                {loading && categories.length === 0 ? (
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-28 bg-slate-200/80 rounded-lg skeleton-shimmer" />
-                    <div className="h-8 w-36 bg-slate-200/80 rounded-lg skeleton-shimmer" />
-                    <div className="h-8 w-32 bg-slate-200/80 rounded-lg skeleton-shimmer" />
-                    <div className="h-8 w-40 bg-slate-200/80 rounded-lg skeleton-shimmer" />
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => {
-                        setSelectedCategory('ALL');
-                        setSelectedSubCategory('ALL');
-                      }}
-                      className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${
-                        selectedCategory === 'ALL'
-                          ? 'bg-slate-900 text-white shadow-2xs'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                      }`}
-                    >
-                      All Categories
-                    </button>
-                    {categories.map(cat => (
-                      <button
-                        key={cat.id}
-                        onClick={() => {
-                          setSelectedCategory(cat.id);
-                          setSelectedSubCategory('ALL');
-                        }}
-                        className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${
-                          selectedCategory === cat.id
-                            ? 'bg-slate-900 text-white shadow-2xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                        }`}
-                      >
-                        {cat.name}
-                      </button>
-                    ))}
-                  </>
-                )}
+        <div className="flex flex-col lg:flex-row items-start gap-6 w-full">
+          {/* Desktop Category & Sub-Category Explorer Sidebar (lg+) */}
+          <aside className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-20 max-h-[calc(100vh-6.5rem)] overflow-y-auto pr-1">
+            {renderCategorySidebar(false)}
+          </aside>
+
+          {/* Mobile Category Explorer Drawer (< lg) */}
+          {mobileFilterOpen && (
+            <div className="lg:hidden fixed inset-0 z-50 flex items-stretch justify-start">
+              <div
+                className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+                onClick={() => setMobileFilterOpen(false)}
+              />
+              <div className="relative w-80 max-w-[85vw] bg-white h-full shadow-2xl z-10 flex flex-col overflow-y-auto">
+                {renderCategorySidebar(true)}
+              </div>
+            </div>
+          )}
+
+          {/* Right Main Content Area */}
+          <div className="flex-1 w-full min-w-0 space-y-4">
+            {/* Top Toolbar: Search, Mobile Filter Toggle, & Result Header */}
+            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                {/* Mobile Filter Drawer Button (< lg screens) */}
+                <button
+                  type="button"
+                  onClick={() => setMobileFilterOpen(true)}
+                  className="lg:hidden flex items-center gap-2 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
+                >
+                  <SlidersHorizontal size={14} />
+                  <span>
+                    Categories
+                    {selectedCategory !== 'ALL' && ' (1)'}
+                  </span>
+                </button>
+
+                {/* Category Breadcrumb Title & Count */}
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                    {selectedCategory === 'ALL'
+                      ? 'All Test Series'
+                      : (categories.find(c => c.id === selectedCategory)?.name || 'Category')}
+                  </h2>
+                  {selectedSubCategory !== 'ALL' && (
+                    <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 shrink-0">
+                      <ChevronRight size={12} />
+                      <span className="text-indigo-600 font-bold">
+                        {subCategories.find(s => s.id === selectedSubCategory)?.name}
+                      </span>
+                    </span>
+                  )}
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[11px] font-bold rounded-md shrink-0">
+                    {filteredSeries.length} Available
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
+              {/* Search Bar for Test Series */}
+              <div className="relative w-full sm:w-64">
+                <Search size={15} className="absolute left-3.5 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search in these tests..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
+                />
+                {searchQuery && (
                   <button
-                    onClick={() => setFilterType('ALL')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                      filterType === 'ALL' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
                   >
-                    All
+                    <X size={12} />
                   </button>
-                  <button
-                    onClick={() => setFilterType('FREE')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                      filterType === 'FREE' ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Free
-                  </button>
-                  <button
-                    onClick={() => setFilterType('PAID')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                      filterType === 'PAID' ? 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Paid
-                  </button>
-                </div>
-
-                <div className="relative flex-1 md:w-64">
-                  <Search size={16} className="absolute left-3.5 top-2.5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search test series..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3.5 py-1.5 text-xs bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
-                  />
-                </div>
+                )}
               </div>
             </div>
 
-            {/* Smart Sub-Category Filter Bar */}
-            {activeSubCategories.length > 0 && (
-              <div className="pt-2.5 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto pb-0.5">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 shrink-0 mr-1">
-                  <FolderTree size={12} className="text-indigo-600" />
-                  Sub-Category:
-                </span>
+            {/* Active Filters Tag Pills */}
+            {(selectedCategory !== 'ALL' || selectedSubCategory !== 'ALL' || filterType !== 'ALL' || debouncedSearchQuery) && (
+              <div className="flex items-center gap-1.5 flex-wrap text-xs bg-white/70 p-2.5 px-3 rounded-xl border border-slate-200/60">
+                <span className="text-slate-400 font-semibold text-[11px]">Filtered by:</span>
+                {selectedCategory !== 'ALL' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-lg text-xs font-bold">
+                    <span>{categories.find(c => c.id === selectedCategory)?.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedCategory('ALL'); setSelectedSubCategory('ALL'); }}
+                      className="hover:text-indigo-900 cursor-pointer"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+                {selectedSubCategory !== 'ALL' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-lg text-xs font-bold">
+                    <span>{subCategories.find(s => s.id === selectedSubCategory)?.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSubCategory('ALL')}
+                      className="hover:text-indigo-900 cursor-pointer"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+                {filterType !== 'ALL' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold">
+                    <span>{filterType === 'FREE' ? 'Free Only' : 'VIP Elite Pass Only'}</span>
+                    <button
+                      type="button"
+                      onClick={() => setFilterType('ALL')}
+                      className="hover:text-slate-900 cursor-pointer"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+                {debouncedSearchQuery && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold">
+                    <span>"{debouncedSearchQuery}"</span>
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="hover:text-slate-900 cursor-pointer"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
                 <button
-                  onClick={() => setSelectedSubCategory('ALL')}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer ${
-                    selectedSubCategory === 'ALL'
-                      ? 'bg-indigo-600 text-white shadow-2xs'
-                      : 'bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100'
-                  }`}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory('ALL');
+                    setSelectedSubCategory('ALL');
+                    setFilterType('ALL');
+                    setSearchQuery('');
+                  }}
+                  className="text-indigo-600 hover:text-indigo-800 text-[11px] font-bold underline ml-1 cursor-pointer"
                 >
-                  All {selectedCategory !== 'ALL' ? (categories.find(c => c.id === selectedCategory)?.name || '') : 'Sub-Categories'}
+                  Clear all
                 </button>
-                {activeSubCategories.map(sc => (
-                  <button
-                    key={sc.id}
-                    onClick={() => setSelectedSubCategory(sc.id)}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer ${
-                      selectedSubCategory === sc.id
-                        ? 'bg-indigo-600 text-white shadow-2xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                    }`}
-                  >
-                    {sc.name}
-                  </button>
-                ))}
               </div>
             )}
-          </div>
 
-          {/* Test Series Grid */}
+            {/* Test Series Grid */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -1949,14 +2352,31 @@ export default function StudentTestSeries() {
               })}
             </div>
           ) : (
-            <div className="bg-white p-12 rounded-2xl border border-slate-200 shadow-xs text-center space-y-3">
-              <div className="h-12 w-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto text-slate-400">
+            <div className="bg-white p-12 rounded-3xl border border-slate-200 shadow-xs text-center space-y-3">
+              <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
                 <BookOpen size={24} />
               </div>
-              <h3 className="text-base font-bold text-slate-900">No Test Series Available</h3>
-              <p className="text-xs text-slate-500">Check back later for new test releases.</p>
+              <h3 className="text-base font-bold text-slate-900">No Test Series Found</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                No mock test series match your current category, sub-category, or search filter.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory('ALL');
+                  setSelectedSubCategory('ALL');
+                  setFilterType('ALL');
+                  setSearchQuery('');
+                  setSidebarSearch('');
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                <RotateCcw size={13} />
+                <span>View All Categories</span>
+              </button>
             </div>
           )}
+          </div>
         </div>
       )}
 
