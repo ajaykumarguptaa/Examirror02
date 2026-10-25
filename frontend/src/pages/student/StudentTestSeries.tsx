@@ -951,29 +951,31 @@ export default function StudentTestSeries() {
     const counts: Record<number | string, number> = { ALL: availableSeries.length };
     availableSeries.forEach(s => {
       if (s.category_id != null) {
-        const cNum = Number(s.category_id);
-        counts[cNum] = (counts[cNum] || 0) + 1;
-        counts[String(s.category_id)] = (counts[String(s.category_id)] || 0) + 1;
+        const cId = Number(s.category_id);
+        counts[cId] = (counts[cId] || 0) + 1;
       }
     });
     return counts;
   }, [availableSeries]);
 
   const subCategoryCounts = useMemo(() => {
-    const counts: Record<string | number, number> = {};
+    const counts: Record<number, number> = {};
     availableSeries.forEach(s => {
       if (s.sub_category_id != null) {
-        const scNum = Number(s.sub_category_id);
-        counts[scNum] = (counts[scNum] || 0) + 1;
-        counts[String(s.sub_category_id)] = (counts[String(s.sub_category_id)] || 0) + 1;
-      }
-      if (s.sub_category_name) {
-        const norm = s.sub_category_name.toLowerCase().trim();
-        counts[norm] = (counts[norm] || 0) + 1;
+        const scId = Number(s.sub_category_id);
+        counts[scId] = (counts[scId] || 0) + 1;
+      } else if (s.sub_category_name) {
+        const matched = allSubCategoriesList.find(
+          sc => sc.name.toLowerCase().trim() === s.sub_category_name?.toLowerCase().trim()
+        );
+        if (matched) {
+          const scId = Number(matched.id);
+          counts[scId] = (counts[scId] || 0) + 1;
+        }
       }
     });
     return counts;
-  }, [availableSeries]);
+  }, [availableSeries, allSubCategoriesList]);
 
   const freeSeriesCount = useMemo(() => {
     return availableSeries.filter(s => s.is_free).length;
@@ -1899,9 +1901,11 @@ export default function StudentTestSeries() {
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                 isCategoriesDropdownOpen ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
               }`}>
-                {selectedCategory === 'ALL' 
-                  ? availableSeries.length 
-                  : (categoryCounts[selectedCategory] || 0)}
+                {selectedSubCategory !== 'ALL'
+                  ? (subCategoryCounts[Number(selectedSubCategory)] || 0)
+                  : selectedCategory === 'ALL' 
+                    ? availableSeries.length 
+                    : (categoryCounts[Number(selectedCategory)] || 0)}
               </span>
               <ChevronDown
                 size={16}
@@ -2054,7 +2058,7 @@ export default function StudentTestSeries() {
                                 Number(selectedSubCategory) === Number(sc.id) ||
                                 (sc.name && String(selectedSubCategory).toLowerCase().trim() === sc.name.toLowerCase().trim())
                               );
-                              const subCount = subCategoryCounts[Number(sc.id)] || subCategoryCounts[sc.name.toLowerCase().trim()] || 0;
+                              const subCount = subCategoryCounts[Number(sc.id)] || 0;
 
                               return (
                                 <button
