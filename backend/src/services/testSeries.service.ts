@@ -1826,7 +1826,7 @@ export const testSeriesService = {
         duration_seconds,
         ranking,
         submitted_at,
-        created_at
+        started_at
       FROM test_attempts
       WHERE student_id = ? AND test_id = ? AND status IN ('SUBMITTED', 'AUTO_SUBMITTED')
       ORDER BY submitted_at ASC, id ASC
@@ -1846,7 +1846,7 @@ export const testSeriesService = {
       correct_answers: Number(a.correct_answers || 0),
       incorrect_answers: Number(a.incorrect_answers || 0),
       unanswered: Number(a.unanswered || 0),
-      submitted_at: a.submitted_at || a.created_at,
+      submitted_at: a.submitted_at || a.started_at,
       is_current: Number(a.id) === Number(attemptId)
     }));
 
@@ -1876,7 +1876,7 @@ export const testSeriesService = {
         percentage: Number(prevAttempt.percentage || 0),
         accuracy: Number(prevAttempt.accuracy || 0),
         duration_seconds: Number(prevAttempt.duration_seconds || 0),
-        submitted_at: prevAttempt.submitted_at || prevAttempt.created_at
+        submitted_at: prevAttempt.submitted_at || prevAttempt.started_at
       } : null,
       score_diff: scoreDiff,
       percentage_diff: percentageDiff,
