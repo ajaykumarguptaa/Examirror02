@@ -441,6 +441,29 @@ export async function initTestSeriesDatabase() {
     console.log('✓ Seeded default test sub-categories');
   }
 
+  // Auto-backfill sub_category_id for existing test series where NULL
+  try {
+    await db.query(`UPDATE test_series SET category_id = 1 WHERE id = 13 AND (category_id = 7 OR category_id IS NULL)`);
+    await db.query(`UPDATE test_series SET sub_category_id = 2 WHERE id = 13 AND sub_category_id IS NULL`);
+    await db.query(`
+      UPDATE test_series ts
+      JOIN test_sub_categories sc ON ts.sub_category_id IS NULL AND (
+        (LOWER(ts.title) LIKE '%adca%' AND LOWER(sc.name) LIKE '%adca%') OR
+        (LOWER(ts.title) LIKE '%dca%' AND LOWER(sc.name) LIKE '%dca%') OR
+        (LOWER(ts.title) LIKE '%web%' AND LOWER(sc.name) LIKE '%web%') OR
+        (LOWER(ts.title) LIKE '%python%' AND LOWER(sc.name) LIKE '%python%') OR
+        (LOWER(ts.title) LIKE '%ssc cgl%' AND LOWER(sc.name) LIKE '%ssc cgl%') OR
+        (LOWER(ts.title) LIKE '%group d%' AND LOWER(sc.name) LIKE '%group d%') OR
+        (LOWER(ts.title) LIKE '%ntpc%' AND LOWER(sc.name) LIKE '%ntpc%') OR
+        (LOWER(ts.title) LIKE '%ibps po%' AND LOWER(sc.name) LIKE '%ibps po%') OR
+        (LOWER(ts.title) LIKE '%tally%' AND LOWER(sc.name) LIKE '%tally%')
+      )
+      SET ts.sub_category_id = sc.id
+    `);
+  } catch (err: any) {
+    // Graceful fallback if table or columns are not ready
+  }
+
   // Seed default Global Payment QR if empty
   const [qrRows]: any = await db.query('SELECT COUNT(*) as count FROM test_payment_qr');
   if (qrRows[0].count === 0) {

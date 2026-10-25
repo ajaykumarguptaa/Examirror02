@@ -950,18 +950,26 @@ export default function StudentTestSeries() {
   const categoryCounts = useMemo(() => {
     const counts: Record<number | string, number> = { ALL: availableSeries.length };
     availableSeries.forEach(s => {
-      if (s.category_id) {
-        counts[s.category_id] = (counts[s.category_id] || 0) + 1;
+      if (s.category_id != null) {
+        const cNum = Number(s.category_id);
+        counts[cNum] = (counts[cNum] || 0) + 1;
+        counts[String(s.category_id)] = (counts[String(s.category_id)] || 0) + 1;
       }
     });
     return counts;
   }, [availableSeries]);
 
   const subCategoryCounts = useMemo(() => {
-    const counts: Record<number, number> = {};
+    const counts: Record<string | number, number> = {};
     availableSeries.forEach(s => {
-      if (s.sub_category_id) {
-        counts[s.sub_category_id] = (counts[s.sub_category_id] || 0) + 1;
+      if (s.sub_category_id != null) {
+        const scNum = Number(s.sub_category_id);
+        counts[scNum] = (counts[scNum] || 0) + 1;
+        counts[String(s.sub_category_id)] = (counts[String(s.sub_category_id)] || 0) + 1;
+      }
+      if (s.sub_category_name) {
+        const norm = s.sub_category_name.toLowerCase().trim();
+        counts[norm] = (counts[norm] || 0) + 1;
       }
     });
     return counts;
@@ -981,7 +989,7 @@ export default function StudentTestSeries() {
     return allCategoriesList.filter(cat => {
       const matchCat = cat.name.toLowerCase().includes(q);
       const matchSub = allSubCategoriesList.some(
-        sc => sc.category_id === cat.id && sc.name.toLowerCase().includes(q)
+        sc => Number(sc.category_id) === Number(cat.id) && sc.name.toLowerCase().includes(q)
       );
       return matchCat || matchSub;
     });
@@ -991,19 +999,25 @@ export default function StudentTestSeries() {
     if (selectedCategory === 'ALL') {
       return allSubCategoriesList;
     }
-    return allSubCategoriesList.filter(sc => sc.category_id === selectedCategory);
+    return allSubCategoriesList.filter(sc => Number(sc.category_id) === Number(selectedCategory));
   }, [allSubCategoriesList, selectedCategory]);
 
   const filteredSeries = useMemo(() => {
     const q = debouncedSearchQuery.toLowerCase().trim();
     return availableSeries.filter(s => {
-      const matchesCat = selectedCategory === 'ALL' || s.category_id === selectedCategory;
-      const matchesSubCat = selectedSubCategory === 'ALL' || s.sub_category_id === selectedSubCategory;
+      const matchesCat = selectedCategory === 'ALL' || Number(s.category_id) === Number(selectedCategory);
+      const matchesSubCat = selectedSubCategory === 'ALL' || (
+        s.sub_category_id != null && Number(s.sub_category_id) === Number(selectedSubCategory)
+      ) || (
+        s.sub_category_name && allSubCategoriesList.some(
+          sc => Number(sc.id) === Number(selectedSubCategory) && sc.name.toLowerCase().trim() === s.sub_category_name?.toLowerCase().trim()
+        )
+      );
       const matchesSearch = !q || s.title.toLowerCase().includes(q) || (s.description && s.description.toLowerCase().includes(q));
       const matchesType = filterType === 'ALL' || (filterType === 'FREE' && s.is_free) || (filterType === 'PAID' && !s.is_free);
       return matchesCat && matchesSubCat && matchesSearch && matchesType;
     });
-  }, [availableSeries, selectedCategory, selectedSubCategory, debouncedSearchQuery, filterType]);
+  }, [availableSeries, selectedCategory, selectedSubCategory, debouncedSearchQuery, filterType, allSubCategoriesList]);
 
   if (isTakingExam && activeTest) {
     const currentQ = examQuestions[currentQIndex];
@@ -1846,33 +1860,38 @@ export default function StudentTestSeries() {
           </div>
         </div>
 
-        {/* All Categories Dropdown Selector */}
+        {/* Category Dropdown Navigation */}
         <div className="space-y-2">
-          {/* Main Dropdown Toggle Button */}
+          {/* Main Dropdown Header / Selector */}
           <button
             type="button"
             onClick={() => setIsCategoriesDropdownOpen(prev => !prev)}
             className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer group shadow-2xs select-none ${
               isCategoriesDropdownOpen
-                ? 'bg-slate-900 text-white shadow-md'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200/80'
+                ? 'bg-slate-900 text-white shadow-md ring-2 ring-indigo-500/20'
+                : 'bg-slate-100 hover:bg-slate-200/80 text-slate-800 border border-slate-200/80'
             }`}
           >
-            <div className="flex items-center gap-2.5 min-w-0 pr-2">
+            <div className="flex items-center gap-2.5 flex-1 min-w-0 pr-2">
               <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                 isCategoriesDropdownOpen ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-white border border-slate-200 text-indigo-600'
               }`}>
                 <LayoutGrid size={16} />
               </span>
-              <div className="flex flex-col min-w-0">
+              <div className="flex flex-col flex-1 min-w-0">
                 <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
                   {selectedCategory === 'ALL' ? 'Browsing All' : 'Active Category'}
                 </span>
-                <span className="truncate font-black text-xs">
+                <span className="font-black text-xs break-words leading-tight">
                   {selectedCategory === 'ALL'
                     ? 'All Categories'
-                    : (allCategoriesList.find(c => c.id === selectedCategory)?.name || 'Category')}
+                    : (allCategoriesList.find(c => Number(c.id) === Number(selectedCategory))?.name || 'Category')}
                 </span>
+                {selectedSubCategory !== 'ALL' && (
+                  <span className="text-[10px] text-indigo-400 font-semibold truncate">
+                    ↳ {allSubCategoriesList.find(sc => Number(sc.id) === Number(selectedSubCategory))?.name}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1880,7 +1899,9 @@ export default function StudentTestSeries() {
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                 isCategoriesDropdownOpen ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
               }`}>
-                {availableSeries.length}
+                {selectedCategory === 'ALL' 
+                  ? availableSeries.length 
+                  : (categoryCounts[selectedCategory] || 0)}
               </span>
               <ChevronDown
                 size={16}
@@ -1893,7 +1914,7 @@ export default function StudentTestSeries() {
 
           {/* Categories & Subcategories Dropdown Panel */}
           {isCategoriesDropdownOpen && (
-            <div className="space-y-1.5 bg-slate-50/90 border border-slate-200/80 rounded-2xl p-2 shadow-inner animate-in fade-in slide-in-from-top-1 duration-150 max-h-[22rem] overflow-y-auto">
+            <div className="space-y-2 bg-slate-50/90 border border-slate-200/80 rounded-2xl p-2 shadow-inner animate-in fade-in slide-in-from-top-1 duration-150">
               {/* Option 1: All Categories (Show All Tests) */}
               <button
                 type="button"
@@ -1902,18 +1923,22 @@ export default function StudentTestSeries() {
                   setSelectedSubCategory('ALL');
                   if (isMobile) setMobileFilterOpen(false);
                 }}
-                className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
+                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
                   selectedCategory === 'ALL'
                     ? 'bg-indigo-600 text-white shadow-2xs font-black'
-                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/70'
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <LayoutGrid size={14} className={selectedCategory === 'ALL' ? 'text-white' : 'text-indigo-600'} />
-                  <span>All Categories (Show All Tests)</span>
+                <div className="flex items-center gap-2.5 flex-1 min-w-0 pr-2">
+                  <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                    selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-indigo-50 text-indigo-600'
+                  }`}>
+                    <LayoutGrid size={14} />
+                  </span>
+                  <span className="break-words leading-tight">All Categories (Show All)</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
                     selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
                   }`}>
                     {availableSeries.length}
@@ -1927,11 +1952,11 @@ export default function StudentTestSeries() {
               {/* Dynamic Categories List inside the Dropdown */}
               {filteredCategoriesForSidebar.length === 0 ? (
                 <div className="text-center py-4 text-xs text-slate-400">
-                  No categories found
+                  No categories match "{sidebarSearch}"
                 </div>
               ) : (
                 filteredCategoriesForSidebar.map(cat => {
-                  const isCatSelected = selectedCategory === cat.id;
+                  const isCatSelected = Number(selectedCategory) === Number(cat.id);
                   const isExpanded = expandedCategories[cat.id] ?? isCatSelected;
                   const catSubs = allSubCategoriesList.filter(sc => Number(sc.category_id) === Number(cat.id));
                   const totalInCat = categoryCounts[cat.id] || 0;
@@ -1939,9 +1964,9 @@ export default function StudentTestSeries() {
                   return (
                     <div
                       key={cat.id}
-                      className={`rounded-xl transition-all border ${
+                      className={`rounded-2xl transition-all border overflow-hidden ${
                         isCatSelected
-                          ? 'border-indigo-300 bg-white shadow-2xs ring-1 ring-indigo-200'
+                          ? 'border-indigo-300 bg-white shadow-xs ring-1 ring-indigo-200'
                           : 'border-slate-200/70 hover:border-slate-300 bg-white'
                       }`}
                     >
@@ -1959,16 +1984,18 @@ export default function StudentTestSeries() {
                             : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
                         }`}
                       >
-                        <div className="flex items-center gap-2 min-w-0 pr-1">
-                          <span className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0 pr-1.5">
+                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                             isCatSelected ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600'
                           }`}>
                             {getCategoryIcon(cat.name, isCatSelected)}
                           </span>
-                          <span className="truncate">{cat.name}</span>
+                          <span className="text-xs font-bold leading-snug break-words text-left flex-1 min-w-0">
+                            {cat.name}
+                          </span>
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0 ml-1">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                             isCatSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
                           }`}>
@@ -1992,7 +2019,7 @@ export default function StudentTestSeries() {
 
                       {/* Subcategories Dropdown Tree inside this Category */}
                       {isExpanded && catSubs.length > 0 && (
-                        <div className="pb-2 pt-0.5 px-2.5 space-y-1 bg-slate-50/70 rounded-b-xl border-t border-slate-100">
+                        <div className="pb-2.5 pt-1 px-2.5 space-y-1 bg-slate-50/80 rounded-b-xl border-t border-slate-100">
                           <div className="border-l-2 border-indigo-200 ml-2.5 pl-2.5 space-y-1 my-1">
                             {/* All in this category */}
                             <button
@@ -2002,23 +2029,32 @@ export default function StudentTestSeries() {
                                 setSelectedSubCategory('ALL');
                                 if (isMobile) setMobileFilterOpen(false);
                               }}
-                              className={`w-full text-left py-1.5 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                              className={`w-full text-left py-2 px-2.5 rounded-lg text-[11px] font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                                 isCatSelected && selectedSubCategory === 'ALL'
                                   ? 'bg-indigo-600 text-white font-bold shadow-2xs'
                                   : 'text-slate-600 hover:text-indigo-700 hover:bg-white'
                               }`}
                             >
-                              <span>All {cat.name}</span>
-                              <div className="flex items-center gap-1">
-                                <span className="text-[10px] opacity-80">{totalInCat}</span>
+                              <span className="leading-snug break-words text-left flex-1 min-w-0 pr-2">
+                                All {cat.name}
+                              </span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                                  isCatSelected && selectedSubCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                                }`}>
+                                  {totalInCat}
+                                </span>
                                 {isCatSelected && selectedSubCategory === 'ALL' && <Check size={11} className="text-white" />}
                               </div>
                             </button>
 
                             {/* Individual Subcategories */}
                             {catSubs.map(sc => {
-                              const isSubSelected = isCatSelected && selectedSubCategory === sc.id;
-                              const subCount = subCategoryCounts[sc.id] || 0;
+                              const isSubSelected = isCatSelected && (
+                                Number(selectedSubCategory) === Number(sc.id) ||
+                                (sc.name && String(selectedSubCategory).toLowerCase().trim() === sc.name.toLowerCase().trim())
+                              );
+                              const subCount = subCategoryCounts[Number(sc.id)] || subCategoryCounts[sc.name.toLowerCase().trim()] || 0;
 
                               return (
                                 <button
@@ -2029,16 +2065,22 @@ export default function StudentTestSeries() {
                                     setSelectedSubCategory(sc.id);
                                     if (isMobile) setMobileFilterOpen(false);
                                   }}
-                                  className={`w-full text-left py-1.5 px-2 rounded-lg text-[11px] font-medium flex items-center justify-between transition-all cursor-pointer ${
+                                  className={`w-full text-left py-2 px-2.5 rounded-lg text-[11px] font-medium flex items-center justify-between transition-all cursor-pointer ${
                                     isSubSelected
                                       ? 'bg-indigo-600 text-white font-bold shadow-2xs'
                                       : 'text-slate-600 hover:text-indigo-700 hover:bg-white'
                                   }`}
                                 >
-                                  <span className="truncate pr-2">{sc.name}</span>
-                                  <div className="flex items-center gap-1">
-                                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full shrink-0 font-bold ${
-                                      isSubSelected ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-600'
+                                  <span className="leading-snug break-words text-left flex-1 min-w-0 pr-2">
+                                    {sc.name}
+                                  </span>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                                      isSubSelected
+                                        ? 'bg-white/20 text-white'
+                                        : subCount > 0
+                                          ? 'bg-indigo-50 text-indigo-700'
+                                          : 'bg-slate-100 text-slate-400 font-normal'
                                     }`}>
                                       {subCount}
                                     </span>
@@ -2175,7 +2217,7 @@ export default function StudentTestSeries() {
       {activeTab === 'discover' && (
         <div className="flex flex-col lg:flex-row items-start gap-6 w-full">
           {/* Desktop Category & Sub-Category Explorer Sidebar (lg+) */}
-          <aside className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-20 max-h-[calc(100vh-6.5rem)] overflow-y-auto pr-1">
+          <aside className="hidden lg:block w-84 xl:w-96 shrink-0 sticky top-20 max-h-[calc(100vh-6.5rem)] overflow-y-auto pr-1">
             {renderCategorySidebar(false)}
           </aside>
 
@@ -2186,7 +2228,7 @@ export default function StudentTestSeries() {
                 className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
                 onClick={() => setMobileFilterOpen(false)}
               />
-              <div className="relative w-80 max-w-[85vw] bg-white h-full shadow-2xl z-10 flex flex-col overflow-y-auto">
+              <div className="relative w-84 sm:w-92 max-w-[90vw] bg-white h-full shadow-2xl z-10 flex flex-col overflow-y-auto">
                 {renderCategorySidebar(true)}
               </div>
             </div>
@@ -2455,28 +2497,52 @@ export default function StudentTestSeries() {
               })}
             </div>
           ) : (
-            <div className="bg-white p-12 rounded-3xl border border-slate-200 shadow-xs text-center space-y-3">
-              <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
-                <BookOpen size={24} />
+            <div className="bg-white p-10 sm:p-14 rounded-3xl border border-slate-200/90 shadow-xs text-center space-y-4">
+              <div className="h-14 w-14 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center mx-auto text-indigo-600 shadow-2xs">
+                <BookOpen size={26} />
               </div>
-              <h3 className="text-base font-bold text-slate-900">No Test Series Found</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                No mock test series match your current category, sub-category, or search filter.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedCategory('ALL');
-                  setSelectedSubCategory('ALL');
-                  setFilterType('ALL');
-                  setSearchQuery('');
-                  setSidebarSearch('');
-                }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-              >
-                <RotateCcw size={13} />
-                <span>View All Categories</span>
-              </button>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-slate-900">
+                  {selectedSubCategory !== 'ALL'
+                    ? `No Tests in "${allSubCategoriesList.find(sc => Number(sc.id) === Number(selectedSubCategory))?.name || 'this Sub-Category'}"`
+                    : selectedCategory !== 'ALL'
+                      ? `No Tests in "${allCategoriesList.find(c => Number(c.id) === Number(selectedCategory))?.name || 'this Category'}"`
+                      : 'No Test Series Found'}
+                </h3>
+                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                  {selectedSubCategory !== 'ALL'
+                    ? `There are no mock test series currently active in this specific sub-category. You can view all tests available in the parent category or reset all filters.`
+                    : `No mock test series match your current filters or search query.`}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                {selectedSubCategory !== 'ALL' && selectedCategory !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSubCategory('ALL')}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs"
+                  >
+                    <FolderTree size={14} />
+                    <span>View All {allCategoriesList.find(c => Number(c.id) === Number(selectedCategory))?.name || 'Category'} Tests ({categoryCounts[selectedCategory] || 0})</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory('ALL');
+                    setSelectedSubCategory('ALL');
+                    setFilterType('ALL');
+                    setSearchQuery('');
+                    setSidebarSearch('');
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  <RotateCcw size={13} />
+                  <span>Reset All Filters ({availableSeries.length})</span>
+                </button>
+              </div>
             </div>
           )}
           </div>
