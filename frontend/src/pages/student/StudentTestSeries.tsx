@@ -257,6 +257,11 @@ export default function StudentTestSeries() {
 
   // Wallet Purchase & Recharge Modals
   const [walletOverview, setWalletOverview] = useState<any | null>(null);
+  const isElite = Boolean(
+    walletOverview?.activePass?.isElite ||
+    availableSeries.some(s => s.unlocked_via_elite_pass)
+  );
+  const passDaysRemaining = Number(walletOverview?.activePass?.daysRemaining ?? 0);
   const [selectedWalletItem, setSelectedWalletItem] = useState<PurchaseItem | null>(null);
   const [showWalletConfirmModal, setShowWalletConfirmModal] = useState(false);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
@@ -363,6 +368,10 @@ export default function StudentTestSeries() {
 
   useEffect(() => {
     loadData();
+    window.addEventListener('studentWalletUpdated', loadData);
+    return () => {
+      window.removeEventListener('studentWalletUpdated', loadData);
+    };
   }, [loadData]);
 
   // Anti-cheating & Back Prevention during live exam
@@ -2213,25 +2222,52 @@ export default function StudentTestSeries() {
           </button>
         )}
 
-        {/* Elite Pass All-Access Promo Mini Card */}
-        <div className="pt-2 border-t border-slate-100 mt-auto">
-          <Link
-            to="/student/passes"
-            className="block p-3 rounded-2xl bg-gradient-to-br from-amber-500/15 via-yellow-500/10 to-amber-500/5 border border-amber-300/80 hover:border-amber-400 hover:shadow-xs transition-all group"
-          >
-            <div className="flex items-center gap-1.5 text-amber-950 font-black text-xs">
-              <Crown size={14} className="text-amber-600 fill-amber-500 shrink-0" />
-              <span>Examirror Elite Pass</span>
-            </div>
-            <p className="text-[10px] text-amber-900 mt-1 leading-snug">
-              Unlock all test series across every category with 1 click.
-            </p>
-            <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-amber-800 group-hover:text-amber-950">
-              <span>View VIP Pass</span>
-              <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
-            </div>
-          </Link>
-        </div>
+        {/* Elite Pass Status / Promo Mini Card */}
+        {isElite ? (
+          <div className="pt-2 border-t border-slate-100 mt-auto">
+            <Link
+              to="/student/passes"
+              className="block p-3 rounded-2xl bg-gradient-to-br from-amber-500/15 via-yellow-500/10 to-amber-500/5 border border-amber-300 hover:border-amber-400 hover:shadow-xs transition-all group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-amber-950 font-black text-xs">
+                  <Crown size={14} className="text-amber-600 fill-amber-500 shrink-0" />
+                  <span>VIP Pass Active</span>
+                </div>
+                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-800 border border-emerald-400/40 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  {passDaysRemaining > 0 ? `${passDaysRemaining}d Left` : 'Active'}
+                </span>
+              </div>
+              <p className="text-[10px] text-amber-900 mt-1 leading-snug font-medium">
+                Unlimited access active! All test series across every category are completely unlocked for you.
+              </p>
+              <div className="mt-2 flex items-center justify-between text-[10px] font-bold text-amber-800 group-hover:text-amber-950">
+                <span>Manage VIP Pass</span>
+                <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </Link>
+          </div>
+        ) : (
+          <div className="pt-2 border-t border-slate-100 mt-auto">
+            <Link
+              to="/student/passes"
+              className="block p-3 rounded-2xl bg-gradient-to-br from-amber-500/15 via-yellow-500/10 to-amber-500/5 border border-amber-300/80 hover:border-amber-400 hover:shadow-xs transition-all group"
+            >
+              <div className="flex items-center gap-1.5 text-amber-950 font-black text-xs">
+                <Crown size={14} className="text-amber-600 fill-amber-500 shrink-0" />
+                <span>Examirror Elite Pass</span>
+              </div>
+              <p className="text-[10px] text-amber-900 mt-1 leading-snug">
+                Unlock all test series across every category with 1 click.
+              </p>
+              <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-amber-800 group-hover:text-amber-950">
+                <span>View VIP Pass</span>
+                <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </Link>
+          </div>
+        )}
       </div>
     );
   };
