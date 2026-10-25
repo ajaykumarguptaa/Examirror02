@@ -13,7 +13,8 @@ import {
   CheckCircle2,
   HelpCircle,
   Clock,
-  ExternalLink
+  ExternalLink,
+  BookOpen
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FadeUp, StaggerContainer, StaggerItem } from '../../motion';
@@ -97,6 +98,31 @@ const TermsAndConditions = () => {
         'Examirror enforces a zero-tolerance policy against document fabrication, test score manipulation, or unauthorized usage of institution branding.',
         'Center affiliation may be suspended or permanently terminated with forfeiture of portal access if any audit uncovers unethical examination practices.',
         'Legal jurisdiction for all contractual, academic, and administrative matters resides exclusively within the judicial courts of East Singhbhum, Jharkhand, India.'
+      ]
+    },
+    {
+      id: 'test-records-data-retention',
+      icon: Clock,
+      title: '7. Test Series Records, Scorecards & Course Expiration Policy',
+      color: 'border-t-indigo-600',
+      badgeColor: 'bg-indigo-50 text-indigo-900 border-indigo-200',
+      content: [
+        'Per-Student Storage: All mock test attempts, sectional scorecards, answer selections, and improvement analytics are archived strictly on a per-student basis tied to the candidate\'s verified enrollment ID.',
+        'Active Validity Retention: Test records and progression analytics are preserved exclusively for the active validity period of the enrolled Course, Test Series, or VIP Pass.',
+        'Automated Record Deletion: When a student\'s course tenure, test series validity, or VIP pass expires, all associated mock test attempt records, answer sheets, and scorecard logs are automatically phased out and purged from active database storage in accordance with Examirror\'s academic lifecycle policy.',
+        'Students wishing to retain permanent records of their academic performance must download their official PDF Marksheets prior to their course/series expiration date.'
+      ]
+    },
+    {
+      id: 'enotes-license-expiry',
+      icon: BookOpen,
+      title: '8. E-Notes, Digital DRM & Study Material Expiration',
+      color: 'border-t-emerald-600',
+      badgeColor: 'bg-emerald-50 text-emerald-900 border-emerald-200',
+      content: [
+        'Personal License: Access to interactive HTML study notes, chapter summaries, and DRM-protected digital reading modules is granted on a per-student basis strictly for personal academic study during active course enrollment.',
+        'Expiration Upon Course Completion: Upon expiration of the student\'s course tenure or active pass, digital reading licenses terminate automatically, and access to notes is discontinued.',
+        'Anti-Piracy Protection: Screenshots, screen recording, printing, or third-party distribution of proprietary study materials is strictly forbidden and protected by dynamic watermarking and security tripwires.'
       ]
     }
   ];

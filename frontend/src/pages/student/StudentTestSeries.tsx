@@ -3433,6 +3433,17 @@ export default function StudentTestSeries() {
               </div>
             )}
 
+            {/* Terms & Data Retention Policy Note */}
+            <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200/80 text-[11px] text-amber-900 flex items-start gap-2">
+              <ShieldCheck size={14} className="text-amber-700 shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                <strong>Data Retention & Course Expiry Policy:</strong> Mock test attempt records and scorecards are stored on a per-student basis strictly for the active validity period ({selectedSeriesDetail.validity_days || 365} Days). All attempt records and answer logs are automatically purged upon course/series expiration in accordance with{' '}
+                <Link to="/terms" target="_blank" className="font-bold underline text-amber-950 hover:text-indigo-600">
+                  Examirror Terms & Conditions
+                </Link>.
+              </div>
+            </div>
+
             <div className="flex items-center justify-between pt-4 border-t border-slate-100">
               <div>
                 <div className="text-[10px] text-slate-400 uppercase font-semibold">Price</div>
@@ -4086,10 +4097,20 @@ export default function StudentTestSeries() {
             )}
             </div>
 
-            <div className="pt-3 border-t border-slate-100 flex justify-end shrink-0">
+            <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <div className="text-[11px] text-slate-500 flex items-center gap-1.5 text-center sm:text-left">
+                <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
+                <span>
+                  Test records are stored per-student and auto-deleted upon course expiration as per{' '}
+                  <Link to="/terms" target="_blank" className="text-indigo-600 font-bold underline hover:text-indigo-800">
+                    Terms & Conditions
+                  </Link>.
+                </span>
+              </div>
+
               <button
                 onClick={() => setShowScorecardModal(false)}
-                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer w-full sm:w-auto"
               >
                 Close Scorecard
               </button>

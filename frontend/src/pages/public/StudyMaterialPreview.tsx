@@ -176,16 +176,26 @@ export default function StudyMaterialPreview() {
                     <CheckCircle2 className="text-emerald-500 shrink-0 mt-0.5" size={20} />
                     <span>{note.file_size || 'Standard file size'}</span>
                   </li>
+                  <li className="flex items-start gap-3 text-slate-600">
+                    <CheckCircle2 className="text-emerald-500 shrink-0 mt-0.5" size={20} />
+                    <span>Valid during active student course enrollment (License expires upon course expiry)</span>
+                  </li>
                 </ul>
               </div>
 
               <div>
                 <h3 className="text-xl font-bold text-slate-900 mb-4">About the Material</h3>
-                <div className="prose prose-slate prose-indigo">
+                <div className="prose prose-slate prose-indigo space-y-3 text-sm text-slate-600 leading-relaxed">
                   <p>
                     This secure digital note is provided by Examirror Academy. To protect intellectual property,
                     this document is heavily encrypted and dynamically watermarked with your candidate details.
                     It can only be viewed within our secure proprietary reader.
+                  </p>
+                  <p className="text-xs text-slate-500 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                    <strong>Terms & Data Retention Policy:</strong> E-Notes reading licenses and associated mock test records are maintained on a per-student basis strictly during active course tenure or pass validity. Access expires and records are decommissioned upon course expiration as per{' '}
+                    <Link to="/terms" target="_blank" className="text-indigo-600 font-bold underline hover:text-indigo-800">
+                      Examirror Terms & Conditions
+                    </Link>.
                   </p>
                 </div>
               </div>

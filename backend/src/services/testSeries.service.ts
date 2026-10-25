@@ -1946,5 +1946,40 @@ export const testSeriesService = {
       attempts,
       stars
     };
+  },
+
+  /**
+   * Automatically purge/delete test records for students whose test series enrollment / course has expired,
+   * provided they do not have an active VIP Pass.
+   */
+  purgeExpiredStudentTestRecords: async (studentId?: number | string) => {
+    try {
+      let query = `
+        SELECT ta.id as attempt_id
+        FROM test_attempts ta
+        JOIN test_series_enrollments tse ON ta.test_series_id = tse.test_series_id AND ta.student_id = tse.student_id
+        JOIN students s ON ta.student_id = s.id
+        WHERE tse.expires_at < CURRENT_TIMESTAMP
+          AND (s.pass_expires_at IS NULL OR s.pass_expires_at < CURRENT_TIMESTAMP)
+      `;
+      const params: any[] = [];
+      if (studentId) {
+        query += ` AND ta.student_id = ?`;
+        params.push(studentId);
+      }
+
+      const [expiredRecords]: any = await db.query(query, params);
+      if (expiredRecords && expiredRecords.length > 0) {
+        const attemptIds = expiredRecords.map((r: any) => r.attempt_id);
+        await db.query(`DELETE FROM test_answers WHERE attempt_id IN (?)`, [attemptIds]);
+        await db.query(`DELETE FROM test_attempts WHERE id IN (?)`, [attemptIds]);
+        console.log(`[Lifecycle] Purged ${attemptIds.length} expired test records for expired enrollments.`);
+        return { purged_count: attemptIds.length };
+      }
+      return { purged_count: 0 };
+    } catch (err: any) {
+      console.error('[Lifecycle] purgeExpiredStudentTestRecords error:', err.message);
+      return { purged_count: 0, error: err.message };
+    }
   }
 };
