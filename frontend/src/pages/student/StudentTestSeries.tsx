@@ -2567,41 +2567,45 @@ export default function StudentTestSeries() {
                 return (
                   <div
                     key={series.id}
-                    className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex flex-col justify-between overflow-hidden group"
+                    className="card-3d-interactive bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:border-indigo-300 flex flex-col justify-between overflow-hidden group relative"
                   >
+                    {/* Top 3D specular light edge */}
+                    <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-400/50 to-transparent pointer-events-none z-10" />
+
                     <div>
                       {series.thumbnail_url && (
                         <div className="relative h-36 w-full overflow-hidden bg-slate-100">
                           <img
                             src={series.thumbnail_url}
                             alt={series.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                           />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent pointer-events-none" />
                         </div>
                       )}
 
                       <div className="p-4 pb-3 flex items-center justify-between border-b border-slate-100 bg-slate-50/50">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="px-2.5 py-0.5 bg-white text-slate-700 border border-slate-200 text-[11px] font-semibold rounded-md">
+                          <span className="px-2.5 py-0.5 bg-white text-slate-700 border border-slate-200 text-[11px] font-semibold rounded-md shadow-2xs">
                             {series.category_name || 'General'}
                           </span>
                           {series.sub_category_name && (
-                            <span className="px-2 py-0.5 bg-indigo-50/70 text-indigo-700 border border-indigo-200/60 text-[10px] font-semibold rounded-md flex items-center gap-1">
+                            <span className="px-2 py-0.5 bg-indigo-50/70 text-indigo-700 border border-indigo-200/60 text-[10px] font-semibold rounded-md flex items-center gap-1 shadow-2xs">
                               <FolderTree size={11} className="text-indigo-500" />
                               {series.sub_category_name}
                             </span>
                           )}
                         </div>
                         {series.unlocked_via_elite_pass ? (
-                          <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-black rounded-md flex items-center gap-1">
-                            <Crown size={12} className="text-amber-600" /> ELITE PASS
+                          <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-black rounded-md flex items-center gap-1 shadow-2xs">
+                            <Crown size={12} className="text-amber-600 drop-shadow-xs" /> ELITE PASS
                           </span>
                         ) : series.is_free ? (
-                          <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold rounded-md">
+                          <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold rounded-md shadow-2xs">
                             FREE
                           </span>
                         ) : (
-                          <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] font-bold rounded-md">
+                          <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] font-bold rounded-md shadow-2xs">
                             ₹{series.price}
                           </span>
                         )}
@@ -2615,7 +2619,7 @@ export default function StudentTestSeries() {
                           {series.description || 'Comprehensive test series with detailed performance evaluation.'}
                         </p>
 
-                        <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100 text-center text-xs mt-4">
+                        <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100 text-center text-xs mt-4 shadow-2xs">
                           <div>
                             <div className="text-slate-400 text-[10px] font-semibold uppercase">Tests</div>
                             <div className="font-bold text-slate-900">{series.tests?.length || series.total_tests_count || 1} Tests</div>
@@ -2646,10 +2650,11 @@ export default function StudentTestSeries() {
                       {isEnrolled || series.unlocked_via_elite_pass ? (
                         <button
                           onClick={() => handleGoToSeriesTests(series.id)}
-                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                          className="btn-3d-yoyo-emerald px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5"
                         >
-                          {series.unlocked_via_elite_pass && <Crown size={13} className="text-amber-300" />}
+                          {series.unlocked_via_elite_pass && <Crown size={13} className="text-amber-300 drop-shadow-xs" />}
                           <span>Go to Tests</span>
+                          <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                         </button>
                       ) : isPending ? (
                         <span className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-xs font-semibold flex items-center gap-1.5">
@@ -2658,15 +2663,16 @@ export default function StudentTestSeries() {
                       ) : series.is_free ? (
                         <button
                           onClick={() => handleEnrollFree(series)}
-                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
+                          className="btn-3d-yoyo-emerald px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5"
                         >
-                          Enroll Free
+                          <span>Enroll Free</span>
+                          <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                         </button>
                       ) : (
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => handleOpenWalletBuy(series)}
-                            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                            className="btn-3d-yoyo-indigo px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5"
                           >
                             <Wallet size={13} />
                             <span>Buy (₹{series.price})</span>
@@ -3443,10 +3449,11 @@ export default function StudentTestSeries() {
                       setShowDetailModal(false);
                       handleGoToSeriesTests(id);
                     }}
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                    className="btn-3d-yoyo-emerald px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5"
                   >
-                    {selectedSeriesDetail.unlocked_via_elite_pass && <Crown size={13} className="text-amber-300" />}
+                    {selectedSeriesDetail.unlocked_via_elite_pass && <Crown size={13} className="text-amber-300 drop-shadow-xs" />}
                     <span>Go to Tests</span>
+                    <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 ) : (selectedSeriesDetail.enrollment_status === 'PENDING' || selectedSeriesDetail.enrollment_status === 'PAYMENT_PENDING') ? (
                   <span className="px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-xs rounded-xl flex items-center gap-1.5">
@@ -3455,16 +3462,18 @@ export default function StudentTestSeries() {
                 ) : selectedSeriesDetail.is_free ? (
                   <button
                     onClick={() => handleEnrollFree(selectedSeriesDetail)}
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+                    className="btn-3d-yoyo-emerald px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5"
                   >
-                    Enroll Free
+                    <span>Enroll Free</span>
+                    <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 ) : (
                   <button
                     onClick={() => handleOpenPayment(selectedSeriesDetail)}
-                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+                    className="btn-3d-yoyo-indigo px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5"
                   >
-                    Buy Now
+                    <span>Buy Now</span>
+                    <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 )}
               </div>

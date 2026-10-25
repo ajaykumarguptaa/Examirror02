@@ -785,8 +785,11 @@ export default function StudyMaterialLibrary() {
                       initial={{ opacity: 0, y: 16 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, delay: index * 0.03 }}
-                      className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-lg hover:border-indigo-300 transition-all flex flex-col group overflow-hidden"
+                      className="card-3d-interactive bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:border-emerald-300 flex flex-col group overflow-hidden relative"
                     >
+                      {/* Top 3D specular light edge */}
+                      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent pointer-events-none z-10" />
+
                       {/* Card Thumbnail Banner */}
                       {note.thumbnail_url ? (
                         <div className="relative w-full h-40 overflow-hidden bg-slate-100">
@@ -882,7 +885,7 @@ export default function StudyMaterialLibrary() {
                         </span>
                         <Link
                           to={isStudent ? `/student/notes/${note.id}` : `/notes/${note.id}`}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-2xs group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 cursor-pointer"
+                          className="btn-3d-yoyo-emerald inline-flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-xl transition-all cursor-pointer shadow-xs"
                         >
                           <span>Read Note</span>
                           <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
