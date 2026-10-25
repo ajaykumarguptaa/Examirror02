@@ -113,7 +113,7 @@ export default function StudyMaterialPreview() {
   if (!note) return null;
 
   return (
-    <div className="bg-slate-50 min-h-screen py-12">
+    <div className="bg-slate-50 min-h-screen py-6 sm:py-8 px-3 sm:px-6 lg:px-8 w-full">
       <Helmet>
         <title>{note.title} | Examirror Study Materials</title>
         <meta name="description" content={note.description || `Get ${note.title} for your exam preparation. Secure e-note available at Examirror Academy.`} />
@@ -122,15 +122,15 @@ export default function StudyMaterialPreview() {
         <meta property="og:type" content="article" />
       </Helmet>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full space-y-6">
         <Link 
           to={window.location.pathname.startsWith('/student') ? '/student/notes' : '/notes'} 
-          className="inline-flex items-center gap-2 text-indigo-600 font-semibold mb-8 hover:text-indigo-700 transition-colors"
+          className="inline-flex items-center gap-2 text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
         >
           <ArrowLeft size={18} /> Back to Library
         </Link>
 
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
+        <div className="w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
           <div className="bg-indigo-950 p-8 sm:p-12 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
               {note.file_type === 'HTML' ? <FileText size={200} /> : <BookOpen size={200} />}
@@ -149,7 +149,7 @@ export default function StudyMaterialPreview() {
               <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-4 text-white">
                 {note.title}
               </h1>
-              <p className="text-indigo-200 text-lg max-w-2xl leading-relaxed">
+              <p className="text-indigo-200 text-base sm:text-lg max-w-4xl leading-relaxed">
                 {note.description || 'Comprehensive study material designed for optimal preparation.'}
               </p>
             </div>
