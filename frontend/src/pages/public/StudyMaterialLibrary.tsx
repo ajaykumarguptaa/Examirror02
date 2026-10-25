@@ -554,8 +554,8 @@ export default function StudyMaterialLibrary() {
     );
   };
 
-  return (
-    <div className="flex flex-col w-full bg-slate-50 min-h-screen">
+  const content = (
+    <div className="w-full space-y-6 pb-16 font-sans">
       <SEO
         title="Digital Study Library & E-Notes | Examirror"
         description="Access our official collection of interactive HTML notes, chapter summaries, and secure reference materials for technical diploma and competitive computer courses."
@@ -573,9 +573,8 @@ export default function StudyMaterialLibrary() {
         ]}
       />
 
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-6 font-sans">
-        {/* Ultra-Compact High-Impact Header Banner Matching Test Series */}
-        <div className="bg-white/95 backdrop-blur-xs px-4 py-2.5 sm:px-5 sm:py-3 rounded-2xl border border-slate-200/90 shadow-2xs transition-all">
+      {/* Ultra-Compact High-Impact Header Banner Matching Test Series */}
+      <div className="bg-white/95 backdrop-blur-xs px-4 py-2.5 sm:px-5 sm:py-3 rounded-2xl border border-slate-200/90 shadow-2xs transition-all">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
             {/* Left: Breadcrumbs + Gradient Title */}
             <div className="flex flex-col gap-1 min-w-0">
@@ -912,6 +911,15 @@ export default function StudyMaterialLibrary() {
           </div>
         </div>
       </div>
+  );
+
+  if (isStudent) {
+    return content;
+  }
+
+  return (
+    <div className="flex flex-col w-full bg-slate-50 min-h-screen px-3.5 sm:px-8 lg:px-10 py-5 sm:py-6">
+      {content}
     </div>
   );
 }
