@@ -1602,6 +1602,7 @@ export const testSeriesService = {
       });
     }
 
+    const answersToUpsert: any[] = [];
     // Evaluate each question on server
     for (const q of dbQuestions) {
       const qId = Number(q.id);
@@ -1636,16 +1637,20 @@ export const testSeriesService = {
         negativeApplied += Number(q.negative_marks || 0.5);
       }
 
-      // Save answer
+      answersToUpsert.push([attemptId, q.id, selectedKey || null, isCorrect ? 1 : 0, isMarked ? 1 : 0, timeSpent]);
+    }
+
+    // High performance bulk upsert in a single query (instant execution for 100+ questions)
+    if (answersToUpsert.length > 0) {
       await db.query(`
         INSERT INTO test_answers (attempt_id, question_id, selected_option_key, is_correct, is_marked_for_review, time_spent_seconds)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES ?
         ON DUPLICATE KEY UPDATE
           selected_option_key = VALUES(selected_option_key),
           is_correct = VALUES(is_correct),
           is_marked_for_review = VALUES(is_marked_for_review),
           time_spent_seconds = VALUES(time_spent_seconds)
-      `, [attemptId, q.id, selectedKey || null, isCorrect ? 1 : 0, isMarked ? 1 : 0, timeSpent]);
+      `, [answersToUpsert]);
     }
 
     const finalScore = Math.max(0, marksObtained - negativeApplied);

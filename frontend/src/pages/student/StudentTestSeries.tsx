@@ -658,6 +658,10 @@ export default function StudentTestSeries() {
           negative_marks: startedTest.negative_marks || startedTest.negativeMarks || test.negative_marks || 0.5
         });
         setActiveAttemptId(finalAttemptId);
+        try {
+          sessionStorage.setItem('studentActiveAttemptId', String(finalAttemptId));
+          localStorage.setItem('studentActiveAttemptId', String(finalAttemptId));
+        } catch {}
         setExamQuestions(questionsList);
         setCurrentQIndex(0);
         setSelectedAnswers(prefilledAnswers);
@@ -719,7 +723,11 @@ export default function StudentTestSeries() {
   };
 
   const handleFinalSubmit = async (isAuto = false) => {
-    if (!activeAttemptId) return;
+    const attemptId = activeAttemptId || Number(sessionStorage.getItem('studentActiveAttemptId') || localStorage.getItem('studentActiveAttemptId'));
+    if (!attemptId) {
+      showToast('error', 'Active examination session not found. Please refresh and resume.');
+      return;
+    }
     setExamSubmitting(true);
 
     try {
@@ -741,33 +749,53 @@ export default function StudentTestSeries() {
       let res;
       try {
         res = await axios.post(
-          `/api/student/test-series/attempts/${activeAttemptId}/submit`,
+          `/api/student/test-series/attempts/${attemptId}/submit`,
           { answers: formattedAnswers, is_auto_submit: isAuto },
-          { headers: getAuthHeader() }
+          { headers: getAuthHeader(), timeout: 25000 }
         );
-      } catch {
+      } catch (err: any) {
+        if (err.response) {
+          throw err;
+        }
         res = await axios.post(
-          `http://localhost:3000/api/student/test-series/attempts/${activeAttemptId}/submit`,
+          `http://localhost:3000/api/student/test-series/attempts/${attemptId}/submit`,
           { answers: formattedAnswers, is_auto_submit: isAuto },
-          { headers: getAuthHeader() }
+          { headers: getAuthHeader(), timeout: 10000 }
         );
       }
 
       if (res.data?.success) {
         setIsTakingExam(false);
         setShowConfirmSubmit(false);
+        try {
+          sessionStorage.removeItem('studentActiveAttemptId');
+          localStorage.removeItem('studentActiveAttemptId');
+        } catch {}
         const data = res.data.data;
         const formatted = data?.attempt ? {
           ...data.attempt,
           question_analysis: data.questions,
-          achievements: data.achievements
-        } : data;
+          achievements: data.achievements,
+          comparison: data.comparison || data.attempt?.comparison,
+          attempts_history: data.comparison?.attempts_history || data.attempt?.attempts_history || []
+        } : {
+          ...data,
+          comparison: data?.comparison,
+          attempts_history: data?.comparison?.attempts_history || []
+        };
         setScorecardData(formatted);
         setShowScorecardModal(true);
         loadData();
       }
     } catch (err: any) {
-      showToast('error', err.response?.data?.message || 'Error submitting test attempt.');
+      const errorMsg = err.response?.data?.message || err.message || 'Error submitting test attempt.';
+      showToast('error', errorMsg);
+      // If already evaluated or submitted, transition directly to scorecard so student is never stuck!
+      if (errorMsg.toLowerCase().includes('already') || err.response?.status === 400) {
+        setIsTakingExam(false);
+        setShowConfirmSubmit(false);
+        handleViewScorecard(attemptId);
+      }
     } finally {
       setExamSubmitting(false);
     }
