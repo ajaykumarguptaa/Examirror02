@@ -780,11 +780,8 @@ export default function StudyMaterialLibrary() {
                   const isFree = Number(note.price || 0) === 0;
 
                   return (
-                    <motion.div
+                    <div
                       key={note.id || index}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.35, delay: index * 0.03 }}
                       className="card-3d-interactive bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:border-emerald-300 flex flex-col group overflow-hidden relative"
                     >
                       {/* Top 3D specular light edge */}
@@ -891,7 +888,7 @@ export default function StudyMaterialLibrary() {
                           <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                         </Link>
                       </div>
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>

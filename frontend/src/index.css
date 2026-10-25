@@ -669,11 +669,11 @@ body,
 }
 
 .card-3d-interactive:hover {
-  transform: translateY(-7px) scale(1.012);
+  transform: translateY(-8px) scale(1.015) rotateX(1deg) !important;
   box-shadow: 
-    0 22px 40px -12px rgba(15, 23, 42, 0.14),
-    0 10px 20px -6px rgba(79, 70, 229, 0.10),
-    0 0 0 1px rgba(99, 102, 241, 0.25);
+    0 22px 42px -12px rgba(15, 23, 42, 0.16),
+    0 10px 22px -6px rgba(16, 185, 129, 0.14),
+    0 0 0 1.5px rgba(16, 185, 129, 0.35) !important;
 }
 
 @keyframes yoyo-spring {
