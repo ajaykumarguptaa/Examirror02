@@ -3055,87 +3055,286 @@ export default function StudentTestSeries() {
       );
     })()}
 
-      {/* ACHIEVEMENTS TAB */}
-      {activeTab === 'achievements' && (
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-600 flex items-center justify-center">
-                <Star size={22} className="fill-amber-400 text-amber-500" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">Your Achievement Badges & Stars</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Earn badges by completing tests, scoring 80%+, and maintaining weekly test streaks.
-                </p>
-              </div>
-            </div>
-          </div>
+      {/* ACHIEVEMENTS TAB - 3D ANIMATED GAMIFIED TROPHY HALL */}
+      {activeTab === 'achievements' && (() => {
+        const achList = Array.isArray(achievements) ? achievements : [];
+        const unlockedCount = achList.filter((a: any) => Boolean(a.is_unlocked || a.earned_at)).length;
+        const totalBadges = achList.length || 6;
+        const totalStarsEarned = achList
+          .filter((a: any) => Boolean(a.is_unlocked || a.earned_at))
+          .reduce((sum: number, a: any) => sum + Math.max(1, Math.min(5, Number(a.star_count || a.stars_count || 1))), 0);
+        const progressPercent = totalBadges > 0 ? Math.round((unlockedCount / totalBadges) * 100) : 0;
+        const prestigeTitle =
+          unlockedCount === 0
+            ? 'Aspirant'
+            : unlockedCount === 1
+              ? 'Rookie Achiever'
+              : unlockedCount <= 3
+                ? 'Dedicated Scholar'
+                : unlockedCount < totalBadges
+                  ? 'Elite Master'
+                  : 'Grand Champion 👑';
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {Array.isArray(achievements) && achievements.length > 0 ? (
-              achievements.map((ach: any, idx: number) => {
-                const isEarned = Boolean(ach.is_unlocked || ach.earned_at);
-                const starCount = Math.max(1, Math.min(5, Number(ach.star_count || ach.stars_count || 1)));
-                return (
-                  <div
-                    key={ach.id || idx}
-                    className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
-                      isEarned
-                        ? 'bg-white border-slate-200 shadow-xs hover:border-slate-300'
-                        : 'bg-slate-50 border-slate-100 opacity-60'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                            isEarned ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-slate-200 text-slate-400'
-                          }`}
-                        >
-                          {isEarned ? <Star size={20} className="fill-amber-400 text-amber-500" /> : <Lock size={18} />}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: starCount }).map((_, sIdx) => (
-                            <Star
-                              key={sIdx}
-                              size={16}
-                              className={isEarned ? 'text-amber-500 fill-amber-400' : 'text-slate-300'}
-                            />
-                          ))}
-                        </div>
-                      </div>
+        const getBadgeTheme = (code: string, isEarned: boolean) => {
+          switch (code) {
+            case 'FIRST_TEST':
+              return {
+                tierName: 'Bronze Tier',
+                aura: 'bg-amber-400',
+                gradient: 'from-amber-400 via-yellow-300 to-amber-600',
+                border: 'border-amber-300/80',
+                bg: 'from-amber-500/10 via-yellow-500/5 to-white',
+                icon: <Star size={26} className={isEarned ? "fill-amber-300 text-amber-500 drop-shadow-[0_4px_8px_rgba(245,158,11,0.6)]" : "text-slate-400"} />
+              };
+            case 'FIVE_TESTS':
+              return {
+                tierName: 'Silver Tier',
+                aura: 'bg-cyan-400',
+                gradient: 'from-cyan-400 via-blue-400 to-indigo-600',
+                border: 'border-cyan-300/80',
+                bg: 'from-cyan-500/10 via-blue-500/5 to-white',
+                icon: <Award size={26} className={isEarned ? "fill-cyan-300/40 text-cyan-500 drop-shadow-[0_4px_8px_rgba(6,182,212,0.6)]" : "text-slate-400"} />
+              };
+            case 'TEN_TESTS':
+              return {
+                tierName: 'Gold Tier',
+                aura: 'bg-yellow-400',
+                gradient: 'from-yellow-300 via-amber-400 to-amber-600',
+                border: 'border-amber-400/80',
+                bg: 'from-amber-500/15 via-yellow-500/5 to-white',
+                icon: <Trophy size={26} className={isEarned ? "fill-amber-300 text-amber-600 drop-shadow-[0_4px_8px_rgba(234,179,8,0.6)]" : "text-slate-400"} />
+              };
+            case 'HIGH_ACCURACY_80':
+              return {
+                tierName: 'Emerald Precision',
+                aura: 'bg-emerald-400',
+                gradient: 'from-emerald-400 via-teal-400 to-emerald-600',
+                border: 'border-emerald-300/80',
+                bg: 'from-emerald-500/10 via-teal-500/5 to-white',
+                icon: <Target size={26} className={isEarned ? "text-emerald-500 drop-shadow-[0_4px_8px_rgba(16,185,129,0.6)]" : "text-slate-400"} />
+              };
+            case 'WEEKLY_STREAK_4':
+              return {
+                tierName: 'Inferno Streak',
+                aura: 'bg-orange-500',
+                gradient: 'from-rose-500 via-orange-500 to-amber-400',
+                border: 'border-orange-300/80',
+                bg: 'from-orange-500/10 via-red-500/5 to-white',
+                icon: <Flame size={26} className={isEarned ? "fill-orange-400 text-rose-500 animate-pulse drop-shadow-[0_4px_8px_rgba(249,115,22,0.6)]" : "text-slate-400"} />
+              };
+            case 'SUPER_SCORER_90':
+            default:
+              return {
+                tierName: 'Diamond Champion',
+                aura: 'bg-purple-400',
+                gradient: 'from-fuchsia-400 via-purple-500 to-indigo-600',
+                border: 'border-purple-300/80',
+                bg: 'from-purple-500/10 via-indigo-500/5 to-white',
+                icon: <Crown size={26} className={isEarned ? "fill-amber-300 text-purple-600 drop-shadow-[0_4px_8px_rgba(168,85,247,0.6)]" : "text-slate-400"} />
+              };
+          }
+        };
 
-                      <h4 className="text-sm font-bold text-slate-900">{ach.title || ach.name}</h4>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        {ach.description || 'Complete required tests to unlock this achievement badge.'}
-                      </p>
-                    </div>
+        return (
+          <div className="space-y-6">
+            {/* 3D Glassmorphic Arena Mastery Banner */}
+            <div className="relative bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white p-6 sm:p-7 rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
+              {/* Ambient Lighting Orbs in 3D */}
+              <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-amber-500/20 blur-3xl pointer-events-none" />
+              <div className="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-indigo-500/25 blur-3xl pointer-events-none" />
+              <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
 
-                    <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                      {isEarned ? (
-                        <span className="text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1 text-[11px] font-semibold">
-                          <CheckCircle2 size={13} /> Unlocked {ach.earned_at ? `on ${new Date(ach.earned_at).toLocaleDateString('en-GB')}` : ''}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 font-medium text-[11px] flex items-center gap-1">
-                          <Lock size={12} /> Locked
-                        </span>
-                      )}
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                {/* Left Column: Trophy + Title + Tier */}
+                <div className="flex items-center gap-4">
+                  <div className="relative w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 p-1 flex items-center justify-center shadow-[0_12px_24px_rgba(245,158,11,0.35),inset_0_2px_4px_rgba(255,255,255,0.8)] shrink-0">
+                    <div className="w-full h-full rounded-xl bg-slate-950/60 flex items-center justify-center backdrop-blur-xs">
+                      <Trophy size={32} className="text-amber-300 drop-shadow-[0_4px_8px_rgba(245,158,11,0.8)]" />
                     </div>
                   </div>
-                );
-              })
-            ) : (
-              <div className="col-span-3 bg-white p-12 rounded-2xl border border-slate-200 shadow-xs text-center space-y-2">
-                <Trophy size={36} className="mx-auto text-slate-300 mb-1" />
-                <h3 className="text-base font-bold text-slate-800">No Achievements Recorded Yet</h3>
-                <p className="text-xs text-slate-500">Complete your first test to unlock your beginner achievement badge!</p>
+
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/30 mb-1.5">
+                      <Sparkles size={11} className="text-amber-400" />
+                      <span>Student Mastery Hall</span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                      <span>Your Achievement Badges & Trophies</span>
+                    </h2>
+                    <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
+                      Earn rare 3D badges, unlock stars, and level up your mastery prestige by attempting national mock tests.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right Column: Mastery Progress Gauge & Stats */}
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 sm:p-5 flex flex-col gap-3 min-w-[260px] sm:min-w-[300px]">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-300 font-bold flex items-center gap-1.5">
+                      <Crown size={14} className="text-amber-400" />
+                      <span>Rank: <strong className="text-white">{prestigeTitle}</strong></span>
+                    </span>
+                    <span className="text-amber-400 font-black text-sm">
+                      {unlockedCount} / {totalBadges} Badges
+                    </span>
+                  </div>
+
+                  {/* 3D Animated Progress Bar */}
+                  <div className="w-full h-3 rounded-full bg-slate-800/90 p-0.5 border border-white/10 overflow-hidden shadow-inner">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-amber-400 via-indigo-500 to-emerald-400 shadow-[0_0_12px_rgba(245,158,11,0.6)] transition-all duration-1000 ease-out"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+                    <span className="flex items-center gap-1">
+                      <Star size={12} className="text-amber-400 fill-amber-400" />
+                      <span>{totalStarsEarned} Stars Mastered</span>
+                    </span>
+                    <span className="text-emerald-400 font-bold">
+                      {progressPercent}% Complete
+                    </span>
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
+
+            {/* 3D Modern Achievements Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {achList.length > 0 ? (
+                achList.map((ach: any, idx: number) => {
+                  const isEarned = Boolean(ach.is_unlocked || ach.earned_at);
+                  const starCount = Math.max(1, Math.min(5, Number(ach.star_count || ach.stars_count || 1)));
+                  const theme = getBadgeTheme(ach.badge_code || '', isEarned);
+
+                  return (
+                    <div
+                      key={ach.id || idx}
+                      className={`relative p-5 sm:p-6 rounded-3xl border transition-all duration-300 flex flex-col justify-between group overflow-hidden ${
+                        isEarned
+                          ? `bg-gradient-to-b ${theme.bg} ${theme.border} shadow-[0_12px_28px_-8px_rgba(0,0,0,0.08)] hover:shadow-[0_22px_40px_-10px_rgba(245,158,11,0.25)] hover:-translate-y-2 hover:border-amber-400`
+                          : `bg-white hover:bg-slate-50/60 border-slate-200/90 shadow-2xs hover:shadow-xl hover:-translate-y-1.5`
+                      }`}
+                    >
+                      {/* 3D Specular Top Rim Reflection */}
+                      <div className={`absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent ${
+                        isEarned ? 'via-amber-400' : 'via-slate-300/50'
+                      } to-transparent`} />
+
+                      <div>
+                        {/* Top Row: 3D Medallion + Star Badges Array */}
+                        <div className="flex items-start justify-between gap-3 mb-4">
+                          {/* 3D Medallion */}
+                          <div className="relative flex items-center justify-center shrink-0">
+                            {/* 3D Radiant Ambient Glow Aura */}
+                            <div className={`absolute -inset-1 rounded-3xl blur-lg transition-all duration-500 ${
+                              isEarned ? `${theme.aura} opacity-50 group-hover:opacity-85 group-hover:scale-110` : 'bg-slate-300 opacity-20'
+                            }`} />
+
+                            {/* 3D Beveled Coin Container */}
+                            <div className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl p-1.5 transition-transform duration-500 ease-out group-hover:scale-110 group-hover:-translate-y-1 group-hover:rotate-3 ${
+                              isEarned
+                                ? `bg-gradient-to-b from-white/80 via-white/40 to-slate-400/40 shadow-[0_10px_20px_rgba(0,0,0,0.15),inset_0_2px_4px_rgba(255,255,255,0.9),inset_0_-2px_4px_rgba(0,0,0,0.2)]`
+                                : `bg-gradient-to-b from-slate-200 via-slate-300 to-slate-400 shadow-[0_6px_12px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.6)]`
+                            }`}>
+                              {/* Inner Metallic Coin Face */}
+                              <div className={`w-full h-full rounded-xl flex items-center justify-center border shadow-inner transition-colors ${
+                                isEarned
+                                  ? `bg-gradient-to-tr ${theme.gradient} border-white/60`
+                                  : `bg-slate-100 border-slate-300 text-slate-400`
+                              }`}>
+                                {isEarned ? theme.icon : <Lock size={20} className="text-slate-400 drop-shadow-xs" />}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right: Tier Badge & 3D Stars Array */}
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border shadow-2xs ${
+                              isEarned
+                                ? 'bg-amber-400/20 text-amber-950 border-amber-300/80 font-black'
+                                : 'bg-slate-100 text-slate-500 border-slate-200'
+                            }`}>
+                              {theme.tierName}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: 5 }).map((_, sIdx) => {
+                                const isFilled = sIdx < starCount;
+                                return (
+                                  <Star
+                                    key={sIdx}
+                                    size={14}
+                                    className={`transition-transform duration-300 group-hover:scale-110 ${
+                                      isEarned && isFilled
+                                        ? 'text-amber-500 fill-amber-400 drop-shadow-[0_2px_4px_rgba(245,158,11,0.4)]'
+                                        : isFilled
+                                          ? 'text-slate-300 fill-slate-200'
+                                          : 'text-slate-200'
+                                    }`}
+                                  />
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Title & Description */}
+                        <h4 className="text-base font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug">
+                          {ach.title || ach.name}
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                          {ach.description || 'Complete required tests to unlock this achievement badge.'}
+                        </p>
+                      </div>
+
+                      {/* Bottom Row: Unlocked Status / Target Progress */}
+                      <div className="pt-4 mt-4 border-t border-slate-100/80 flex items-center justify-between text-xs">
+                        {isEarned ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                            <CheckCircle2 size={13} className="text-emerald-600 animate-pulse" />
+                            <span>Unlocked {ach.earned_at ? `on ${new Date(ach.earned_at).toLocaleDateString('en-GB')}` : ''}</span>
+                          </span>
+                        ) : (
+                          <div className="w-full flex items-center justify-between">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg">
+                              <Lock size={12} className="text-slate-400" />
+                              <span>Locked</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveTab('discover')}
+                              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 group-hover:translate-x-1 transition-transform cursor-pointer"
+                            >
+                              <span>Take Exam</span>
+                              <ArrowRight size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="col-span-3 bg-white p-12 rounded-3xl border border-slate-200 shadow-xs text-center space-y-3">
+                  <Trophy size={40} className="mx-auto text-amber-500 mb-1" />
+                  <h3 className="text-base font-bold text-slate-800">No Achievements Recorded Yet</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    Complete your first test to unlock your beginner achievement badge and start building your mastery score!
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('discover')}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Browse Tests
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* VIEW DETAILS MODAL */}
       {showDetailModal && selectedSeriesDetail && (
