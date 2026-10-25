@@ -2326,13 +2326,13 @@ export default function StudentTestSeries() {
             {/* Bottom Title Row with VIP-Pass Style Vibrant Gradient Typography */}
             <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0.5">
               <h1 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 tracking-tight leading-tight flex items-baseline flex-wrap gap-1.5">
-                <span>Practice, Compete & Excel.</span>
+                <span>All Competitive & Academic Exams.</span>
                 <span className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-amber-600 bg-clip-text text-transparent font-black drop-shadow-2xs">
                   Unlimited Practice & Mock Tests.
                 </span>
               </h1>
               <span className="hidden xl:inline text-[11px] text-slate-400 font-medium">
-                • Full-length mock tests & instant scorecard analytics
+                • SSC CGL, RRB NTPC, Banking, NDA, Diplomas, Reasoning & Technical
               </span>
             </div>
           </div>
