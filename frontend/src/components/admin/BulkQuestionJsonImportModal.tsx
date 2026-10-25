@@ -340,24 +340,78 @@ Requirements:
                 </div>
               )}
 
-              {/* Schema Hint */}
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5 text-slate-600">
-                <div className="font-bold text-slate-900 flex items-center justify-between">
-                  <span className="flex items-center gap-1">
-                    <HelpCircle size={13} className="text-indigo-600" />
-                    <span>Supported Format Structure:</span>
-                  </span>
+              {/* Visual Schema Guide & Anatomy Box */}
+              <div className="p-4 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-2xl border border-indigo-500/30 text-white space-y-3 shadow-lg">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-500/20 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1 rounded-lg bg-indigo-500/20 text-indigo-300">
+                      <HelpCircle size={15} />
+                    </span>
+                    <div>
+                      <h4 className="font-bold text-xs text-white">Visual Anatomy: What Each JSON Field Does</h4>
+                      <p className="text-[10px] text-indigo-200/80">Each item in your JSON array represents 1 question in the student's test</p>
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={handleCopySampleJson}
-                    className="text-[10px] text-indigo-600 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                    className="px-2.5 py-1 bg-indigo-500/30 hover:bg-indigo-500/50 text-indigo-200 border border-indigo-400/30 text-[10px] font-bold rounded-lg cursor-pointer flex items-center gap-1 transition-all"
                   >
-                    {copiedJson ? 'Copied!' : 'Copy Sample Format'}
+                    <Copy size={11} />
+                    <span>{copiedJson ? 'Sample Copied!' : 'Copy Template'}</span>
                   </button>
                 </div>
-                <p className="text-[11px] leading-relaxed text-slate-500">
-                  You can use simplified fields (<code>question</code>, <code>optionA</code>, <code>optionB</code>, <code>optionC</code>, <code>optionD</code>, <code>correctOption: &quot;A&quot;</code>) OR nested options (<code>options: [{'{'}&quot;option_key&quot;: &quot;A&quot;, &quot;option_text&quot;: &quot;...&quot;, &quot;is_correct&quot;: true{'}'}]</code>). Marks, section, and explanations are optional.
-                </p>
+
+                {/* Color-coded visual mapping grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                    <div className="flex items-center gap-1.5 text-indigo-300 font-bold text-[10px]">
+                      <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
+                      <code>&quot;question&quot;</code>
+                    </div>
+                    <p className="text-[10px] text-slate-300">The problem / statement asked to the student.</p>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                    <div className="flex items-center gap-1.5 text-sky-300 font-bold text-[10px]">
+                      <span className="w-2 h-2 rounded-full bg-sky-400"></span>
+                      <code>&quot;optionA..D&quot;</code>
+                    </div>
+                    <p className="text-[10px] text-slate-300">4 multiple-choice answers for radio buttons.</p>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                    <div className="flex items-center gap-1.5 text-emerald-300 font-bold text-[10px]">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                      <code>&quot;correctOption&quot;</code>
+                    </div>
+                    <p className="text-[10px] text-slate-300">Key of the correct choice: <code>&quot;A&quot;</code>, <code>&quot;B&quot;</code>, <code>&quot;C&quot;</code>, or <code>&quot;D&quot;</code>.</p>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                    <div className="flex items-center gap-1.5 text-amber-300 font-bold text-[10px]">
+                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                      <code>&quot;explanation&quot;</code>
+                    </div>
+                    <p className="text-[10px] text-slate-300">Shown to the student after submission in scorecard analysis.</p>
+                  </div>
+                </div>
+
+                {/* Sub-row for marks and section */}
+                <div className="flex flex-wrap items-center gap-3 pt-1 text-[10px] text-slate-300 border-t border-white/5">
+                  <span className="flex items-center gap-1">
+                    <strong className="text-white">Optional fields:</strong>
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-slate-200">
+                    <code>&quot;marks&quot;: 2</code> (+score)
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-slate-200">
+                    <code>&quot;negativeMarks&quot;: 0.5</code> (-deduction)
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-slate-200">
+                    <code>&quot;section&quot;: &quot;Reasoning&quot;</code> (grouping)
+                  </span>
+                </div>
               </div>
             </div>
           ) : (
