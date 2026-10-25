@@ -66,6 +66,7 @@ const handleGetCategories = async (req: Request, res: Response) => {
 };
 router.get('/admin/categories', handleGetCategories);
 router.get('/admin/test-series/categories', handleGetCategories);
+router.get('/student/test-series/categories', handleGetCategories);
 router.get('/public/categories', handleGetCategories);
 router.get('/categories', handleGetCategories);
 

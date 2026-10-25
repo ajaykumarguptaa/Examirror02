@@ -197,6 +197,7 @@ export default function StudentTestSeries() {
   // Category & Sub-Category Sidebar State
   const [sidebarSearch, setSidebarSearch] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Record<number, boolean>>({});
+  const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(true);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   const [availableSeries, setAvailableSeries] = useState<TestSeriesItem[]>([]);
@@ -329,8 +330,10 @@ export default function StudentTestSeries() {
         setAchievements(achieveRes.data.data || []);
       }
 
-      const catRes = await axios.get('/api/admin/test-series/categories', { headers })
-        .catch(() => axios.get('http://localhost:3000/api/admin/test-series/categories', { headers }))
+      const catRes = await axios.get('/api/student/test-series/categories', { headers })
+        .catch(() => axios.get('/api/public/categories', { headers }))
+        .catch(() => axios.get('/api/admin/test-series/categories', { headers }))
+        .catch(() => axios.get('http://localhost:3000/api/student/test-series/categories', { headers }))
         .catch(() => ({ data: { data: [] } }));
       if (catRes?.data?.data && Array.isArray(catRes.data.data)) {
         setCategories(catRes.data.data);
@@ -905,6 +908,45 @@ export default function StudentTestSeries() {
     return <BookOpen size={16} className={className} />;
   };
 
+  // Merged and deduplicated categories from database + availableSeries items
+  const allCategoriesList = useMemo(() => {
+    const list: Category[] = [...categories];
+    const existingIds = new Set(list.map(c => Number(c.id)));
+    availableSeries.forEach(s => {
+      const cId = Number(s.category_id);
+      if (cId && !existingIds.has(cId)) {
+        existingIds.add(cId);
+        list.push({
+          id: cId,
+          name: s.category_name || `Category ${cId}`,
+          slug: String(cId),
+          description: ''
+        });
+      }
+    });
+    return list;
+  }, [categories, availableSeries]);
+
+  // Merged and deduplicated subcategories from database + availableSeries items
+  const allSubCategoriesList = useMemo(() => {
+    const list: SubCategory[] = [...subCategories];
+    const existingIds = new Set(list.map(sc => Number(sc.id)));
+    availableSeries.forEach(s => {
+      const scId = Number(s.sub_category_id);
+      if (scId && !existingIds.has(scId)) {
+        existingIds.add(scId);
+        list.push({
+          id: scId,
+          category_id: Number(s.category_id),
+          category_name: s.category_name,
+          name: s.sub_category_name || `Sub-Category ${scId}`,
+          slug: String(scId)
+        });
+      }
+    });
+    return list;
+  }, [subCategories, availableSeries]);
+
   const categoryCounts = useMemo(() => {
     const counts: Record<number | string, number> = { ALL: availableSeries.length };
     availableSeries.forEach(s => {
@@ -935,22 +977,22 @@ export default function StudentTestSeries() {
 
   const filteredCategoriesForSidebar = useMemo(() => {
     const q = sidebarSearch.toLowerCase().trim();
-    if (!q) return categories;
-    return categories.filter(cat => {
+    if (!q) return allCategoriesList;
+    return allCategoriesList.filter(cat => {
       const matchCat = cat.name.toLowerCase().includes(q);
-      const matchSub = subCategories.some(
+      const matchSub = allSubCategoriesList.some(
         sc => sc.category_id === cat.id && sc.name.toLowerCase().includes(q)
       );
       return matchCat || matchSub;
     });
-  }, [categories, subCategories, sidebarSearch]);
+  }, [allCategoriesList, allSubCategoriesList, sidebarSearch]);
 
   const activeSubCategories = useMemo(() => {
     if (selectedCategory === 'ALL') {
-      return subCategories;
+      return allSubCategoriesList;
     }
-    return subCategories.filter(sc => sc.category_id === selectedCategory);
-  }, [subCategories, selectedCategory]);
+    return allSubCategoriesList.filter(sc => sc.category_id === selectedCategory);
+  }, [allSubCategoriesList, selectedCategory]);
 
   const filteredSeries = useMemo(() => {
     const q = debouncedSearchQuery.toLowerCase().trim();
@@ -1804,155 +1846,216 @@ export default function StudentTestSeries() {
           </div>
         </div>
 
-        {/* Categories Accordion List */}
-        <div className="space-y-1.5 flex-1 overflow-y-auto pr-1">
-          {/* Overarching "All Categories" option */}
+        {/* All Categories Dropdown Selector */}
+        <div className="space-y-2">
+          {/* Main Dropdown Toggle Button */}
           <button
             type="button"
-            onClick={() => {
-              setSelectedCategory('ALL');
-              setSelectedSubCategory('ALL');
-              if (isMobile) setMobileFilterOpen(false);
-            }}
-            className={`w-full flex items-center justify-between p-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer group ${
-              selectedCategory === 'ALL'
-                ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-900'
-                : 'bg-slate-50/70 hover:bg-slate-100/90 text-slate-700 border border-slate-100'
+            onClick={() => setIsCategoriesDropdownOpen(prev => !prev)}
+            className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer group shadow-2xs select-none ${
+              isCategoriesDropdownOpen
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200/80'
             }`}
           >
-            <div className="flex items-center gap-2.5">
-              <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-                selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-white border border-slate-200 text-indigo-600'
+            <div className="flex items-center gap-2.5 min-w-0 pr-2">
+              <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                isCategoriesDropdownOpen ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-white border border-slate-200 text-indigo-600'
               }`}>
-                <LayoutGrid size={15} />
+                <LayoutGrid size={16} />
               </span>
-              <span>All Categories</span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                  {selectedCategory === 'ALL' ? 'Browsing All' : 'Active Category'}
+                </span>
+                <span className="truncate font-black text-xs">
+                  {selectedCategory === 'ALL'
+                    ? 'All Categories'
+                    : (allCategoriesList.find(c => c.id === selectedCategory)?.name || 'Category')}
+                </span>
+              </div>
             </div>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-              selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-700'
-            }`}>
-              {availableSeries.length}
-            </span>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                isCategoriesDropdownOpen ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {availableSeries.length}
+              </span>
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-300 ${
+                  isCategoriesDropdownOpen ? 'rotate-180 text-indigo-400' : 'text-slate-500'
+                }`}
+              />
+            </div>
           </button>
 
-          {/* Dynamic Categories */}
-          {filteredCategoriesForSidebar.map(cat => {
-            const isCatSelected = selectedCategory === cat.id;
-            const isExpanded = expandedCategories[cat.id] ?? isCatSelected;
-            const catSubs = subCategories.filter(sc => sc.category_id === cat.id);
-            const totalInCat = categoryCounts[cat.id] || 0;
-
-            return (
-              <div
-                key={cat.id}
-                className={`rounded-2xl transition-all border ${
-                  isCatSelected
-                    ? 'border-indigo-200 bg-indigo-50/40 shadow-2xs'
-                    : 'border-slate-100 hover:border-slate-200 bg-white'
+          {/* Categories & Subcategories Dropdown Panel */}
+          {isCategoriesDropdownOpen && (
+            <div className="space-y-1.5 bg-slate-50/90 border border-slate-200/80 rounded-2xl p-2 shadow-inner animate-in fade-in slide-in-from-top-1 duration-150 max-h-[22rem] overflow-y-auto">
+              {/* Option 1: All Categories (Show All Tests) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory('ALL');
+                  setSelectedSubCategory('ALL');
+                  if (isMobile) setMobileFilterOpen(false);
+                }}
+                className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
+                  selectedCategory === 'ALL'
+                    ? 'bg-indigo-600 text-white shadow-2xs font-black'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
                 }`}
               >
-                {/* Category Header Row */}
-                <div
-                  onClick={() => {
-                    setSelectedCategory(cat.id);
-                    setSelectedSubCategory('ALL');
-                    setExpandedCategories(prev => ({ ...prev, [cat.id]: true }));
-                    if (isMobile && catSubs.length === 0) setMobileFilterOpen(false);
-                  }}
-                  className={`flex items-center justify-between p-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer group select-none ${
-                    isCatSelected
-                      ? 'text-indigo-900'
-                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50/80'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-                      isCatSelected ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600'
-                    }`}>
-                      {getCategoryIcon(cat.name, isCatSelected)}
-                    </span>
-                    <span className="truncate">{cat.name}</span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                      isCatSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {totalInCat}
-                    </span>
-                    {catSubs.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={(e) => toggleCategoryExpand(cat.id, e)}
-                        className="p-1 rounded-md hover:bg-black/5 text-slate-400 hover:text-slate-700 transition-transform cursor-pointer"
-                        title={isExpanded ? 'Collapse' : 'Expand'}
-                      >
-                        <ChevronDown
-                          size={14}
-                          className={`transition-transform duration-200 ${isExpanded ? 'rotate-180 text-indigo-600' : ''}`}
-                        />
-                      </button>
-                    )}
-                  </div>
+                <div className="flex items-center gap-2">
+                  <LayoutGrid size={14} className={selectedCategory === 'ALL' ? 'text-white' : 'text-indigo-600'} />
+                  <span>All Categories (Show All Tests)</span>
                 </div>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {availableSeries.length}
+                  </span>
+                  {selectedCategory === 'ALL' && <Check size={13} className="text-white" />}
+                </div>
+              </button>
 
-                {/* Sub-Categories Tree (Expanded) */}
-                {isExpanded && catSubs.length > 0 && (
-                  <div className="pb-2 pt-0.5 px-3 space-y-1">
-                    <div className="border-l-2 border-indigo-100 ml-3.5 pl-3 space-y-1">
-                      {/* All in this category */}
-                      <button
-                        type="button"
+              <div className="border-t border-slate-200/80 my-1" />
+
+              {/* Dynamic Categories List inside the Dropdown */}
+              {filteredCategoriesForSidebar.length === 0 ? (
+                <div className="text-center py-4 text-xs text-slate-400">
+                  No categories found
+                </div>
+              ) : (
+                filteredCategoriesForSidebar.map(cat => {
+                  const isCatSelected = selectedCategory === cat.id;
+                  const isExpanded = expandedCategories[cat.id] ?? isCatSelected;
+                  const catSubs = allSubCategoriesList.filter(sc => Number(sc.category_id) === Number(cat.id));
+                  const totalInCat = categoryCounts[cat.id] || 0;
+
+                  return (
+                    <div
+                      key={cat.id}
+                      className={`rounded-xl transition-all border ${
+                        isCatSelected
+                          ? 'border-indigo-300 bg-white shadow-2xs ring-1 ring-indigo-200'
+                          : 'border-slate-200/70 hover:border-slate-300 bg-white'
+                      }`}
+                    >
+                      {/* Category Header Row */}
+                      <div
                         onClick={() => {
                           setSelectedCategory(cat.id);
                           setSelectedSubCategory('ALL');
-                          if (isMobile) setMobileFilterOpen(false);
+                          setExpandedCategories(prev => ({ ...prev, [cat.id]: !prev[cat.id] }));
+                          if (isMobile && catSubs.length === 0) setMobileFilterOpen(false);
                         }}
-                        className={`w-full text-left py-1.5 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                          isCatSelected && selectedSubCategory === 'ALL'
-                            ? 'bg-indigo-600 text-white font-bold shadow-2xs'
-                            : 'text-slate-600 hover:text-indigo-700 hover:bg-indigo-50/60'
+                        className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer group select-none ${
+                          isCatSelected
+                            ? 'text-indigo-950 font-black'
+                            : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
                         }`}
                       >
-                        <span>All {cat.name}</span>
-                        <span className="text-[10px] opacity-80">{totalInCat}</span>
-                      </button>
+                        <div className="flex items-center gap-2 min-w-0 pr-1">
+                          <span className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                            isCatSelected ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600'
+                          }`}>
+                            {getCategoryIcon(cat.name, isCatSelected)}
+                          </span>
+                          <span className="truncate">{cat.name}</span>
+                        </div>
 
-                      {/* Individual Subcategories */}
-                      {catSubs.map(sc => {
-                        const isSubSelected = isCatSelected && selectedSubCategory === sc.id;
-                        const subCount = subCategoryCounts[sc.id] || 0;
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                            isCatSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {totalInCat}
+                          </span>
+                          {catSubs.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={(e) => toggleCategoryExpand(cat.id, e)}
+                              className="p-1 rounded-md hover:bg-black/5 text-slate-400 hover:text-slate-700 transition-transform cursor-pointer"
+                              title={isExpanded ? 'Collapse subcategories' : 'Expand subcategories'}
+                            >
+                              <ChevronDown
+                                size={14}
+                                className={`transition-transform duration-200 ${isExpanded ? 'rotate-180 text-indigo-600' : ''}`}
+                              />
+                            </button>
+                          )}
+                        </div>
+                      </div>
 
-                        return (
-                          <button
-                            type="button"
-                            key={sc.id}
-                            onClick={() => {
-                              setSelectedCategory(cat.id);
-                              setSelectedSubCategory(sc.id);
-                              if (isMobile) setMobileFilterOpen(false);
-                            }}
-                            className={`w-full text-left py-1.5 px-2 rounded-lg text-[11px] font-medium flex items-center justify-between transition-all cursor-pointer ${
-                              isSubSelected
-                                ? 'bg-indigo-600 text-white font-bold shadow-2xs'
-                                : 'text-slate-600 hover:text-indigo-700 hover:bg-indigo-50/60'
-                            }`}
-                          >
-                            <span className="truncate pr-2">{sc.name}</span>
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full shrink-0 font-bold ${
-                              isSubSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                            }`}>
-                              {subCount}
-                            </span>
-                          </button>
-                        );
-                      })}
+                      {/* Subcategories Dropdown Tree inside this Category */}
+                      {isExpanded && catSubs.length > 0 && (
+                        <div className="pb-2 pt-0.5 px-2.5 space-y-1 bg-slate-50/70 rounded-b-xl border-t border-slate-100">
+                          <div className="border-l-2 border-indigo-200 ml-2.5 pl-2.5 space-y-1 my-1">
+                            {/* All in this category */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedCategory(cat.id);
+                                setSelectedSubCategory('ALL');
+                                if (isMobile) setMobileFilterOpen(false);
+                              }}
+                              className={`w-full text-left py-1.5 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                                isCatSelected && selectedSubCategory === 'ALL'
+                                  ? 'bg-indigo-600 text-white font-bold shadow-2xs'
+                                  : 'text-slate-600 hover:text-indigo-700 hover:bg-white'
+                              }`}
+                            >
+                              <span>All {cat.name}</span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] opacity-80">{totalInCat}</span>
+                                {isCatSelected && selectedSubCategory === 'ALL' && <Check size={11} className="text-white" />}
+                              </div>
+                            </button>
+
+                            {/* Individual Subcategories */}
+                            {catSubs.map(sc => {
+                              const isSubSelected = isCatSelected && selectedSubCategory === sc.id;
+                              const subCount = subCategoryCounts[sc.id] || 0;
+
+                              return (
+                                <button
+                                  type="button"
+                                  key={sc.id}
+                                  onClick={() => {
+                                    setSelectedCategory(cat.id);
+                                    setSelectedSubCategory(sc.id);
+                                    if (isMobile) setMobileFilterOpen(false);
+                                  }}
+                                  className={`w-full text-left py-1.5 px-2 rounded-lg text-[11px] font-medium flex items-center justify-between transition-all cursor-pointer ${
+                                    isSubSelected
+                                      ? 'bg-indigo-600 text-white font-bold shadow-2xs'
+                                      : 'text-slate-600 hover:text-indigo-700 hover:bg-white'
+                                  }`}
+                                >
+                                  <span className="truncate pr-2">{sc.name}</span>
+                                  <div className="flex items-center gap-1">
+                                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full shrink-0 font-bold ${
+                                      isSubSelected ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-600'
+                                    }`}>
+                                      {subCount}
+                                    </span>
+                                    {isSubSelected && <Check size={11} className="text-white" />}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                  );
+                })
+              )}
+            </div>
+          )}
         </div>
 
         {/* Clear Filters Button (when filtered) */}
