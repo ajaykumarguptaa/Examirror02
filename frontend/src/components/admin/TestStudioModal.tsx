@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   Sparkles,
@@ -75,6 +75,111 @@ interface TestStudioModalProps {
   showToast: (type: 'success' | 'error' | 'info', msg: string) => void;
 }
 
+const parseQuestionToForm = (editingQuestion: any | null, activeTest: any): QuestionData => {
+  if (editingQuestion) {
+    let meta: any = {};
+    try {
+      meta = typeof editingQuestion.metadata === 'string'
+        ? JSON.parse(editingQuestion.metadata || '{}')
+        : (editingQuestion.metadata || {});
+    } catch (_) {
+      meta = {};
+    }
+
+    const qImages: string[] = Array.isArray(meta?.imageUrls)
+      ? meta.imageUrls
+      : (editingQuestion.image_url ? [editingQuestion.image_url] : []);
+
+    let opts = [
+      { option_key: 'A', option_text: '', image_url: '', is_correct: true },
+      { option_key: 'B', option_text: '', image_url: '', is_correct: false },
+      { option_key: 'C', option_text: '', image_url: '', is_correct: false },
+      { option_key: 'D', option_text: '', image_url: '', is_correct: false }
+    ];
+
+    if (Array.isArray(editingQuestion.options) && editingQuestion.options.length > 0) {
+      opts = editingQuestion.options.map((o: any, idx: number) => ({
+        option_key: o.option_key || String.fromCharCode(65 + idx),
+        option_text: o.option_text !== undefined && o.option_text !== null ? String(o.option_text) : (o.text || ''),
+        image_url: o.image_url || '',
+        is_correct: o.is_correct === 1 || o.is_correct === true || String(o.is_correct) === '1' || String(o.is_correct) === 'true'
+      }));
+    }
+
+    const colA = Array.isArray(meta?.columnA) && meta.columnA.length > 0 ? [...meta.columnA] : ['', '', '', ''];
+    while (colA.length < 4) colA.push('');
+    const colB = Array.isArray(meta?.columnB) && meta.columnB.length > 0 ? [...meta.columnB] : ['', '', '', ''];
+    while (colB.length < 4) colB.push('');
+    const items = Array.isArray(meta?.itemsToOrder) && meta.itemsToOrder.length > 0 ? [...meta.itemsToOrder] : ['', '', '', ''];
+    while (items.length < 4) items.push('');
+
+    return {
+      id: editingQuestion.id,
+      test_id: activeTest?.id || editingQuestion.test_id,
+      question_text: editingQuestion.question_text || '',
+      section_name: editingQuestion.section_name || 'General Assessment',
+      question_type: editingQuestion.question_type || 'SINGLE_CHOICE',
+      explanation: editingQuestion.explanation || '',
+      marks: Number(editingQuestion.marks) !== undefined && !isNaN(Number(editingQuestion.marks)) ? Number(editingQuestion.marks) : 2.0,
+      negative_marks: Number(editingQuestion.negative_marks) !== undefined && !isNaN(Number(editingQuestion.negative_marks)) ? Number(editingQuestion.negative_marks) : 0.5,
+      image_url: editingQuestion.image_url || '',
+      options: opts,
+      metadata: meta,
+      question_text_hi: meta?.question_text_hi || '',
+      explanation_hi: meta?.explanation_hi || '',
+      options_hi: meta?.options_hi || [],
+      difficulty: meta?.difficulty || 'MODERATE',
+      target_time_seconds: meta?.target_time_seconds || 60,
+      bloom_level: meta?.bloom_level || 'Conceptual Understanding',
+      hint: meta?.hint || '',
+      columnA: colA,
+      columnB: colB,
+      itemsToOrder: items,
+      imageUrls: qImages,
+      numerical_range: meta?.numerical_range || { min: 0, max: 0 },
+      assertion: meta?.assertion || '',
+      reason: meta?.reason || '',
+      statement1: meta?.statement1 || '',
+      statement2: meta?.statement2 || '',
+      passage: meta?.passage || ''
+    };
+  }
+
+  return {
+    test_id: activeTest?.id,
+    question_text: '',
+    section_name: 'General Assessment',
+    question_type: 'SINGLE_CHOICE',
+    explanation: '',
+    marks: 2.0,
+    negative_marks: 0.5,
+    image_url: '',
+    options: [
+      { option_key: 'A', option_text: '', image_url: '', is_correct: true },
+      { option_key: 'B', option_text: '', image_url: '', is_correct: false },
+      { option_key: 'C', option_text: '', image_url: '', is_correct: false },
+      { option_key: 'D', option_text: '', image_url: '', is_correct: false }
+    ],
+    question_text_hi: '',
+    explanation_hi: '',
+    options_hi: [],
+    difficulty: 'MODERATE',
+    target_time_seconds: 60,
+    bloom_level: 'Conceptual Understanding',
+    hint: '',
+    columnA: ['', '', '', ''],
+    columnB: ['', '', '', ''],
+    itemsToOrder: ['', '', '', ''],
+    imageUrls: [],
+    numerical_range: { min: 0, max: 0 },
+    assertion: '',
+    reason: '',
+    statement1: '',
+    statement2: '',
+    passage: ''
+  };
+};
+
 export const TestStudioModal: React.FC<TestStudioModalProps> = ({
   isOpen,
   onClose,
@@ -96,108 +201,15 @@ export const TestStudioModal: React.FC<TestStudioModalProps> = ({
   }>({ field: 'question_text' });
 
   // State initialization
-  const [form, setForm] = useState<QuestionData>(() => {
-    if (editingQuestion) {
-      let meta: any = {};
-      try {
-        meta = typeof editingQuestion.metadata === 'string'
-          ? JSON.parse(editingQuestion.metadata || '{}')
-          : (editingQuestion.metadata || {});
-      } catch (_) {
-        meta = {};
-      }
+  const [form, setForm] = useState<QuestionData>(() => parseQuestionToForm(editingQuestion, activeTest));
 
-      const qImages: string[] = Array.isArray(meta?.imageUrls)
-        ? meta.imageUrls
-        : (editingQuestion.image_url ? [editingQuestion.image_url] : []);
-
-      let opts = [
-        { option_key: 'A', option_text: '', image_url: '', is_correct: true },
-        { option_key: 'B', option_text: '', image_url: '', is_correct: false },
-        { option_key: 'C', option_text: '', image_url: '', is_correct: false },
-        { option_key: 'D', option_text: '', image_url: '', is_correct: false }
-      ];
-
-      if (Array.isArray(editingQuestion.options) && editingQuestion.options.length > 0) {
-        opts = editingQuestion.options.map((o: any) => ({
-          option_key: o.option_key || 'A',
-          option_text: o.option_text || '',
-          image_url: o.image_url || '',
-          is_correct: o.is_correct === 1 || o.is_correct === true
-        }));
-      }
-
-      const colA = Array.isArray(meta?.columnA) && meta.columnA.length > 0 ? [...meta.columnA] : ['', '', '', ''];
-      while (colA.length < 4) colA.push('');
-      const colB = Array.isArray(meta?.columnB) && meta.columnB.length > 0 ? [...meta.columnB] : ['', '', '', ''];
-      while (colB.length < 4) colB.push('');
-      const items = Array.isArray(meta?.itemsToOrder) && meta.itemsToOrder.length > 0 ? [...meta.itemsToOrder] : ['', '', '', ''];
-      while (items.length < 4) items.push('');
-
-      return {
-        id: editingQuestion.id,
-        test_id: activeTest?.id,
-        question_text: editingQuestion.question_text || '',
-        section_name: editingQuestion.section_name || 'General Assessment',
-        question_type: editingQuestion.question_type || 'SINGLE_CHOICE',
-        explanation: editingQuestion.explanation || '',
-        marks: Number(editingQuestion.marks) || 2.0,
-        negative_marks: Number(editingQuestion.negative_marks) || 0.5,
-        image_url: editingQuestion.image_url || '',
-        options: opts,
-        metadata: meta,
-        question_text_hi: meta?.question_text_hi || '',
-        explanation_hi: meta?.explanation_hi || '',
-        difficulty: meta?.difficulty || 'MODERATE',
-        target_time_seconds: meta?.target_time_seconds || 60,
-        bloom_level: meta?.bloom_level || 'Conceptual Understanding',
-        hint: meta?.hint || '',
-        columnA: colA,
-        columnB: colB,
-        itemsToOrder: items,
-        imageUrls: qImages,
-        numerical_range: meta?.numerical_range || { min: 0, max: 0 },
-        assertion: meta?.assertion || '',
-        reason: meta?.reason || '',
-        statement1: meta?.statement1 || '',
-        statement2: meta?.statement2 || '',
-        passage: meta?.passage || ''
-      };
+  // Sync form whenever isOpen or editingQuestion changes
+  useEffect(() => {
+    if (isOpen) {
+      setForm(parseQuestionToForm(editingQuestion, activeTest));
+      setActiveTab('EDITOR');
     }
-
-    return {
-      test_id: activeTest?.id,
-      question_text: '',
-      section_name: 'General Assessment',
-      question_type: 'SINGLE_CHOICE',
-      explanation: '',
-      marks: 2.0,
-      negative_marks: 0.5,
-      image_url: '',
-      options: [
-        { option_key: 'A', option_text: '', image_url: '', is_correct: true },
-        { option_key: 'B', option_text: '', image_url: '', is_correct: false },
-        { option_key: 'C', option_text: '', image_url: '', is_correct: false },
-        { option_key: 'D', option_text: '', image_url: '', is_correct: false }
-      ],
-      question_text_hi: '',
-      explanation_hi: '',
-      difficulty: 'MODERATE',
-      target_time_seconds: 60,
-      bloom_level: 'Conceptual Understanding',
-      hint: '',
-      columnA: ['', '', '', ''],
-      columnB: ['', '', '', ''],
-      itemsToOrder: ['', '', '', ''],
-      imageUrls: [],
-      numerical_range: { min: 0, max: 0 },
-      assertion: '',
-      reason: '',
-      statement1: '',
-      statement2: '',
-      passage: ''
-    };
-  });
+  }, [isOpen, editingQuestion, activeTest]);
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadingOptionKey, setUploadingOptionKey] = useState<string | null>(null);

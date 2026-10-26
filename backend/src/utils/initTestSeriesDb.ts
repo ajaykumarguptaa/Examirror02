@@ -251,6 +251,7 @@ export async function initTestSeriesDatabase() {
   try { await db.query(`ALTER TABLE questions ADD COLUMN image_url TEXT NULL AFTER question_type`); } catch (e) { }
   try { await db.query(`ALTER TABLE questions ADD COLUMN metadata JSON NULL AFTER image_url`); } catch (e) { }
   try { await db.query(`ALTER TABLE question_options ADD COLUMN image_url TEXT NULL AFTER option_text`); } catch (e) { }
+  try { await db.query(`ALTER TABLE question_options MODIFY COLUMN option_text TEXT NULL`); } catch (e) { }
 
   // 8. Test Series Enrollments
   await db.query(`

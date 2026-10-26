@@ -2755,6 +2755,7 @@ export const TestSeriesManagement = () => {
       {/* MODAL: TESTSTUDIO PRO AUTHORING SUITE */}
       {/* ========================================== */}
       <TestStudioModal
+        key={isAddQuestionModalOpen ? `teststudio-${editingQuestion?.id || 'new'}` : 'teststudio-closed'}
         isOpen={isAddQuestionModalOpen}
         onClose={() => {
           setIsAddQuestionModalOpen(false);
@@ -2765,6 +2766,8 @@ export const TestSeriesManagement = () => {
         onSaveSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['adminTestQuestions', activeTestForQuestions?.id] });
           queryClient.invalidateQueries({ queryKey: ['adminTestSeries'] });
+          refetchActiveQuestions();
+          refetchActiveTests();
         }}
         showToast={(type, msg) => {
           setToast({ type: type === 'error' ? 'error' : 'success', message: msg });

@@ -773,16 +773,19 @@ export const testSeriesService = {
     const qId = result.insertId;
 
     if (Array.isArray(data.options)) {
-      for (const opt of data.options) {
+      for (let idx = 0; idx < data.options.length; idx++) {
+        const opt = data.options[idx];
+        const optKey = opt.option_key || opt.k || String.fromCharCode(65 + idx);
+        const optText = opt.option_text !== undefined && opt.option_text !== null ? String(opt.option_text) : (opt.t !== undefined && opt.t !== null ? String(opt.t) : '');
         await db.query(`
           INSERT INTO question_options (question_id, option_key, option_text, image_url, is_correct)
           VALUES (?, ?, ?, ?, ?)
         `, [
           qId,
-          opt.option_key || opt.k,
-          opt.option_text || opt.t,
+          optKey,
+          optText,
           opt.image_url || null,
-          opt.is_correct ? 1 : 0
+          (opt.is_correct === 1 || opt.is_correct === true || String(opt.is_correct) === '1' || String(opt.is_correct) === 'true') ? 1 : 0
         ]);
       }
     }
@@ -852,16 +855,19 @@ export const testSeriesService = {
 
     if (Array.isArray(data.options)) {
       await db.query('DELETE FROM question_options WHERE question_id = ?', [id]);
-      for (const opt of data.options) {
+      for (let idx = 0; idx < data.options.length; idx++) {
+        const opt = data.options[idx];
+        const optKey = opt.option_key || opt.k || String.fromCharCode(65 + idx);
+        const optText = opt.option_text !== undefined && opt.option_text !== null ? String(opt.option_text) : (opt.t !== undefined && opt.t !== null ? String(opt.t) : '');
         await db.query(`
           INSERT INTO question_options (question_id, option_key, option_text, image_url, is_correct)
           VALUES (?, ?, ?, ?, ?)
         `, [
           id,
-          opt.option_key || opt.k,
-          opt.option_text || opt.t,
+          optKey,
+          optText,
           opt.image_url || null,
-          opt.is_correct ? 1 : 0
+          (opt.is_correct === 1 || opt.is_correct === true || String(opt.is_correct) === '1' || String(opt.is_correct) === 'true') ? 1 : 0
         ]);
       }
     }
