@@ -732,15 +732,29 @@ export const testSeriesService = {
   },
 
   addQuestionWithOption: async (data: any) => {
+    let metadataStr: string | null = null;
+    if (data.metadata) {
+      metadataStr = typeof data.metadata === 'string' ? data.metadata : JSON.stringify(data.metadata);
+    } else if (data.imageUrls || data.columnA || data.itemsToOrder) {
+      metadataStr = JSON.stringify({
+        imageUrls: data.imageUrls || [],
+        columnA: data.columnA || [],
+        columnB: data.columnB || [],
+        itemsToOrder: data.itemsToOrder || []
+      });
+    }
+
     const [result]: any = await db.query(`
-      INSERT INTO questions (test_id, question_text, section_name, question_type, explanation, marks, negative_marks, display_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO questions (test_id, question_text, section_name, question_type, image_url, explanation, metadata, marks, negative_marks, display_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       data.test_id,
       data.question_text,
       data.section_name || 'General Assessment',
       data.question_type || 'SINGLE_CHOICE',
+      data.image_url || null,
       data.explanation || '',
+      metadataStr,
       data.marks || 2.00,
       data.negative_marks || 0.50,
       data.display_order || 1
@@ -751,9 +765,15 @@ export const testSeriesService = {
     if (Array.isArray(data.options)) {
       for (const opt of data.options) {
         await db.query(`
-          INSERT INTO question_options (question_id, option_key, option_text, is_correct)
-          VALUES (?, ?, ?, ?)
-        `, [qId, opt.option_key || opt.k, opt.option_text || opt.t, opt.is_correct ? 1 : 0]);
+          INSERT INTO question_options (question_id, option_key, option_text, image_url, is_correct)
+          VALUES (?, ?, ?, ?, ?)
+        `, [
+          qId,
+          opt.option_key || opt.k,
+          opt.option_text || opt.t,
+          opt.image_url || null,
+          opt.is_correct ? 1 : 0
+        ]);
       }
     }
 
@@ -762,6 +782,71 @@ export const testSeriesService = {
     await db.query('UPDATE tests SET question_count = ? WHERE id = ?', [countRows[0].cnt, data.test_id]);
 
     return { id: qId, ...data };
+  },
+
+  updateQuestion: async (id: number | string, data: any) => {
+    const [existingRows]: any = await db.query('SELECT * FROM questions WHERE id = ?', [id]);
+    if (!existingRows || existingRows.length === 0) {
+      throw new Error('Question not found');
+    }
+    const currentQ = existingRows[0];
+
+    let metadataStr: string | null = null;
+    if (data.metadata !== undefined) {
+      metadataStr = typeof data.metadata === 'string' ? data.metadata : JSON.stringify(data.metadata);
+    } else if (data.imageUrls !== undefined || data.columnA !== undefined || data.itemsToOrder !== undefined) {
+      metadataStr = JSON.stringify({
+        imageUrls: data.imageUrls || [],
+        columnA: data.columnA || [],
+        columnB: data.columnB || [],
+        itemsToOrder: data.itemsToOrder || []
+      });
+    } else {
+      metadataStr = currentQ.metadata;
+    }
+
+    await db.query(`
+      UPDATE questions SET
+        question_text = ?,
+        section_name = ?,
+        question_type = ?,
+        image_url = ?,
+        explanation = ?,
+        metadata = ?,
+        marks = ?,
+        negative_marks = ?,
+        display_order = ?
+      WHERE id = ?
+    `, [
+      data.question_text !== undefined ? data.question_text : currentQ.question_text,
+      data.section_name !== undefined ? data.section_name : currentQ.section_name,
+      data.question_type !== undefined ? data.question_type : currentQ.question_type,
+      data.image_url !== undefined ? data.image_url : currentQ.image_url,
+      data.explanation !== undefined ? data.explanation : currentQ.explanation,
+      metadataStr,
+      data.marks !== undefined ? data.marks : currentQ.marks,
+      data.negative_marks !== undefined ? data.negative_marks : currentQ.negative_marks,
+      data.display_order !== undefined ? data.display_order : currentQ.display_order,
+      id
+    ]);
+
+    if (Array.isArray(data.options)) {
+      await db.query('DELETE FROM question_options WHERE question_id = ?', [id]);
+      for (const opt of data.options) {
+        await db.query(`
+          INSERT INTO question_options (question_id, option_key, option_text, image_url, is_correct)
+          VALUES (?, ?, ?, ?, ?)
+        `, [
+          id,
+          opt.option_key || opt.k,
+          opt.option_text || opt.t,
+          opt.image_url || null,
+          opt.is_correct ? 1 : 0
+        ]);
+      }
+    }
+
+    return { id, ...data };
   },
 
   bulkAddQuestions: async (testId: number | string, questions: any[]) => {

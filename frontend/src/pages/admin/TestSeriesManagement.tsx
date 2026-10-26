@@ -71,6 +71,7 @@ export const TestSeriesManagement = () => {
   const [editingTest, setEditingTest] = useState<any | null>(null);
   const [activeTestForQuestions, setActiveTestForQuestions] = useState<any | null>(null);
   const [isAddQuestionModalOpen, setIsAddQuestionModalOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<any | null>(null);
   const [isBulkJsonModalOpen, setIsBulkJsonModalOpen] = useState(false);
   const [previewLightbox, setPreviewLightbox] = useState<{ url: string; title?: string } | null>(null);
   const [previewLightboxZoom, setPreviewLightboxZoom] = useState<number>(1);
@@ -178,16 +179,24 @@ export const TestSeriesManagement = () => {
   const [questionForm, setQuestionForm] = useState({
     question_text: '',
     section_name: 'General Assessment',
+    question_type: 'SINGLE_CHOICE',
     explanation: '',
     marks: 2.0,
     negative_marks: 0.5,
+    image_url: '',
     options: [
-      { option_key: 'A', option_text: '', is_correct: true },
-      { option_key: 'B', option_text: '', is_correct: false },
-      { option_key: 'C', option_text: '', is_correct: false },
-      { option_key: 'D', option_text: '', is_correct: false }
-    ]
+      { option_key: 'A', option_text: '', image_url: '', is_correct: true },
+      { option_key: 'B', option_text: '', image_url: '', is_correct: false },
+      { option_key: 'C', option_text: '', image_url: '', is_correct: false },
+      { option_key: 'D', option_text: '', image_url: '', is_correct: false }
+    ],
+    columnA: ['', '', '', ''],
+    columnB: ['', '', '', ''],
+    itemsToOrder: ['', '', '', ''],
+    imageUrls: [] as string[]
   });
+  const [isUploadingQuestionImage, setIsUploadingQuestionImage] = useState(false);
+  const [uploadingOptionKey, setUploadingOptionKey] = useState<string | null>(null);
 
   // Queries
   const { data: seriesList = [], isLoading: isLoadingSeries } = useQuery({
@@ -540,34 +549,179 @@ export const TestSeriesManagement = () => {
     }
   };
 
-  // Create Question inside Test
+  // Open Question Modal in Add Mode
+  const handleOpenAddQuestion = () => {
+    setEditingQuestion(null);
+    setQuestionForm({
+      question_text: '',
+      section_name: 'General Assessment',
+      question_type: 'SINGLE_CHOICE',
+      explanation: '',
+      marks: 2.0,
+      negative_marks: 0.5,
+      image_url: '',
+      options: [
+        { option_key: 'A', option_text: '', image_url: '', is_correct: true },
+        { option_key: 'B', option_text: '', image_url: '', is_correct: false },
+        { option_key: 'C', option_text: '', image_url: '', is_correct: false },
+        { option_key: 'D', option_text: '', image_url: '', is_correct: false }
+      ],
+      columnA: ['', '', '', ''],
+      columnB: ['', '', '', ''],
+      itemsToOrder: ['', '', '', ''],
+      imageUrls: []
+    });
+    setIsAddQuestionModalOpen(true);
+  };
+
+  // Open Question Modal in Edit Mode
+  const handleOpenEditQuestion = (q: any) => {
+    let meta: any = {};
+    try {
+      meta = typeof q.metadata === 'string' ? JSON.parse(q.metadata || '{}') : (q.metadata || {});
+    } catch (_) {
+      meta = {};
+    }
+
+    const questionImages: string[] = Array.isArray(meta?.imageUrls)
+      ? meta.imageUrls
+      : (q.image_url ? [q.image_url] : []);
+
+    let parsedOptions: any[] = [];
+    if (Array.isArray(q.options) && q.options.length > 0) {
+      parsedOptions = q.options.map((opt: any) => ({
+        option_key: opt.option_key || 'A',
+        option_text: opt.option_text || '',
+        image_url: opt.image_url || '',
+        is_correct: opt.is_correct === 1 || opt.is_correct === true
+      }));
+    } else {
+      parsedOptions = [
+        { option_key: 'A', option_text: '', image_url: '', is_correct: true },
+        { option_key: 'B', option_text: '', image_url: '', is_correct: false },
+        { option_key: 'C', option_text: '', image_url: '', is_correct: false },
+        { option_key: 'D', option_text: '', image_url: '', is_correct: false }
+      ];
+    }
+
+    const columnA = Array.isArray(meta?.columnA) && meta.columnA.length > 0 ? [...meta.columnA] : ['', '', '', ''];
+    while (columnA.length < 4) columnA.push('');
+    const columnB = Array.isArray(meta?.columnB) && meta.columnB.length > 0 ? [...meta.columnB] : ['', '', '', ''];
+    while (columnB.length < 4) columnB.push('');
+    const itemsToOrder = Array.isArray(meta?.itemsToOrder) && meta.itemsToOrder.length > 0 ? [...meta.itemsToOrder] : ['', '', '', ''];
+    while (itemsToOrder.length < 4) itemsToOrder.push('');
+
+    setEditingQuestion(q);
+    setQuestionForm({
+      question_text: q.question_text || '',
+      section_name: q.section_name || 'General Assessment',
+      question_type: q.question_type || 'SINGLE_CHOICE',
+      explanation: q.explanation || '',
+      marks: Number(q.marks) || 2.0,
+      negative_marks: Number(q.negative_marks) || 0.5,
+      image_url: q.image_url || '',
+      options: parsedOptions,
+      columnA,
+      columnB,
+      itemsToOrder,
+      imageUrls: questionImages
+    });
+    setIsAddQuestionModalOpen(true);
+  };
+
+  // Upload Question Figure / Diagram
+  const handleUploadQuestionImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingQuestionImage(true);
+      const fd = new FormData();
+      fd.append('image', file);
+      const res = await axios.post('/api/admin/questions/upload-image', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data?.success && res.data?.url) {
+        setQuestionForm((prev) => ({
+          ...prev,
+          image_url: res.data.url,
+          imageUrls: prev.imageUrls.length > 0 ? [...prev.imageUrls, res.data.url] : [res.data.url]
+        }));
+        showToast('success', 'Question diagram uploaded');
+      }
+    } catch (err: any) {
+      showToast('error', err.response?.data?.message || 'Failed to upload image');
+    } finally {
+      setIsUploadingQuestionImage(false);
+      e.target.value = '';
+    }
+  };
+
+  // Upload Option Diagram
+  const handleUploadOptionImage = async (optKey: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingOptionKey(optKey);
+      const fd = new FormData();
+      fd.append('image', file);
+      const res = await axios.post('/api/admin/questions/upload-image', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data?.success && res.data?.url) {
+        setQuestionForm((prev) => ({
+          ...prev,
+          options: prev.options.map((opt) =>
+            opt.option_key === optKey ? { ...opt, image_url: res.data.url } : opt
+          )
+        }));
+        showToast('success', `Option ${optKey} diagram uploaded`);
+      }
+    } catch (err: any) {
+      showToast('error', err.response?.data?.message || 'Failed to upload image');
+    } finally {
+      setUploadingOptionKey(null);
+      e.target.value = '';
+    }
+  };
+
+  // Create or Update Question inside Test
   const handleSaveQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeTestForQuestions) return;
     try {
-      await axios.post('/api/admin/questions', {
+      const isMatch = questionForm.question_type === 'MATCH_FOLLOWING';
+      const isSequence = questionForm.question_type === 'SEQUENCE_ORDER' || questionForm.question_type === 'ARRANGE_ORDER';
+      const cleanMetadata: any = {};
+      if (questionForm.imageUrls.length > 0) {
+        cleanMetadata.imageUrls = questionForm.imageUrls;
+      }
+      if (isMatch) {
+        cleanMetadata.columnA = questionForm.columnA.filter((x: string) => x && x.trim());
+        cleanMetadata.columnB = questionForm.columnB.filter((x: string) => x && x.trim());
+      }
+      if (isSequence) {
+        cleanMetadata.itemsToOrder = questionForm.itemsToOrder.filter((x: string) => x && x.trim());
+      }
+
+      const payload = {
         ...questionForm,
-        test_id: activeTestForQuestions.id
-      });
-      showToast('success', 'Question added successfully');
+        test_id: activeTestForQuestions.id,
+        metadata: Object.keys(cleanMetadata).length > 0 ? cleanMetadata : null
+      };
+
+      if (editingQuestion) {
+        await axios.put(`/api/admin/questions/${editingQuestion.id}`, payload);
+        showToast('success', 'Question updated successfully');
+      } else {
+        await axios.post('/api/admin/questions', payload);
+        showToast('success', 'Question added successfully');
+      }
       setIsAddQuestionModalOpen(false);
-      setQuestionForm({
-        question_text: '',
-        section_name: 'General Assessment',
-        explanation: '',
-        marks: 2.0,
-        negative_marks: 0.5,
-        options: [
-          { option_key: 'A', option_text: '', is_correct: true },
-          { option_key: 'B', option_text: '', is_correct: false },
-          { option_key: 'C', option_text: '', is_correct: false },
-          { option_key: 'D', option_text: '', is_correct: false }
-        ]
-      });
+      setEditingQuestion(null);
       refetchActiveQuestions();
       refetchActiveTests();
     } catch (err: any) {
-      showToast('error', err.response?.data?.message || 'Failed to add question');
+      showToast('error', err.response?.data?.message || 'Failed to save question');
     }
   };
 
@@ -2272,7 +2426,7 @@ export const TestSeriesManagement = () => {
 
                   <button
                     type="button"
-                    onClick={() => setIsAddQuestionModalOpen(true)}
+                    onClick={handleOpenAddQuestion}
                     className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
                   >
                     <Plus size={14} /> Add Single Question
@@ -2324,14 +2478,27 @@ export const TestSeriesManagement = () => {
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => setDeletingQuestionTarget(q)}
-                          className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg cursor-pointer transition-colors shrink-0"
-                          title="Delete Question"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditQuestion(q)}
+                            className="p-1.5 rounded-lg text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 transition-all cursor-pointer flex items-center gap-1 text-xs font-semibold"
+                            title="Edit Question"
+                          >
+                            <Edit size={14} />
+                            <span className="hidden sm:inline">Edit</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setDeletingQuestionTarget(q)}
+                            className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-slate-200 hover:border-rose-300 transition-all cursor-pointer flex items-center gap-1 text-xs font-semibold"
+                            title="Delete Question"
+                          >
+                            <Trash2 size={14} />
+                            <span className="hidden sm:inline">Delete</span>
+                          </button>
+                        </div>
                       </div>
 
                       {/* Supporting Question Figures / Diagrams */}
@@ -2578,50 +2745,87 @@ export const TestSeriesManagement = () => {
       )}
 
       {/* ========================================== */}
-      {/* MODAL: ADD QUESTION FORM */}
+      {/* ========================================== */}
+      {/* MODAL: ADD / EDIT QUESTION FORM */}
       {/* ========================================== */}
       {isAddQuestionModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4">
-          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-5 bg-slate-900 text-white flex items-center justify-between">
-              <h3 className="font-bold text-sm">Add New Question</h3>
-              <button onClick={() => setIsAddQuestionModalOpen(false)} className="text-slate-400 hover:text-white">
-                <X size={16} />
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-6">
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-sm flex items-center gap-2">
+                  {editingQuestion ? (
+                    <>
+                      <FileEdit size={16} className="text-amber-400" />
+                      <span>Edit Question</span>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-mono">
+                        ID #{editingQuestion.id}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={16} className="text-emerald-400" />
+                      <span>Add New Question</span>
+                    </>
+                  )}
+                </h3>
+                <p className="text-[11px] text-slate-300">
+                  {editingQuestion
+                    ? 'Modify question text, diagrams, options, marks and detailed solution.'
+                    : `Create a question inside "${activeTestForQuestions?.title || 'Current Test'}".`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddQuestionModalOpen(false);
+                  setEditingQuestion(null);
+                }}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveQuestion} className="p-5 space-y-3 text-xs max-h-[75vh] overflow-y-auto">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Question Text *</label>
-                <textarea
-                  rows={3}
-                  required
-                  value={questionForm.question_text}
-                  onChange={(e) => setQuestionForm({ ...questionForm, question_text: e.target.value })}
-                  placeholder="Enter complete question statement..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-blue-600 text-sm font-semibold"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleSaveQuestion} className="p-5 space-y-4 text-xs max-h-[78vh] overflow-y-auto">
+              {/* Question Type, Section, and Marks */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Section / Subject Name</label>
+                  <label className="block font-bold text-slate-700 mb-1">Question Type</label>
+                  <select
+                    value={questionForm.question_type}
+                    onChange={(e) => setQuestionForm({ ...questionForm, question_type: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-medium outline-none focus:border-indigo-600"
+                  >
+                    <option value="SINGLE_CHOICE">Single Choice MCQ</option>
+                    <option value="MULTIPLE_CHOICE">Multiple Choice (Multiple Correct)</option>
+                    <option value="IMAGE_MCQ">Image / Diagram MCQ</option>
+                    <option value="MATCH_FOLLOWING">Match The Following</option>
+                    <option value="SEQUENCE_ORDER">Sequence / Arrange Order</option>
+                    <option value="TRUE_FALSE">True / False</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Section / Subject</label>
                   <input
                     type="text"
                     value={questionForm.section_name}
                     onChange={(e) => setQuestionForm({ ...questionForm, section_name: e.target.value })}
-                    className="w-full px-3 py-1.5 border border-slate-300 rounded-xl"
+                    placeholder="e.g. General Science, Math"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600"
                   />
                 </div>
+
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Marks (+ / -)</label>
+                  <label className="block font-bold text-slate-700 mb-1">Marks (+Correct / -Negative)</label>
                   <div className="flex gap-2">
                     <input
                       type="number"
                       step="0.25"
                       value={questionForm.marks}
                       onChange={(e) => setQuestionForm({ ...questionForm, marks: Number(e.target.value) })}
-                      className="w-1/2 px-2 py-1.5 border rounded-xl"
+                      className="w-1/2 px-2.5 py-2 border border-slate-300 rounded-xl text-center font-bold text-emerald-600 outline-none focus:border-indigo-600"
                       placeholder="+Marks"
                     />
                     <input
@@ -2629,69 +2833,300 @@ export const TestSeriesManagement = () => {
                       step="0.25"
                       value={questionForm.negative_marks}
                       onChange={(e) => setQuestionForm({ ...questionForm, negative_marks: Number(e.target.value) })}
-                      className="w-1/2 px-2 py-1.5 border rounded-xl"
+                      className="w-1/2 px-2.5 py-2 border border-slate-300 rounded-xl text-center font-bold text-rose-500 outline-none focus:border-indigo-600"
                       placeholder="-Neg"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* 4 Options */}
-              <div className="space-y-2 pt-2">
-                <span className="font-bold text-slate-800 block">4 Options (Select Radio for Correct Answer):</span>
-                {questionForm.options.map((opt, idx) => (
-                  <div key={opt.option_key} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correct_option"
-                      checked={opt.is_correct}
-                      onChange={() => {
-                        const updated = questionForm.options.map((o, i) => ({ ...o, is_correct: i === idx }));
-                        setQuestionForm({ ...questionForm, options: updated });
-                      }}
-                      className="w-4 h-4 text-emerald-600 cursor-pointer"
-                    />
-                    <span className="font-bold text-slate-700 w-5">{opt.option_key}.</span>
-                    <input
-                      type="text"
-                      required
-                      value={opt.option_text}
-                      onChange={(e) => {
-                        const updated = [...questionForm.options];
-                        updated[idx].option_text = e.target.value;
-                        setQuestionForm({ ...questionForm, options: updated });
-                      }}
-                      placeholder={`Option ${opt.option_key} text...`}
-                      className={`flex-grow px-3 py-1.5 border rounded-xl text-xs ${opt.is_correct ? 'border-emerald-500 bg-emerald-50/40 font-bold' : 'border-slate-300'
-                        }`}
-                    />
-                  </div>
-                ))}
+              {/* Question Statement */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Question Statement / Text *</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={questionForm.question_text}
+                  onChange={(e) => setQuestionForm({ ...questionForm, question_text: e.target.value })}
+                  placeholder="Enter complete question text, equations, or prompt statement..."
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-sm font-semibold"
+                />
               </div>
 
+              {/* Question Diagram / Image Upload & URL */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                    <ImageIcon size={14} className="text-indigo-600" />
+                    <span>Question Diagram / Supporting Figure (Optional)</span>
+                  </span>
+                  <label className="px-2.5 py-1 bg-white hover:bg-slate-100 text-indigo-600 border border-indigo-200 rounded-lg font-bold text-[11px] cursor-pointer inline-flex items-center gap-1 shadow-2xs">
+                    <Upload size={12} />
+                    <span>{isUploadingQuestionImage ? 'Uploading...' : 'Upload Image'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={isUploadingQuestionImage}
+                      onChange={handleUploadQuestionImage}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={questionForm.image_url}
+                    onChange={(e) => {
+                      const url = e.target.value;
+                      setQuestionForm((prev) => ({
+                        ...prev,
+                        image_url: url,
+                        imageUrls: url ? (prev.imageUrls.includes(url) ? prev.imageUrls : [url, ...prev.imageUrls]) : prev.imageUrls
+                      }));
+                    }}
+                    placeholder="Paste direct Image URL (e.g. /uploads/questions/... or https://...)"
+                    className="flex-grow px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white outline-none focus:border-indigo-600"
+                  />
+                  {questionForm.image_url && (
+                    <button
+                      type="button"
+                      onClick={() => setQuestionForm({ ...questionForm, image_url: '' })}
+                      className="text-rose-500 hover:text-rose-700 text-xs font-bold px-2 py-1 hover:bg-rose-50 rounded-lg cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {/* Thumbnail Preview */}
+                {questionForm.image_url && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <div className="relative group w-20 h-16 rounded-lg overflow-hidden border border-slate-300 bg-white shadow-2xs">
+                      <img
+                        src={questionForm.image_url}
+                        alt="Question Figure"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <span className="text-[11px] text-slate-500">Diagram will be presented above options to students.</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Match The Following Columns (If question_type === 'MATCH_FOLLOWING') */}
+              {questionForm.question_type === 'MATCH_FOLLOWING' && (
+                <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-2">
+                  <span className="font-bold text-amber-900 block text-xs">Match The Following Columns:</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1.5">
+                      <span className="font-semibold text-slate-600 block text-[11px]">Column A (1, 2, 3, 4)</span>
+                      {questionForm.columnA.map((item, idx) => (
+                        <input
+                          key={`colA-${idx}`}
+                          type="text"
+                          value={item}
+                          onChange={(e) => {
+                            const updated = [...questionForm.columnA];
+                            updated[idx] = e.target.value;
+                            setQuestionForm({ ...questionForm, columnA: updated });
+                          }}
+                          placeholder={`Item ${idx + 1}`}
+                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white"
+                        />
+                      ))}
+                    </div>
+                    <div className="space-y-1.5">
+                      <span className="font-semibold text-slate-600 block text-[11px]">Column B (P, Q, R, S)</span>
+                      {questionForm.columnB.map((item, idx) => (
+                        <input
+                          key={`colB-${idx}`}
+                          type="text"
+                          value={item}
+                          onChange={(e) => {
+                            const updated = [...questionForm.columnB];
+                            updated[idx] = e.target.value;
+                            setQuestionForm({ ...questionForm, columnB: updated });
+                          }}
+                          placeholder={`Item ${String.fromCharCode(80 + idx)}`}
+                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Sequence Ordering (If question_type === 'SEQUENCE_ORDER') */}
+              {questionForm.question_type === 'SEQUENCE_ORDER' && (
+                <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-2">
+                  <span className="font-bold text-indigo-900 block text-xs">Steps / Events to Arrange:</span>
+                  <div className="space-y-1.5">
+                    {questionForm.itemsToOrder.map((item, idx) => (
+                      <div key={`seq-${idx}`} className="flex items-center gap-2">
+                        <span className="w-5 font-bold text-indigo-700 text-center">{idx + 1}.</span>
+                        <input
+                          type="text"
+                          value={item}
+                          onChange={(e) => {
+                            const updated = [...questionForm.itemsToOrder];
+                            updated[idx] = e.target.value;
+                            setQuestionForm({ ...questionForm, itemsToOrder: updated });
+                          }}
+                          placeholder={`Event / Process Step ${idx + 1}`}
+                          className="flex-grow px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Options Management */}
+              <div className="space-y-2.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-800 block">
+                    Answer Options ({questionForm.question_type === 'MULTIPLE_CHOICE' ? 'Check all that are correct' : 'Select Radio for Correct Answer'}):
+                  </span>
+                  <span className="text-[11px] text-slate-500 font-medium">Click radio/checkbox to set correct answer</span>
+                </div>
+
+                <div className="space-y-2">
+                  {questionForm.options.map((opt, idx) => {
+                    const isMultiple = questionForm.question_type === 'MULTIPLE_CHOICE';
+
+                    return (
+                      <div
+                        key={opt.option_key}
+                        className={`p-2.5 rounded-xl border transition-all ${
+                          opt.is_correct
+                            ? 'border-emerald-500 bg-emerald-50/50 shadow-2xs'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          {isMultiple ? (
+                            <input
+                              type="checkbox"
+                              checked={opt.is_correct}
+                              onChange={(e) => {
+                                const updated = [...questionForm.options];
+                                updated[idx].is_correct = e.target.checked;
+                                setQuestionForm({ ...questionForm, options: updated });
+                              }}
+                              className="w-4 h-4 text-emerald-600 rounded cursor-pointer accent-emerald-600"
+                            />
+                          ) : (
+                            <input
+                              type="radio"
+                              name="correct_option"
+                              checked={opt.is_correct}
+                              onChange={() => {
+                                const updated = questionForm.options.map((o, i) => ({ ...o, is_correct: i === idx }));
+                                setQuestionForm({ ...questionForm, options: updated });
+                              }}
+                              className="w-4 h-4 text-emerald-600 cursor-pointer accent-emerald-600"
+                            />
+                          )}
+
+                          <span className={`font-extrabold w-6 text-center text-xs ${opt.is_correct ? 'text-emerald-700 font-mono' : 'text-slate-700'}`}>
+                            {opt.option_key}.
+                          </span>
+
+                          <input
+                            type="text"
+                            required
+                            value={opt.option_text}
+                            onChange={(e) => {
+                              const updated = [...questionForm.options];
+                              updated[idx].option_text = e.target.value;
+                              setQuestionForm({ ...questionForm, options: updated });
+                            }}
+                            placeholder={`Option ${opt.option_key} statement...`}
+                            className="flex-grow px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white outline-none focus:border-indigo-600 font-medium"
+                          />
+
+                          {/* Option Image Upload Button */}
+                          <label
+                            className="p-1.5 border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 rounded-lg text-slate-500 hover:text-indigo-600 cursor-pointer transition-colors shrink-0"
+                            title="Attach Diagram to this Option"
+                          >
+                            <ImageIcon size={14} />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={uploadingOptionKey === opt.option_key}
+                              onChange={(e) => handleUploadOptionImage(opt.option_key, e)}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+
+                        {/* Optional Option Image Thumbnail */}
+                        {opt.image_url && (
+                          <div className="flex items-center gap-2 mt-2 ml-8 pl-1">
+                            <div className="w-14 h-10 rounded border border-slate-300 overflow-hidden bg-white shadow-2xs">
+                              <img src={opt.image_url} alt={`Option ${opt.option_key}`} className="w-full h-full object-contain" />
+                            </div>
+                            <span className="text-[10px] text-slate-500">Option image attached</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...questionForm.options];
+                                updated[idx].image_url = '';
+                                setQuestionForm({ ...questionForm, options: updated });
+                              }}
+                              className="text-rose-500 hover:text-rose-700 text-[10px] font-bold hover:underline cursor-pointer ml-auto"
+                            >
+                              Remove Image
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Solution / Answer Explanation */}
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Answer Explanation (Shown in Scorecard)</label>
+                <label className="block font-bold text-slate-700 mb-1">Detailed Answer Explanation (Shown to Student in Scorecard & Solutions)</label>
                 <textarea
                   rows={2}
                   value={questionForm.explanation}
                   onChange={(e) => setQuestionForm({ ...questionForm, explanation: e.target.value })}
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-xl"
+                  placeholder="Provide step-by-step reasoning, mathematical solution or formula derivation..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-indigo-600 text-xs"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t">
+              {/* Actions Footer */}
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200">
                 <button
                   type="button"
-                  onClick={() => setIsAddQuestionModalOpen(false)}
-                  className="px-4 py-2 border rounded-xl text-slate-600 hover:bg-slate-50"
+                  onClick={() => {
+                    setIsAddQuestionModalOpen(false);
+                    setEditingQuestion(null);
+                  }}
+                  className="px-4 py-2 border border-slate-300 hover:bg-slate-100 rounded-xl text-slate-700 font-semibold cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl"
+                  className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl cursor-pointer shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
                 >
-                  Save Question
+                  {editingQuestion ? (
+                    <>
+                      <Check size={14} />
+                      <span>Update Question</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={14} />
+                      <span>Save Question</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

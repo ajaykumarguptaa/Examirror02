@@ -341,6 +341,18 @@ const handleCreateQuestion = async (req: Request, res: Response) => {
 router.post('/admin/questions', handleCreateQuestion);
 router.post('/admin/test-series/questions', handleCreateQuestion);
 
+const handleUpdateQuestion = async (req: Request, res: Response) => {
+  try {
+    const id = getParam(req.params.id);
+    const data = await testSeriesService.updateQuestion(id, req.body);
+    res.status(200).json({ success: true, message: 'Question updated successfully', data });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+router.put('/admin/questions/:id', handleUpdateQuestion);
+router.put('/admin/test-series/questions/:id', handleUpdateQuestion);
+
 const uploadFileMiddleware = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB for image zips
