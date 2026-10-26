@@ -3170,19 +3170,22 @@ export default function StudentTestSeries() {
                               return (
                                 <div
                                   key={test.id}
-                                  className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-300 transition-all flex flex-col justify-between"
+                                  className="card-3d-interactive p-4 rounded-xl border border-slate-200/90 bg-white hover:border-indigo-300 shadow-2xs flex flex-col justify-between relative overflow-hidden group"
                                 >
+                                  {/* Top 3D specular light reflection */}
+                                  <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-400/40 to-transparent pointer-events-none z-10" />
+
                                   <div>
                                     <div className="flex items-start justify-between gap-3">
                                       <div className="flex items-center gap-3">
-                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${hasAttempt
+                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold shadow-2xs ${hasAttempt
                                             ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
                                             : 'bg-indigo-50 text-indigo-600 border border-indigo-200'
                                           }`}>
                                           {hasAttempt ? <CheckCircle size={18} /> : <PlayCircle size={18} />}
                                         </div>
                                         <div>
-                                          <h4 className="text-sm font-bold text-slate-900 leading-tight">
+                                          <h4 className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight">
                                             {test.title}
                                           </h4>
                                           <p className="text-[11px] text-slate-500 mt-0.5">
@@ -3218,13 +3221,13 @@ export default function StudentTestSeries() {
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 mt-3">
-                                      <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg flex items-center gap-1">
+                                      <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg flex items-center gap-1 shadow-2xs">
                                         <Clock size={12} className="text-slate-400" /> {test.duration_minutes} Mins
                                       </span>
-                                      <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg flex items-center gap-1">
+                                      <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg flex items-center gap-1 shadow-2xs">
                                         <Award size={12} className="text-slate-400" /> {test.total_marks} Marks
                                       </span>
-                                      <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg flex items-center gap-1">
+                                      <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg flex items-center gap-1 shadow-2xs">
                                         <HelpCircle size={12} className="text-slate-400" /> {test.questions_count || 50} Qs
                                       </span>
                                       {hasAttempt && test.latest_attempt && (
@@ -3265,10 +3268,10 @@ export default function StudentTestSeries() {
                                           type="button"
                                           disabled={!canAttempt || isStartingThis || Boolean(startingTest)}
                                           onClick={() => handleStartTest(test)}
-                                          className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs ${canAttempt && !startingTest
+                                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${canAttempt && !startingTest
                                               ? hasAttempt
-                                                ? 'bg-slate-900 hover:bg-slate-800 text-white'
-                                                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                                                ? 'btn-3d-yoyo-indigo bg-slate-900 hover:bg-slate-800 text-white'
+                                                : 'btn-3d-yoyo-emerald bg-emerald-600 hover:bg-emerald-700 text-white'
                                               : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
                                             }`}
                                         >
