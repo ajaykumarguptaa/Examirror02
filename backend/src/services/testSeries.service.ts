@@ -773,15 +773,21 @@ export const testSeriesService = {
 
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
+      const qType = (q.question_type || q.questionType || (q.imageUrl || q.image_url ? 'IMAGE_MCQ' : (q.columnA ? 'MATCH_FOLLOWING' : 'SINGLE_CHOICE'))).toUpperCase();
+      const imgUrl = q.image_url || q.imageUrl || null;
+      const metadata = q.metadata ? (typeof q.metadata === 'string' ? q.metadata : JSON.stringify(q.metadata)) : (q.columnA || q.columnB ? JSON.stringify({ columnA: q.columnA, columnB: q.columnB, correctMatches: q.correctMatches || q.correct_matches }) : null);
+
       const [result]: any = await db.query(`
-        INSERT INTO questions (test_id, question_text, section_name, question_type, explanation, marks, negative_marks, display_order)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO questions (test_id, question_text, section_name, question_type, image_url, explanation, metadata, marks, negative_marks, display_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         testId,
         q.question_text || q.question || '',
         q.section_name || q.section || 'General Assessment',
-        q.question_type || 'SINGLE_CHOICE',
+        qType,
+        imgUrl,
         q.explanation || '',
+        metadata,
         q.marks !== undefined ? Number(q.marks) : 2.00,
         q.negative_marks !== undefined ? Number(q.negative_marks) : 0.50,
         q.display_order || (i + 1)
@@ -790,20 +796,29 @@ export const testSeriesService = {
       const qId = result.insertId;
       insertedIds.push(qId);
 
-      let normalizedOptions: { option_key: string; option_text: string; is_correct: boolean }[] = [];
+      let normalizedOptions: { option_key: string; option_text: string; image_url?: string | null; is_correct: boolean }[] = [];
 
-      if (Array.isArray(q.options)) {
+      if (qType === 'TRUE_FALSE') {
+        const corr = String(q.correct_option || q.correctOption || q.correct || 'True').trim().toLowerCase();
+        normalizedOptions = [
+          { option_key: 'A', option_text: 'True', is_correct: corr === 'true' || corr === 'a' },
+          { option_key: 'B', option_text: 'False', is_correct: corr === 'false' || corr === 'b' }
+        ];
+      } else if (Array.isArray(q.options)) {
         normalizedOptions = q.options.map((opt: any, idx: number) => {
           const key = (opt.option_key || opt.key || String.fromCharCode(65 + idx)).toUpperCase();
           const text = typeof opt === 'string' ? opt : (opt.option_text || opt.text || opt.t || '');
+          const optImg = typeof opt === 'object' ? (opt.image_url || opt.imageUrl || null) : null;
           let isCorrect = false;
           if (typeof opt === 'object' && opt.is_correct !== undefined) {
             isCorrect = Boolean(opt.is_correct);
+          } else if (typeof opt === 'object' && opt.isCorrect !== undefined) {
+            isCorrect = Boolean(opt.isCorrect);
           } else if (q.correct_option !== undefined || q.correctOption !== undefined || q.correct !== undefined) {
             const corr = String(q.correct_option || q.correctOption || q.correct).trim().toUpperCase();
             isCorrect = corr === key || corr === text.trim().toUpperCase() || String(idx) === corr;
           }
-          return { option_key: key, option_text: text, is_correct: isCorrect };
+          return { option_key: key, option_text: text, image_url: optImg, is_correct: isCorrect };
         });
       } else if (q.optionA || q.option_a || q.a) {
         const optA = q.optionA || q.option_a || q.a || '';
@@ -822,9 +837,9 @@ export const testSeriesService = {
 
       for (const opt of normalizedOptions) {
         await db.query(`
-          INSERT INTO question_options (question_id, option_key, option_text, is_correct)
-          VALUES (?, ?, ?, ?)
-        `, [qId, opt.option_key, opt.option_text, opt.is_correct ? 1 : 0]);
+          INSERT INTO question_options (question_id, option_key, option_text, image_url, is_correct)
+          VALUES (?, ?, ?, ?, ?)
+        `, [qId, opt.option_key, opt.option_text, opt.image_url || null, opt.is_correct ? 1 : 0]);
       }
     }
 
@@ -1170,7 +1185,7 @@ export const testSeriesService = {
             });
           }
         }
-      } catch (err) {}
+      } catch (err) { }
     }
 
     // Populate tests inside each series for the student
@@ -1333,7 +1348,7 @@ export const testSeriesService = {
             series.unlocked_via_elite_pass = true;
           }
         }
-      } catch (err) {}
+      } catch (err) { }
     }
 
     // If payment QR is not series-specific, fetch global default
@@ -1507,7 +1522,7 @@ export const testSeriesService = {
           }
         }
       }
-    } catch (_) {}
+    } catch (_) { }
 
     if (test.is_free || hasElitePass) {
       await db.query(`
@@ -2091,3 +2106,4 @@ export const testSeriesService = {
     }
   }
 };
+
