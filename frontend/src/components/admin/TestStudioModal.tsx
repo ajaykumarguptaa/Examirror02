@@ -17,7 +17,13 @@ import {
   Layers,
   ChevronRight,
   HelpCircle,
-  Maximize2
+  Maximize2,
+  BookOpen,
+  ListOrdered,
+  AlertCircle,
+  FileText,
+  Zap,
+  AlignLeft
 } from 'lucide-react';
 import { MathRenderer } from '../common/MathRenderer';
 import axios from 'axios';
@@ -52,6 +58,12 @@ export interface QuestionData {
   itemsToOrder?: string[];
   imageUrls?: string[];
   numerical_range?: { min: number; max: number };
+  // Advanced competitive exam structures
+  assertion?: string;
+  reason?: string;
+  statement1?: string;
+  statement2?: string;
+  passage?: string;
 }
 
 interface TestStudioModalProps {
@@ -144,7 +156,12 @@ export const TestStudioModal: React.FC<TestStudioModalProps> = ({
         columnB: colB,
         itemsToOrder: items,
         imageUrls: qImages,
-        numerical_range: meta?.numerical_range || { min: 0, max: 0 }
+        numerical_range: meta?.numerical_range || { min: 0, max: 0 },
+        assertion: meta?.assertion || '',
+        reason: meta?.reason || '',
+        statement1: meta?.statement1 || '',
+        statement2: meta?.statement2 || '',
+        passage: meta?.passage || ''
       };
     }
 
@@ -173,7 +190,12 @@ export const TestStudioModal: React.FC<TestStudioModalProps> = ({
       columnB: ['', '', '', ''],
       itemsToOrder: ['', '', '', ''],
       imageUrls: [],
-      numerical_range: { min: 0, max: 0 }
+      numerical_range: { min: 0, max: 0 },
+      assertion: '',
+      reason: '',
+      statement1: '',
+      statement2: '',
+      passage: ''
     };
   });
 
@@ -326,6 +348,110 @@ export const TestStudioModal: React.FC<TestStudioModalProps> = ({
     setForm((prev) => ({ ...prev, options: updated }));
   };
 
+  // Quick Presets for Competitive Exam Patterns (NEET, JEE, UPSC, SSC, Banking)
+  const applyAssertionReasonPreset = (correctKey: 'A' | 'B' | 'C' | 'D') => {
+    setForm((prev) => ({
+      ...prev,
+      question_type: 'ASSERTION_REASON',
+      question_text:
+        prev.question_text ||
+        'Given below are two statements: one is labelled as Assertion (A) and the other is labelled as Reason (R). In light of the above statements, choose the most appropriate answer from the options given below:',
+      options: [
+        {
+          option_key: 'A',
+          option_text: 'Both (A) and (R) are true and (R) is the correct explanation of (A)',
+          image_url: '',
+          is_correct: correctKey === 'A'
+        },
+        {
+          option_key: 'B',
+          option_text: 'Both (A) and (R) are true but (R) is NOT the correct explanation of (A)',
+          image_url: '',
+          is_correct: correctKey === 'B'
+        },
+        {
+          option_key: 'C',
+          option_text: '(A) is true but (R) is false',
+          image_url: '',
+          is_correct: correctKey === 'C'
+        },
+        {
+          option_key: 'D',
+          option_text: '(A) is false but (R) is true',
+          image_url: '',
+          is_correct: correctKey === 'D'
+        }
+      ]
+    }));
+    showToast('info', `Loaded standard Assertion-Reason options with (${correctKey}) marked correct`);
+  };
+
+  const applyStatementPreset = (correctKey: 'A' | 'B' | 'C' | 'D') => {
+    setForm((prev) => ({
+      ...prev,
+      question_type: 'STATEMENT_ANALYSIS',
+      question_text:
+        prev.question_text ||
+        'Given below are two statements: Statement I and Statement II. In light of the above statements, choose the correct answer from the options given below:',
+      options: [
+        {
+          option_key: 'A',
+          option_text: 'Both Statement I and Statement II are correct',
+          image_url: '',
+          is_correct: correctKey === 'A'
+        },
+        {
+          option_key: 'B',
+          option_text: 'Both Statement I and Statement II are incorrect',
+          image_url: '',
+          is_correct: correctKey === 'B'
+        },
+        {
+          option_key: 'C',
+          option_text: 'Statement I is correct but Statement II is incorrect',
+          image_url: '',
+          is_correct: correctKey === 'C'
+        },
+        {
+          option_key: 'D',
+          option_text: 'Statement I is incorrect but Statement II is correct',
+          image_url: '',
+          is_correct: correctKey === 'D'
+        }
+      ]
+    }));
+    showToast('info', `Loaded Statement I & II options with (${correctKey}) marked correct`);
+  };
+
+  const applyMatchCodesPreset = () => {
+    setForm((prev) => ({
+      ...prev,
+      question_type: 'MATCH_FOLLOWING',
+      question_text:
+        prev.question_text ||
+        'Match List-I with List-II and select the correct answer using the codes given below the lists:',
+      options: [
+        { option_key: 'A', option_text: 'A-(i), B-(ii), C-(iii), D-(iv)', image_url: '', is_correct: true },
+        { option_key: 'B', option_text: 'A-(ii), B-(i), C-(iv), D-(iii)', image_url: '', is_correct: false },
+        { option_key: 'C', option_text: 'A-(iii), B-(iv), C-(i), D-(ii)', image_url: '', is_correct: false },
+        { option_key: 'D', option_text: 'A-(iv), B-(iii), C-(ii), D-(i)', image_url: '', is_correct: false }
+      ]
+    }));
+    showToast('info', 'Loaded standard matching code options template');
+  };
+
+  const applyTrueFalsePreset = (isTrue: boolean) => {
+    setForm((prev) => ({
+      ...prev,
+      question_type: 'TRUE_FALSE',
+      options: [
+        { option_key: 'A', option_text: 'True', image_url: '', is_correct: isTrue },
+        { option_key: 'B', option_text: 'False', image_url: '', is_correct: !isTrue }
+      ]
+    }));
+    showToast('info', `Applied True/False with (${isTrue ? 'True' : 'False'}) marked correct`);
+  };
+
   // Save / Update Question
   const handleSaveQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -337,7 +463,15 @@ export const TestStudioModal: React.FC<TestStudioModalProps> = ({
     }
 
     // Validation for question types
-    if (form.question_type === 'SINGLE_CHOICE' || form.question_type === 'IMAGE_MCQ' || form.question_type === 'ASSERTION_REASON') {
+    if (
+      form.question_type === 'SINGLE_CHOICE' ||
+      form.question_type === 'IMAGE_MCQ' ||
+      form.question_type === 'ASSERTION_REASON' ||
+      form.question_type === 'STATEMENT_ANALYSIS' ||
+      form.question_type === 'MATCH_FOLLOWING' ||
+      form.question_type === 'SEQUENCE_ORDER' ||
+      form.question_type === 'TRUE_FALSE'
+    ) {
       const hasCorrect = form.options.some((o) => o.is_correct);
       if (!hasCorrect) {
         showToast('error', 'Please mark at least one correct option');
@@ -359,6 +493,12 @@ export const TestStudioModal: React.FC<TestStudioModalProps> = ({
         explanation_hi: form.explanation_hi,
         numerical_range: form.numerical_range
       };
+
+      if (form.assertion) metadataPayload.assertion = form.assertion;
+      if (form.reason) metadataPayload.reason = form.reason;
+      if (form.statement1) metadataPayload.statement1 = form.statement1;
+      if (form.statement2) metadataPayload.statement2 = form.statement2;
+      if (form.passage) metadataPayload.passage = form.passage;
 
       if (form.imageUrls && form.imageUrls.length > 0) {
         metadataPayload.imageUrls = form.imageUrls;
@@ -519,11 +659,13 @@ export const TestStudioModal: React.FC<TestStudioModalProps> = ({
                   >
                     <option value="SINGLE_CHOICE">Single Choice MCQ</option>
                     <option value="MULTIPLE_CHOICE">Multiple Choice (Multi-Select)</option>
-                    <option value="IMAGE_MCQ">Image / Diagram MCQ</option>
+                    <option value="ASSERTION_REASON">Assertion & Reason (A & R)</option>
+                    <option value="STATEMENT_ANALYSIS">Statement I & II Analysis</option>
+                    <option value="MATCH_FOLLOWING">Match The Following (Column I & II)</option>
+                    <option value="SEQUENCE_ORDER">Sequence / Chronological Order</option>
+                    <option value="CASE_STUDY">Case Study / Reading Comprehension</option>
                     <option value="NUMERICAL_NAT">Numerical / Integer (NAT)</option>
-                    <option value="ASSERTION_REASON">Assertion & Reason</option>
-                    <option value="MATCH_FOLLOWING">Match The Following</option>
-                    <option value="SEQUENCE_ORDER">Sequence / Ordering</option>
+                    <option value="IMAGE_MCQ">Image / Diagram MCQ</option>
                     <option value="TRUE_FALSE">True / False</option>
                   </select>
                 </div>
@@ -616,6 +758,357 @@ export const TestStudioModal: React.FC<TestStudioModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* ============================================================ */}
+              {/* SPECIALIZED COMPETITIVE EXAM CANVAS: ASSERTION & REASON */}
+              {/* ============================================================ */}
+              {form.question_type === 'ASSERTION_REASON' && (
+                <div className="p-4 bg-gradient-to-br from-amber-50/70 via-white to-indigo-50/40 rounded-2xl border-2 border-amber-300 shadow-sm space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/80 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                        A/R
+                      </span>
+                      <span className="font-extrabold text-xs text-amber-950 uppercase tracking-wide">
+                        Assertion & Reason Builder Canvas (NEET / JEE / UPSC Format)
+                      </span>
+                    </div>
+
+                    {/* Presets Bar */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                        <Zap size={11} className="text-amber-500" /> Presets:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => applyAssertionReasonPreset('A')}
+                        className="px-2 py-0.5 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-md text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-2xs"
+                        title="Both (A) & (R) true, (R) is correct explanation"
+                      >
+                        (A) True + Correct Expl.
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyAssertionReasonPreset('B')}
+                        className="px-2 py-0.5 bg-white hover:bg-blue-50 text-blue-800 border border-blue-300 rounded-md text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-2xs"
+                        title="Both (A) & (R) true, (R) NOT correct explanation"
+                      >
+                        (B) True + Not Expl.
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyAssertionReasonPreset('C')}
+                        className="px-2 py-0.5 bg-white hover:bg-amber-50 text-amber-800 border border-amber-300 rounded-md text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-2xs"
+                        title="(A) is true, (R) is false"
+                      >
+                        (C) A True, R False
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyAssertionReasonPreset('D')}
+                        className="px-2 py-0.5 bg-white hover:bg-purple-50 text-purple-800 border border-purple-300 rounded-md text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-2xs"
+                        title="(A) is false, (R) is true"
+                      >
+                        (D) A False, R True
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+                    {/* Assertion (A) */}
+                    <div className="p-3 bg-white rounded-xl border border-amber-200/90 shadow-2xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-extrabold text-amber-900 uppercase tracking-wide flex items-center gap-1.5">
+                          <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[10px] rounded font-black">A</span>
+                          <span>Assertion (A) Statement *</span>
+                        </label>
+                        <span className="text-[10px] text-slate-400">Supports KaTeX ($...$)</span>
+                      </div>
+                      <textarea
+                        rows={3}
+                        value={form.assertion || ''}
+                        onFocus={() => setActiveInputRef({ field: 'assertion' })}
+                        onChange={(e) => setForm({ ...form, assertion: e.target.value })}
+                        placeholder="e.g. A body moving with uniform velocity has zero acceleration."
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:border-amber-500 font-mono bg-amber-50/20"
+                      />
+                      {form.assertion && (
+                        <div className="p-2 bg-amber-50/50 rounded-lg border border-amber-100 text-xs text-slate-800">
+                          <span className="text-[10px] font-bold text-amber-700 block mb-0.5">Preview:</span>
+                          <MathRenderer content={form.assertion} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Reason (R) */}
+                    <div className="p-3 bg-white rounded-xl border border-indigo-200/90 shadow-2xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-extrabold text-indigo-900 uppercase tracking-wide flex items-center gap-1.5">
+                          <span className="px-1.5 py-0.5 bg-indigo-600 text-white text-[10px] rounded font-black">R</span>
+                          <span>Reason (R) Statement *</span>
+                        </label>
+                        <span className="text-[10px] text-slate-400">Supports KaTeX ($...$)</span>
+                      </div>
+                      <textarea
+                        rows={3}
+                        value={form.reason || ''}
+                        onFocus={() => setActiveInputRef({ field: 'reason' })}
+                        onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                        placeholder="e.g. Acceleration is the time rate of change of velocity ($a = \frac{dv}{dt}$)."
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:border-indigo-500 font-mono bg-indigo-50/20"
+                      />
+                      {form.reason && (
+                        <div className="p-2 bg-indigo-50/50 rounded-lg border border-indigo-100 text-xs text-slate-800">
+                          <span className="text-[10px] font-bold text-indigo-700 block mb-0.5">Preview:</span>
+                          <MathRenderer content={form.reason} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================ */}
+              {/* SPECIALIZED COMPETITIVE EXAM CANVAS: STATEMENT I & II */}
+              {/* ============================================================ */}
+              {form.question_type === 'STATEMENT_ANALYSIS' && (
+                <div className="p-4 bg-gradient-to-br from-purple-50/70 via-white to-teal-50/40 rounded-2xl border-2 border-purple-300 shadow-sm space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200/80 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                        S1/2
+                      </span>
+                      <span className="font-extrabold text-xs text-purple-950 uppercase tracking-wide">
+                        Statement I & Statement II Analysis Canvas
+                      </span>
+                    </div>
+
+                    {/* Presets Bar */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                        <Zap size={11} className="text-purple-600" /> Presets:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => applyStatementPreset('A')}
+                        className="px-2 py-0.5 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-md text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-2xs"
+                      >
+                        (A) Both S1 & S2 Correct
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyStatementPreset('B')}
+                        className="px-2 py-0.5 bg-white hover:bg-rose-50 text-rose-800 border border-rose-300 rounded-md text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-2xs"
+                      >
+                        (B) Both Incorrect
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyStatementPreset('C')}
+                        className="px-2 py-0.5 bg-white hover:bg-amber-50 text-amber-800 border border-amber-300 rounded-md text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-2xs"
+                      >
+                        (C) S1 Correct, S2 Incorrect
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyStatementPreset('D')}
+                        className="px-2 py-0.5 bg-white hover:bg-indigo-50 text-indigo-800 border border-indigo-300 rounded-md text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-2xs"
+                      >
+                        (D) S1 Incorrect, S2 Correct
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+                    {/* Statement I */}
+                    <div className="p-3 bg-white rounded-xl border border-purple-200/90 shadow-2xs space-y-2">
+                      <label className="text-[11px] font-extrabold text-purple-900 uppercase tracking-wide flex items-center gap-1.5">
+                        <span className="px-1.5 py-0.5 bg-purple-600 text-white text-[10px] rounded font-black">S1</span>
+                        <span>Statement I *</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={form.statement1 || ''}
+                        onFocus={() => setActiveInputRef({ field: 'statement1' })}
+                        onChange={(e) => setForm({ ...form, statement1: e.target.value })}
+                        placeholder="e.g. Electric potential inside a hollow charged spherical conductor is constant."
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:border-purple-500 font-mono bg-purple-50/20"
+                      />
+                      {form.statement1 && (
+                        <div className="p-2 bg-purple-50/50 rounded-lg border border-purple-100 text-xs text-slate-800">
+                          <span className="text-[10px] font-bold text-purple-700 block mb-0.5">Preview:</span>
+                          <MathRenderer content={form.statement1} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Statement II */}
+                    <div className="p-3 bg-white rounded-xl border border-teal-200/90 shadow-2xs space-y-2">
+                      <label className="text-[11px] font-extrabold text-teal-900 uppercase tracking-wide flex items-center gap-1.5">
+                        <span className="px-1.5 py-0.5 bg-teal-600 text-white text-[10px] rounded font-black">S2</span>
+                        <span>Statement II *</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={form.statement2 || ''}
+                        onFocus={() => setActiveInputRef({ field: 'statement2' })}
+                        onChange={(e) => setForm({ ...form, statement2: e.target.value })}
+                        placeholder="e.g. The electric field inside a charged conductor is always zero."
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:border-teal-500 font-mono bg-teal-50/20"
+                      />
+                      {form.statement2 && (
+                        <div className="p-2 bg-teal-50/50 rounded-lg border border-teal-100 text-xs text-slate-800">
+                          <span className="text-[10px] font-bold text-teal-700 block mb-0.5">Preview:</span>
+                          <MathRenderer content={form.statement2} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================ */}
+              {/* SPECIALIZED COMPETITIVE EXAM CANVAS: MATCH THE FOLLOWING */}
+              {/* ============================================================ */}
+              {form.question_type === 'MATCH_FOLLOWING' && (
+                <div className="p-4 bg-gradient-to-br from-indigo-50/70 via-white to-slate-50 rounded-2xl border-2 border-indigo-300 shadow-sm space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-200/80 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Layers size={16} className="text-indigo-600" />
+                      <span className="font-extrabold text-xs text-indigo-950 uppercase tracking-wide">
+                        Match List-I with List-II Authoring Canvas
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={applyMatchCodesPreset}
+                      className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg cursor-pointer transition-all active:scale-95 shadow-xs flex items-center gap-1"
+                    >
+                      <Zap size={11} />
+                      <span>⚡ Load Standard Matching Code Options</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* List I / Column A */}
+                    <div className="space-y-2 bg-white p-3 rounded-xl border border-indigo-200">
+                      <span className="text-xs font-extrabold text-indigo-900 uppercase block tracking-wider">
+                        List I (Column A)
+                      </span>
+                      {['A', 'B', 'C', 'D'].map((lbl, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-800 font-bold text-xs flex items-center justify-center shrink-0">
+                            {lbl}
+                          </span>
+                          <input
+                            type="text"
+                            value={form.columnA?.[idx] || ''}
+                            onChange={(e) => {
+                              const updated = [...(form.columnA || ['', '', '', ''])];
+                              updated[idx] = e.target.value;
+                              setForm({ ...form, columnA: updated });
+                            }}
+                            placeholder={`Item (${lbl}) statement or formula...`}
+                            className="flex-grow px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs outline-none focus:border-indigo-600 font-medium"
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* List II / Column B */}
+                    <div className="space-y-2 bg-white p-3 rounded-xl border border-indigo-200">
+                      <span className="text-xs font-extrabold text-indigo-900 uppercase block tracking-wider">
+                        List II (Column B)
+                      </span>
+                      {['(i)', '(ii)', '(iii)', '(iv)'].map((lbl, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="w-7 h-6 rounded-md bg-slate-100 text-slate-700 font-bold text-[11px] flex items-center justify-center shrink-0">
+                            {lbl}
+                          </span>
+                          <input
+                            type="text"
+                            value={form.columnB?.[idx] || ''}
+                            onChange={(e) => {
+                              const updated = [...(form.columnB || ['', '', '', ''])];
+                              updated[idx] = e.target.value;
+                              setForm({ ...form, columnB: updated });
+                            }}
+                            placeholder={`Match ${lbl} description or value...`}
+                            className="flex-grow px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs outline-none focus:border-indigo-600 font-medium"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================ */}
+              {/* SPECIALIZED COMPETITIVE EXAM CANVAS: SEQUENCE / ORDERING */}
+              {/* ============================================================ */}
+              {form.question_type === 'SEQUENCE_ORDER' && (
+                <div className="p-4 bg-gradient-to-br from-sky-50/70 via-white to-slate-50 rounded-2xl border-2 border-sky-300 shadow-sm space-y-3">
+                  <div className="flex items-center gap-2 border-b border-sky-200/80 pb-2">
+                    <ListOrdered size={16} className="text-sky-600" />
+                    <span className="font-extrabold text-xs text-sky-950 uppercase tracking-wide">
+                      Sequence / Step Arrangement Canvas
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {['Step 1 / Event I', 'Step 2 / Event II', 'Step 3 / Event III', 'Step 4 / Event IV'].map((lbl, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <span className="w-8 h-6 rounded-md bg-sky-100 text-sky-900 font-bold text-xs flex items-center justify-center shrink-0">
+                          #{idx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={form.itemsToOrder?.[idx] || ''}
+                          onChange={(e) => {
+                            const updated = [...(form.itemsToOrder || ['', '', '', ''])];
+                            updated[idx] = e.target.value;
+                            setForm({ ...form, itemsToOrder: updated });
+                          }}
+                          placeholder={`${lbl} description...`}
+                          className="flex-grow px-3 py-1.5 border border-slate-300 rounded-lg text-xs outline-none focus:border-sky-600 font-medium bg-white"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================ */}
+              {/* SPECIALIZED COMPETITIVE EXAM CANVAS: CASE STUDY / PASSAGE */}
+              {/* ============================================================ */}
+              {form.question_type === 'CASE_STUDY' && (
+                <div className="p-4 bg-gradient-to-br from-emerald-50/70 via-white to-slate-50 rounded-2xl border-2 border-emerald-300 shadow-sm space-y-3">
+                  <div className="flex items-center gap-2 border-b border-emerald-200/80 pb-2">
+                    <BookOpen size={16} className="text-emerald-700" />
+                    <span className="font-extrabold text-xs text-emerald-950 uppercase tracking-wide">
+                      Reading Comprehension & Case Study Passage Canvas
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-slate-700 block">
+                      Common Background Case Study / Research Passage / Context (Shared with candidates):
+                    </label>
+                    <textarea
+                      rows={5}
+                      value={form.passage || ''}
+                      onFocus={() => setActiveInputRef({ field: 'passage' })}
+                      onChange={(e) => setForm({ ...form, passage: e.target.value })}
+                      placeholder="Paste the complete case study text, paragraph, or experiment observations here..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:border-emerald-600 font-mono bg-white"
+                    />
+                    {form.passage && (
+                      <div className="p-3 bg-white rounded-xl border border-emerald-200 text-xs text-slate-800 font-serif leading-relaxed max-h-40 overflow-y-auto">
+                        <span className="text-[10px] font-bold text-emerald-800 uppercase block mb-1">Passage Preview:</span>
+                        <MathRenderer content={form.passage} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Diagram / Supporting Figure Attachment */}
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
@@ -1086,6 +1579,115 @@ export const TestStudioModal: React.FC<TestStudioModalProps> = ({
                     {form.image_url && (
                       <div className="my-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 p-2 flex justify-center">
                         <img src={form.image_url} alt="Question Diagram" className="max-h-56 object-contain" />
+                      </div>
+                    )}
+
+                    {/* Case Study / Reading Passage */}
+                    {form.passage && (
+                      <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-1">
+                        <span className="text-[10px] font-bold text-emerald-800 uppercase flex items-center gap-1">
+                          <BookOpen size={12} /> Case Study Passage:
+                        </span>
+                        <div className="text-xs text-slate-800 font-serif leading-relaxed max-h-48 overflow-y-auto">
+                          <MathRenderer content={form.passage} />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Assertion & Reason in Simulator */}
+                    {(form.assertion || form.reason) && (
+                      <div className="space-y-2">
+                        {form.assertion && (
+                          <div className="p-2.5 bg-amber-50/80 border border-amber-300 rounded-xl space-y-1">
+                            <span className="px-2 py-0.5 bg-amber-500 text-white text-[10px] font-black rounded uppercase">
+                              Assertion (A)
+                            </span>
+                            <div className="text-xs text-slate-900 font-medium pl-1">
+                              <MathRenderer content={form.assertion} />
+                            </div>
+                          </div>
+                        )}
+                        {form.reason && (
+                          <div className="p-2.5 bg-indigo-50/80 border border-indigo-300 rounded-xl space-y-1">
+                            <span className="px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-black rounded uppercase">
+                              Reason (R)
+                            </span>
+                            <div className="text-xs text-slate-900 font-medium pl-1">
+                              <MathRenderer content={form.reason} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Statement I & II in Simulator */}
+                    {(form.statement1 || form.statement2) && (
+                      <div className="space-y-2">
+                        {form.statement1 && (
+                          <div className="p-2.5 bg-purple-50/80 border border-purple-300 rounded-xl space-y-1">
+                            <span className="px-2 py-0.5 bg-purple-600 text-white text-[10px] font-black rounded uppercase">
+                              Statement I
+                            </span>
+                            <div className="text-xs text-slate-900 font-medium pl-1">
+                              <MathRenderer content={form.statement1} />
+                            </div>
+                          </div>
+                        )}
+                        {form.statement2 && (
+                          <div className="p-2.5 bg-teal-50/80 border border-teal-300 rounded-xl space-y-1">
+                            <span className="px-2 py-0.5 bg-teal-600 text-white text-[10px] font-black rounded uppercase">
+                              Statement II
+                            </span>
+                            <div className="text-xs text-slate-900 font-medium pl-1">
+                              <MathRenderer content={form.statement2} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Match The Following in Simulator */}
+                    {form.question_type === 'MATCH_FOLLOWING' && (
+                      <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <div className="space-y-1 border-r border-slate-200 pr-2">
+                          <span className="text-[10px] font-bold text-indigo-700 uppercase block">List I</span>
+                          {form.columnA?.filter(Boolean).map((item, i) => (
+                            <div key={i} className="p-1.5 bg-white rounded border border-slate-200 text-[11px] flex items-center gap-1.5">
+                              <span className="w-4 h-4 rounded bg-indigo-50 text-indigo-700 font-bold text-[9px] flex items-center justify-center shrink-0">
+                                {String.fromCharCode(65 + i)}
+                              </span>
+                              <MathRenderer content={item} inline />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="space-y-1 pl-1">
+                          <span className="text-[10px] font-bold text-indigo-700 uppercase block">List II</span>
+                          {form.columnB?.filter(Boolean).map((item, i) => (
+                            <div key={i} className="p-1.5 bg-white rounded border border-slate-200 text-[11px] flex items-center gap-1.5">
+                              <span className="w-5 h-4 rounded bg-slate-100 text-slate-700 font-bold text-[9px] flex items-center justify-center shrink-0">
+                                {['(i)', '(ii)', '(iii)', '(iv)'][i] || i + 1}
+                              </span>
+                              <MathRenderer content={item} inline />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sequence Order in Simulator */}
+                    {form.question_type === 'SEQUENCE_ORDER' && (
+                      <div className="bg-sky-50/60 p-2.5 rounded-xl border border-sky-200 space-y-1.5">
+                        <span className="text-[10px] font-bold text-sky-800 uppercase flex items-center gap-1">
+                          <ListOrdered size={12} /> Steps to Arrange:
+                        </span>
+                        {form.itemsToOrder?.filter(Boolean).map((item, i) => (
+                          <div key={i} className="p-1.5 bg-white rounded border border-sky-100 text-[11px] flex items-center gap-2">
+                            <span className="w-4 h-4 rounded-full bg-sky-200 text-sky-800 font-bold text-[9px] flex items-center justify-center shrink-0">
+                              {i + 1}
+                            </span>
+                            <MathRenderer content={item} inline />
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

@@ -1409,9 +1409,89 @@ export default function StudentTestSeries() {
                       const itemsToOrder: string[] = meta?.itemsToOrder || [];
                       const isMatchFollowing = currentQ.question_type === 'MATCH_FOLLOWING' || columnA.length > 0;
                       const isSequenceOrder = currentQ.question_type === 'SEQUENCE_ORDER' || currentQ.question_type === 'ARRANGE_ORDER' || itemsToOrder.length > 0;
+                      const isAssertionReason = currentQ.question_type === 'ASSERTION_REASON' || Boolean(meta?.assertion || meta?.reason);
+                      const isStatementAnalysis = currentQ.question_type === 'STATEMENT_ANALYSIS' || Boolean(meta?.statement1 || meta?.statement2);
+                      const isCaseStudy = currentQ.question_type === 'CASE_STUDY' || Boolean(meta?.passage);
 
                       return (
                         <>
+                          {/* Case Study / Reading Comprehension Passage */}
+                          {isCaseStudy && meta?.passage && (
+                            <div className="p-4 bg-gradient-to-br from-indigo-50/70 via-white to-slate-50 rounded-2xl border border-indigo-200 shadow-2xs space-y-2 mt-3">
+                              <div className="flex items-center gap-2 text-indigo-900 font-bold text-xs">
+                                <BookOpen size={15} className="text-indigo-600" />
+                                <span className="uppercase tracking-wider">Reading Comprehension / Case Study Passage:</span>
+                              </div>
+                              <div className="text-xs text-slate-800 leading-relaxed font-serif bg-white/80 p-3.5 rounded-xl border border-indigo-100 max-h-72 overflow-y-auto">
+                                <MathRenderer content={meta.passage} />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Assertion & Reason Question Cards */}
+                          {isAssertionReason && (meta?.assertion || meta?.reason) && (
+                            <div className="space-y-2.5 mt-3">
+                              {meta?.assertion && (
+                                <div className="p-3.5 bg-gradient-to-r from-amber-50/90 via-white to-amber-50/30 rounded-2xl border border-amber-300 shadow-2xs space-y-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2.5 py-0.5 bg-amber-500 text-white text-[11px] font-black rounded-md tracking-wider uppercase shadow-2xs">
+                                      Assertion (A)
+                                    </span>
+                                    <span className="text-[11px] text-amber-800 font-semibold">Primary Proposition</span>
+                                  </div>
+                                  <div className="text-xs sm:text-sm text-slate-900 font-medium pl-1 leading-relaxed">
+                                    <MathRenderer content={meta.assertion} />
+                                  </div>
+                                </div>
+                              )}
+
+                              {meta?.reason && (
+                                <div className="p-3.5 bg-gradient-to-r from-indigo-50/90 via-white to-indigo-50/30 rounded-2xl border border-indigo-300 shadow-2xs space-y-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2.5 py-0.5 bg-indigo-600 text-white text-[11px] font-black rounded-md tracking-wider uppercase shadow-2xs">
+                                      Reason (R)
+                                    </span>
+                                    <span className="text-[11px] text-indigo-800 font-semibold">Justification / Causation</span>
+                                  </div>
+                                  <div className="text-xs sm:text-sm text-slate-900 font-medium pl-1 leading-relaxed">
+                                    <MathRenderer content={meta.reason} />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Statement I & Statement II Analysis Cards */}
+                          {isStatementAnalysis && (meta?.statement1 || meta?.statement2) && (
+                            <div className="space-y-2.5 mt-3">
+                              {meta?.statement1 && (
+                                <div className="p-3.5 bg-gradient-to-r from-purple-50/90 via-white to-purple-50/30 rounded-2xl border border-purple-300 shadow-2xs space-y-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2.5 py-0.5 bg-purple-600 text-white text-[11px] font-black rounded-md tracking-wider uppercase shadow-2xs">
+                                      Statement I
+                                    </span>
+                                  </div>
+                                  <div className="text-xs sm:text-sm text-slate-900 font-medium pl-1 leading-relaxed">
+                                    <MathRenderer content={meta.statement1} />
+                                  </div>
+                                </div>
+                              )}
+
+                              {meta?.statement2 && (
+                                <div className="p-3.5 bg-gradient-to-r from-teal-50/90 via-white to-teal-50/30 rounded-2xl border border-teal-300 shadow-2xs space-y-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2.5 py-0.5 bg-teal-600 text-white text-[11px] font-black rounded-md tracking-wider uppercase shadow-2xs">
+                                      Statement II
+                                    </span>
+                                  </div>
+                                  <div className="text-xs sm:text-sm text-slate-900 font-medium pl-1 leading-relaxed">
+                                    <MathRenderer content={meta.statement2} />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
                           {/* Question Figures / Diagrams */}
                           {questionImages.length > 0 && (
                             <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 mt-3">
@@ -1450,20 +1530,26 @@ export default function StudentTestSeries() {
 
                           {/* Match the Following Table */}
                           {isMatchFollowing && (
-                            <div className="grid grid-cols-2 gap-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200 mt-3">
+                            <div className="grid grid-cols-2 gap-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200 mt-3 shadow-2xs">
                               <div className="space-y-1.5 border-r border-slate-200 pr-3">
-                                <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 block">Column A (Items)</span>
+                                <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 block">List I (Column A)</span>
                                 {columnA.map((item: string, i: number) => (
-                                  <div key={i} className="p-2 bg-white rounded-lg border border-slate-200 text-slate-800 text-xs font-medium shadow-2xs">
-                                    {item}
+                                  <div key={i} className="p-2 bg-white rounded-lg border border-slate-200 text-slate-800 text-xs font-medium shadow-2xs flex items-center gap-2">
+                                    <span className="w-5 h-5 rounded bg-indigo-50 text-indigo-700 font-bold text-[10px] flex items-center justify-center shrink-0">
+                                      {String.fromCharCode(65 + i)}
+                                    </span>
+                                    <MathRenderer content={item} inline />
                                   </div>
                                 ))}
                               </div>
                               <div className="space-y-1.5 pl-2">
-                                <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 block">Column B (Matches)</span>
+                                <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 block">List II (Column B)</span>
                                 {columnB.map((item: string, i: number) => (
-                                  <div key={i} className="p-2 bg-white rounded-lg border border-slate-200 text-slate-800 text-xs font-medium shadow-2xs">
-                                    {item}
+                                  <div key={i} className="p-2 bg-white rounded-lg border border-slate-200 text-slate-800 text-xs font-medium shadow-2xs flex items-center gap-2">
+                                    <span className="w-6 h-5 rounded bg-slate-100 text-slate-700 font-bold text-[10px] flex items-center justify-center shrink-0">
+                                      {['(i)', '(ii)', '(iii)', '(iv)'][i] || i + 1}
+                                    </span>
+                                    <MathRenderer content={item} inline />
                                   </div>
                                 ))}
                               </div>
@@ -1472,7 +1558,7 @@ export default function StudentTestSeries() {
 
                           {/* Sequence / Arrangement Items */}
                           {isSequenceOrder && (
-                            <div className="bg-sky-50/60 p-3.5 rounded-2xl border border-sky-200 space-y-2 mt-3">
+                            <div className="bg-sky-50/60 p-3.5 rounded-2xl border border-sky-200 space-y-2 mt-3 shadow-2xs">
                               <span className="text-xs font-bold text-sky-800 uppercase tracking-wider flex items-center gap-1.5">
                                 <ListOrdered size={14} className="text-sky-600" />
                                 <span>Items to Arrange in Correct Sequence:</span>
@@ -1483,7 +1569,7 @@ export default function StudentTestSeries() {
                                     <span className="w-5 h-5 rounded-full bg-sky-200 text-sky-800 text-[10px] font-black flex items-center justify-center shrink-0">
                                       {i + 1}
                                     </span>
-                                    <span>{item}</span>
+                                    <MathRenderer content={item} inline />
                                   </div>
                                 ))}
                               </div>
@@ -4443,9 +4529,73 @@ export default function StudentTestSeries() {
                             const itemsToOrder: string[] = meta?.itemsToOrder || [];
                             const isMatchFollowing = q.question_type === 'MATCH_FOLLOWING' || columnA.length > 0;
                             const isSequenceOrder = q.question_type === 'SEQUENCE_ORDER' || q.question_type === 'ARRANGE_ORDER' || itemsToOrder.length > 0;
+                            const isAssertionReason = q.question_type === 'ASSERTION_REASON' || Boolean(meta?.assertion || meta?.reason);
+                            const isStatementAnalysis = q.question_type === 'STATEMENT_ANALYSIS' || Boolean(meta?.statement1 || meta?.statement2);
+                            const isCaseStudy = q.question_type === 'CASE_STUDY' || Boolean(meta?.passage);
 
                             return (
                               <div className="space-y-2 pt-1">
+                                {isCaseStudy && meta?.passage && (
+                                  <div className="p-2.5 bg-indigo-50/60 rounded-lg border border-indigo-200 text-xs text-slate-800 space-y-1">
+                                    <span className="text-[10px] font-bold text-indigo-800 uppercase flex items-center gap-1">
+                                      <BookOpen size={12} /> Case Study Passage:
+                                    </span>
+                                    <div className="font-serif leading-relaxed max-h-40 overflow-y-auto pl-1">
+                                      <MathRenderer content={meta.passage} />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {isAssertionReason && (meta?.assertion || meta?.reason) && (
+                                  <div className="space-y-1.5">
+                                    {meta?.assertion && (
+                                      <div className="p-2 bg-amber-50/70 border border-amber-200 rounded-lg text-xs space-y-0.5">
+                                        <span className="px-1.5 py-0.2 bg-amber-500 text-white text-[9px] font-black rounded uppercase">
+                                          Assertion (A)
+                                        </span>
+                                        <div className="text-slate-900 font-medium pl-1 pt-0.5">
+                                          <MathRenderer content={meta.assertion} inline />
+                                        </div>
+                                      </div>
+                                    )}
+                                    {meta?.reason && (
+                                      <div className="p-2 bg-indigo-50/70 border border-indigo-200 rounded-lg text-xs space-y-0.5">
+                                        <span className="px-1.5 py-0.2 bg-indigo-600 text-white text-[9px] font-black rounded uppercase">
+                                          Reason (R)
+                                        </span>
+                                        <div className="text-slate-900 font-medium pl-1 pt-0.5">
+                                          <MathRenderer content={meta.reason} inline />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {isStatementAnalysis && (meta?.statement1 || meta?.statement2) && (
+                                  <div className="space-y-1.5">
+                                    {meta?.statement1 && (
+                                      <div className="p-2 bg-purple-50/70 border border-purple-200 rounded-lg text-xs space-y-0.5">
+                                        <span className="px-1.5 py-0.2 bg-purple-600 text-white text-[9px] font-black rounded uppercase">
+                                          Statement I
+                                        </span>
+                                        <div className="text-slate-900 font-medium pl-1 pt-0.5">
+                                          <MathRenderer content={meta.statement1} inline />
+                                        </div>
+                                      </div>
+                                    )}
+                                    {meta?.statement2 && (
+                                      <div className="p-2 bg-teal-50/70 border border-teal-200 rounded-lg text-xs space-y-0.5">
+                                        <span className="px-1.5 py-0.2 bg-teal-600 text-white text-[9px] font-black rounded uppercase">
+                                          Statement II
+                                        </span>
+                                        <div className="text-slate-900 font-medium pl-1 pt-0.5">
+                                          <MathRenderer content={meta.statement2} inline />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
                                 {questionImages.length > 0 && (
                                   <div className="p-2 bg-white rounded-lg border border-slate-200 space-y-1.5">
                                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
@@ -4472,13 +4622,23 @@ export default function StudentTestSeries() {
                                     <div className="space-y-1 border-r border-slate-100 pr-2">
                                       <span className="font-bold text-indigo-700 block">Column A</span>
                                       {columnA.map((item: string, i: number) => (
-                                        <div key={i} className="text-slate-700">{item}</div>
+                                        <div key={i} className="text-slate-700 flex items-center gap-1.5">
+                                          <span className="w-4 h-4 rounded bg-indigo-50 text-indigo-700 font-bold text-[9px] flex items-center justify-center shrink-0">
+                                            {String.fromCharCode(65 + i)}
+                                          </span>
+                                          <MathRenderer content={item} inline />
+                                        </div>
                                       ))}
                                     </div>
                                     <div className="space-y-1 pl-1">
                                       <span className="font-bold text-indigo-700 block">Column B</span>
                                       {columnB.map((item: string, i: number) => (
-                                        <div key={i} className="text-slate-700">{item}</div>
+                                        <div key={i} className="text-slate-700 flex items-center gap-1.5">
+                                          <span className="w-5 h-4 rounded bg-slate-100 text-slate-700 font-bold text-[9px] flex items-center justify-center shrink-0">
+                                            {['(i)', '(ii)', '(iii)', '(iv)'][i] || i + 1}
+                                          </span>
+                                          <MathRenderer content={item} inline />
+                                        </div>
                                       ))}
                                     </div>
                                   </div>
@@ -4494,7 +4654,7 @@ export default function StudentTestSeries() {
                                         <span className="w-4 h-4 rounded-full bg-sky-200 text-sky-900 text-[9px] font-bold flex items-center justify-center">
                                           {i + 1}
                                         </span>
-                                        <span>{item}</span>
+                                        <MathRenderer content={item} inline />
                                       </div>
                                     ))}
                                   </div>

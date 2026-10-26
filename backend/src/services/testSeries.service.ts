@@ -735,12 +735,22 @@ export const testSeriesService = {
     let metadataStr: string | null = null;
     if (data.metadata) {
       metadataStr = typeof data.metadata === 'string' ? data.metadata : JSON.stringify(data.metadata);
-    } else if (data.imageUrls || data.columnA || data.itemsToOrder) {
+    } else if (
+      data.imageUrls || data.columnA || data.itemsToOrder ||
+      data.assertion || data.reason || data.statement1 || data.statement2 ||
+      data.passage || data.numerical_range
+    ) {
       metadataStr = JSON.stringify({
         imageUrls: data.imageUrls || [],
         columnA: data.columnA || [],
         columnB: data.columnB || [],
-        itemsToOrder: data.itemsToOrder || []
+        itemsToOrder: data.itemsToOrder || [],
+        assertion: data.assertion || '',
+        reason: data.reason || '',
+        statement1: data.statement1 || '',
+        statement2: data.statement2 || '',
+        passage: data.passage || '',
+        numerical_range: data.numerical_range || null
       });
     }
 
@@ -794,12 +804,22 @@ export const testSeriesService = {
     let metadataStr: string | null = null;
     if (data.metadata !== undefined) {
       metadataStr = typeof data.metadata === 'string' ? data.metadata : JSON.stringify(data.metadata);
-    } else if (data.imageUrls !== undefined || data.columnA !== undefined || data.itemsToOrder !== undefined) {
+    } else if (
+      data.imageUrls !== undefined || data.columnA !== undefined || data.itemsToOrder !== undefined ||
+      data.assertion !== undefined || data.reason !== undefined || data.statement1 !== undefined || data.statement2 !== undefined ||
+      data.passage !== undefined || data.numerical_range !== undefined
+    ) {
       metadataStr = JSON.stringify({
         imageUrls: data.imageUrls || [],
         columnA: data.columnA || [],
         columnB: data.columnB || [],
-        itemsToOrder: data.itemsToOrder || []
+        itemsToOrder: data.itemsToOrder || [],
+        assertion: data.assertion || '',
+        reason: data.reason || '',
+        statement1: data.statement1 || '',
+        statement2: data.statement2 || '',
+        passage: data.passage || '',
+        numerical_range: data.numerical_range || null
       });
     } else {
       metadataStr = currentQ.metadata;
@@ -858,9 +878,21 @@ export const testSeriesService = {
 
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
-      const qType = (q.question_type || q.questionType || (q.imageUrl || q.image_url ? 'IMAGE_MCQ' : (q.columnA ? 'MATCH_FOLLOWING' : 'SINGLE_CHOICE'))).toUpperCase();
+      const qType = (q.question_type || q.questionType || (q.imageUrl || q.image_url ? 'IMAGE_MCQ' : (q.columnA ? 'MATCH_FOLLOWING' : (q.assertion ? 'ASSERTION_REASON' : (q.statement1 ? 'STATEMENT_ANALYSIS' : 'SINGLE_CHOICE'))))).toUpperCase();
       const imgUrl = q.image_url || q.imageUrl || null;
-      const metadata = q.metadata ? (typeof q.metadata === 'string' ? q.metadata : JSON.stringify(q.metadata)) : (q.columnA || q.columnB ? JSON.stringify({ columnA: q.columnA, columnB: q.columnB, correctMatches: q.correctMatches || q.correct_matches }) : null);
+      const metadata = q.metadata ? (typeof q.metadata === 'string' ? q.metadata : JSON.stringify(q.metadata)) : (
+        q.columnA || q.columnB || q.assertion || q.reason || q.statement1 || q.statement2 || q.passage || q.itemsToOrder ? JSON.stringify({
+          columnA: q.columnA || [],
+          columnB: q.columnB || [],
+          assertion: q.assertion || '',
+          reason: q.reason || '',
+          statement1: q.statement1 || '',
+          statement2: q.statement2 || '',
+          passage: q.passage || '',
+          itemsToOrder: q.itemsToOrder || [],
+          correctMatches: q.correctMatches || q.correct_matches
+        }) : null
+      );
 
       const [result]: any = await db.query(`
         INSERT INTO questions (test_id, question_text, section_name, question_type, image_url, explanation, metadata, marks, negative_marks, display_order)

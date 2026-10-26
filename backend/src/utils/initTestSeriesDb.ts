@@ -246,6 +246,12 @@ export async function initTestSeriesDatabase() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
+  // Safe migrations for questions and options rich schema
+  try { await db.query(`ALTER TABLE questions MODIFY COLUMN question_type VARCHAR(50) DEFAULT 'SINGLE_CHOICE'`); } catch (e) { }
+  try { await db.query(`ALTER TABLE questions ADD COLUMN image_url TEXT NULL AFTER question_type`); } catch (e) { }
+  try { await db.query(`ALTER TABLE questions ADD COLUMN metadata JSON NULL AFTER image_url`); } catch (e) { }
+  try { await db.query(`ALTER TABLE question_options ADD COLUMN image_url TEXT NULL AFTER option_text`); } catch (e) { }
+
   // 8. Test Series Enrollments
   await db.query(`
     CREATE TABLE IF NOT EXISTS test_series_enrollments (
