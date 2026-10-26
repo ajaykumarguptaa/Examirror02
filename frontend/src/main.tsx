@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HelmetProvider } from 'react-helmet-async';
 import App from './App.tsx';
 import './index.css';
+import 'katex/dist/katex.min.css';
 // @ts-ignore
 import { registerSW } from 'virtual:pwa-register';
 import { setupAxiosInterceptors } from './utils/axiosSetup';

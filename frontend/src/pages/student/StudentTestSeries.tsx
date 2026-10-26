@@ -70,6 +70,7 @@ import { downloadOfficialScorecardPdf } from '../../utils/scorecardPdf';
 import { WalletPurchaseConfirmModal, type PurchaseItem } from '../../components/student/WalletPurchaseConfirmModal';
 import { StudentRechargeModal } from '../../components/student/StudentRechargeModal';
 import { Skeleton, SkeletonTestSeriesCard } from '../../components/ui/Skeleton';
+import MathRenderer from '../../components/common/MathRenderer';
 
 interface Category {
   id: number;
@@ -1380,16 +1381,16 @@ export default function StudentTestSeries() {
                     </div>
 
                     {/* Question Text */}
-                    <p
-                      className={`text-slate-900 font-normal leading-relaxed whitespace-pre-wrap ${examFontSize === 'sm'
+                    <div
+                      className={`text-slate-900 font-normal leading-relaxed ${examFontSize === 'sm'
                           ? 'text-sm'
                           : examFontSize === 'lg'
                             ? 'text-lg sm:text-xl'
                             : 'text-base sm:text-lg'
                         }`}
                     >
-                      {cleanQuestionText(currentQ.question_text)}
-                    </p>
+                      <MathRenderer content={cleanQuestionText(currentQ.question_text)} />
+                    </div>
 
                     {/* Rich Question Media & Structure (Figures, Matching Table, Sequence Order) */}
                     {(() => {
@@ -1530,7 +1531,7 @@ export default function StudentTestSeries() {
                                         : 'text-sm sm:text-base'
                                     } ${isSelected ? 'font-medium text-slate-900' : 'text-slate-700'}`}
                                 >
-                                  {opt.option_text}
+                                  <MathRenderer content={opt.option_text} inline />
                                 </span>
                               </div>
 
@@ -4411,8 +4412,11 @@ export default function StudentTestSeries() {
                                 : 'bg-rose-50/40 border-rose-200'
                             }`}
                         >
-                          <div className="flex items-center justify-between font-semibold">
-                            <span className="text-slate-900">Q{idx + 1}. {cleanQuestionText(q.question_text)}</span>
+                          <div className="flex items-center justify-between font-semibold gap-2">
+                            <div className="text-slate-900 flex-1">
+                              <span className="font-bold mr-1">Q{idx + 1}.</span>
+                              <MathRenderer content={cleanQuestionText(q.question_text)} inline />
+                            </div>
                             {isCorrect ? (
                               <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 shrink-0"><CheckCircle size={13} /> Correct</span>
                             ) : isUnanswered ? (
@@ -4503,7 +4507,7 @@ export default function StudentTestSeries() {
                             <div>
                               <span>Your Choice: </span>
                               <b className={isCorrect ? 'text-emerald-700' : isUnanswered ? 'text-slate-500' : 'text-rose-600'}>
-                                {selectedOption?.option_text || 'None'}
+                                {selectedOption?.option_text ? <MathRenderer content={selectedOption.option_text} inline /> : 'None'}
                               </b>
                               {selectedOption?.image_url && (
                                 <div className="mt-1">
@@ -4518,7 +4522,9 @@ export default function StudentTestSeries() {
                             </div>
                             <div>
                               <span>Correct Answer: </span>
-                              <b className="text-emerald-700">{correctOption?.option_text || 'Not Found'}</b>
+                              <b className="text-emerald-700">
+                                {correctOption?.option_text ? <MathRenderer content={correctOption.option_text} inline /> : 'Not Found'}
+                              </b>
                               {correctOption?.image_url && (
                                 <div className="mt-1">
                                   <img
@@ -4534,7 +4540,8 @@ export default function StudentTestSeries() {
 
                           {q.explanation && (
                             <div className="mt-1.5 p-2 bg-white rounded-lg border border-slate-200 text-[11px] text-slate-700">
-                              <b className="text-slate-900">Explanation:</b> {q.explanation}
+                              <b className="text-slate-900 mr-1">Explanation:</b>
+                              <MathRenderer content={q.explanation} inline />
                             </div>
                           )}
                         </div>
