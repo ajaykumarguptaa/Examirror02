@@ -1,5 +1,8 @@
 import db from '../db';
 import { Router } from 'express';
+import path from 'path';
+import fs from 'fs';
+import multer from 'multer';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { adminService } from '../services/admin.service';
@@ -19,6 +22,65 @@ import { authRateLimiter } from '../middleware/rateLimiter';
 import { validateBody, loginSchema, announcementSchema } from '../middleware/validate.middleware';
 
 const router = Router();
+
+const questionUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 } // 15MB limit per file
+});
+
+/**
+ * Question diagram / single image upload
+ */
+router.post('/questions/upload-image', questionUpload.single('image'), (req: any, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No image file uploaded' });
+    }
+    const targetDir = path.join(process.cwd(), 'uploads', 'questions');
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+    const ext = path.extname(file.originalname) || '.png';
+    const filename = `qimg_${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
+    const targetPath = path.join(targetDir, filename);
+    fs.writeFileSync(targetPath, file.buffer);
+    const url = `/uploads/questions/${filename}`;
+    return res.status(200).json({ success: true, url, filename });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * Question multiple images upload (Batch Asset Loader)
+ */
+router.post('/questions/upload-multiple-images', questionUpload.array('images', 30), (req: any, res) => {
+  try {
+    const files = (req.files || []) as Express.Multer.File[];
+    if (!files || files.length === 0) {
+      return res.status(400).json({ success: false, message: 'No image files uploaded' });
+    }
+    const targetDir = path.join(process.cwd(), 'uploads', 'questions');
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+    const uploadedImages = files.map((file) => {
+      const ext = path.extname(file.originalname) || '.png';
+      const filename = `qimg_${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
+      const targetPath = path.join(targetDir, filename);
+      fs.writeFileSync(targetPath, file.buffer);
+      return {
+        url: `/uploads/questions/${filename}`,
+        filename,
+        originalname: file.originalname
+      };
+    });
+    return res.status(200).json({ success: true, count: uploadedImages.length, images: uploadedImages });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 // ==========================================
 // 1. PUBLIC ADMIN LOGIN (Rate-limited)

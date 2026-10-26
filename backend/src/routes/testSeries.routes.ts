@@ -1,6 +1,9 @@
 import { Router, Request, Response } from 'express';
+import path from 'path';
+import multer from 'multer';
 import jwt from 'jsonwebtoken';
 import { testSeriesService } from '../services/testSeries.service';
+import { BulkQuestionImportService } from '../services/bulkQuestionImport.service';
 
 const router = Router();
 
@@ -31,8 +34,8 @@ const extractUser = (req: Request): { studentId?: string; adminId?: number; role
     } catch (_) {
       decoded = jwt.decode(token);
     }
-    const resolvedStudentId = decoded?.studentId 
-      ? String(decoded.studentId) 
+    const resolvedStudentId = decoded?.studentId
+      ? String(decoded.studentId)
       : (decoded?.id ? String(decoded.id) : undefined);
 
     const sId = resolvedStudentId || headerStudentId || queryStudentId;
@@ -337,6 +340,114 @@ const handleCreateQuestion = async (req: Request, res: Response) => {
 };
 router.post('/admin/questions', handleCreateQuestion);
 router.post('/admin/test-series/questions', handleCreateQuestion);
+
+const uploadFileMiddleware = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB for image zips
+});
+
+// Template Generators
+router.get('/admin/questions/templates/:format', async (req: Request, res: Response) => {
+  try {
+    const format = String(req.params.format || 'json').toLowerCase();
+    if (format === 'excel' || format === 'xlsx') {
+      const buffer = await BulkQuestionImportService.generateExcelTemplate();
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="examirror_questions_template.xlsx"');
+      return res.send(buffer);
+    } else if (format === 'csv') {
+      const csv = BulkQuestionImportService.generateCsvTemplate();
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="examirror_questions_template.csv"');
+      return res.send(csv);
+    } else if (format === 'zip') {
+      const zipBuffer = await BulkQuestionImportService.generateZipTemplate();
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', 'attachment; filename="examirror_questions_package.zip"');
+      return res.send(zipBuffer);
+    } else {
+      const jsonStr = BulkQuestionImportService.generateJsonTemplate();
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename="examirror_questions_template.json"');
+      return res.send(jsonStr);
+    }
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Universal Validation Endpoint
+router.post('/admin/tests/:testId/questions/validate', uploadFileMiddleware.single('file'), async (req: Request, res: Response) => {
+  try {
+    let normalizedQuestions: any[] = [];
+    const file = req.file;
+
+    if (file) {
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (ext === '.xlsx' || ext === '.xls') {
+        normalizedQuestions = await BulkQuestionImportService.parseExcel(file.buffer);
+      } else if (ext === '.csv') {
+        normalizedQuestions = BulkQuestionImportService.parseCsv(file.buffer);
+      } else if (ext === '.zip') {
+        normalizedQuestions = await BulkQuestionImportService.parseZip(file.buffer);
+      } else {
+        normalizedQuestions = BulkQuestionImportService.parseJson(file.buffer);
+      }
+    } else if (req.body.questions || Array.isArray(req.body)) {
+      const rawList = Array.isArray(req.body.questions) ? req.body.questions : (Array.isArray(req.body) ? req.body : [req.body]);
+      normalizedQuestions = rawList.map((q: any, i: number) => BulkQuestionImportService.validateAndNormalizeQuestion(q, i));
+    } else {
+      return res.status(400).json({ success: false, message: 'No file or questions payload provided for validation.' });
+    }
+
+    const validCount = normalizedQuestions.filter(q => q.validation_status === 'VALID').length;
+    const invalidCount = normalizedQuestions.length - validCount;
+
+    res.status(200).json({
+      success: true,
+      totalCount: normalizedQuestions.length,
+      validCount,
+      invalidCount,
+      questions: normalizedQuestions
+    });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// Universal Import Endpoint with Policy & Skip Preview support
+router.post('/admin/tests/:testId/questions/universal-import', uploadFileMiddleware.single('file'), async (req: Request, res: Response) => {
+  try {
+    const testId = getParam(req.params.testId) || req.body.test_id;
+    const policy = (req.body.policy || 'FAIL_ON_ERROR').toUpperCase();
+    let normalizedQuestions: any[] = [];
+    const file = req.file;
+
+    if (file) {
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (ext === '.xlsx' || ext === '.xls') {
+        normalizedQuestions = await BulkQuestionImportService.parseExcel(file.buffer);
+      } else if (ext === '.csv') {
+        normalizedQuestions = BulkQuestionImportService.parseCsv(file.buffer);
+      } else if (ext === '.zip') {
+        normalizedQuestions = await BulkQuestionImportService.parseZip(file.buffer);
+      } else {
+        normalizedQuestions = BulkQuestionImportService.parseJson(file.buffer);
+      }
+    } else if (req.body.questions && Array.isArray(req.body.questions)) {
+      normalizedQuestions = req.body.questions.map((q: any, i: number) =>
+        q.validation_status ? q : BulkQuestionImportService.validateAndNormalizeQuestion(q, i)
+      );
+    } else {
+      return res.status(400).json({ success: false, message: 'No questions payload provided.' });
+    }
+
+    const result = await BulkQuestionImportService.commitQuestionsToTest(testId, normalizedQuestions, policy as any);
+    res.status(201).json(result);
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
 
 const handleBulkCreateQuestions = async (req: Request, res: Response) => {
   try {

@@ -20,7 +20,7 @@ export async function initTestSeriesDatabase() {
 
   try {
     await db.query(`ALTER TABLE test_categories ADD COLUMN thumbnail_url TEXT NULL AFTER description`);
-  } catch (e) {}
+  } catch (e) { }
 
   // 1b. Test Sub Categories (Hierarchical Sub-classification)
   await db.query(`
@@ -56,7 +56,7 @@ export async function initTestSeriesDatabase() {
 
   try {
     await db.query(`ALTER TABLE test_payment_qr ADD COLUMN amount DECIMAL(10, 2) DEFAULT 0.00 AFTER qr_image_url`);
-  } catch (e) {}
+  } catch (e) { }
 
   // 3. Test Series Master
   await db.query(`
@@ -206,16 +206,16 @@ export async function initTestSeriesDatabase() {
   // Safe migration for tests table columns
   try {
     await db.query(`ALTER TABLE tests ADD COLUMN payment_qr_id INT NULL AFTER display_order`);
-  } catch (e) {}
+  } catch (e) { }
   try {
     await db.query(`ALTER TABLE tests ADD COLUMN price DECIMAL(10, 2) DEFAULT 0.00 AFTER payment_qr_id`);
-  } catch (e) {}
+  } catch (e) { }
   try {
     await db.query(`ALTER TABLE tests ADD COLUMN is_free BOOLEAN DEFAULT TRUE AFTER price`);
-  } catch (e) {}
+  } catch (e) { }
   try {
     await db.query(`ALTER TABLE tests ADD CONSTRAINT fk_tests_payment_qr FOREIGN KEY (payment_qr_id) REFERENCES test_payment_qr(id) ON DELETE SET NULL`);
-  } catch (e) {}
+  } catch (e) { }
 
   // 6. Questions
   await db.query(`
@@ -264,8 +264,8 @@ export async function initTestSeriesDatabase() {
   `);
 
   // Safe migration: expand enrollment_type and status to VARCHAR(50)
-  try { await db.query(`ALTER TABLE test_series_enrollments MODIFY COLUMN enrollment_type VARCHAR(50) DEFAULT 'FREE'`); } catch (e) {}
-  try { await db.query(`ALTER TABLE test_series_enrollments MODIFY COLUMN status VARCHAR(50) DEFAULT 'ACTIVE'`); } catch (e) {}
+  try { await db.query(`ALTER TABLE test_series_enrollments MODIFY COLUMN enrollment_type VARCHAR(50) DEFAULT 'FREE'`); } catch (e) { }
+  try { await db.query(`ALTER TABLE test_series_enrollments MODIFY COLUMN status VARCHAR(50) DEFAULT 'ACTIVE'`); } catch (e) { }
 
   // 9. Test Payments (Manual UPI / QR with UTR submission)
   await db.query(`
@@ -573,7 +573,7 @@ export async function initTestSeriesDatabase() {
         sec: 'MS Excel',
         marks: 2.0, neg: 0.5,
         exp: 'Every formula or calculation in MS Excel must start with an equal sign (=).',
-        opts: [{ k: 'A', t: '=' , c: true }, { k: 'B', t: '+' }, { k: 'C', t: '@' }, { k: 'D', t: '#' }]
+        opts: [{ k: 'A', t: '=', c: true }, { k: 'B', t: '+' }, { k: 'C', t: '@' }, { k: 'D', t: '#' }]
       },
       {
         q: 'Which type of memory is volatile and loses its contents when power is turned off?',

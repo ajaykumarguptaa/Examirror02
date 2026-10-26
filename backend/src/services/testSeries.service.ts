@@ -1578,7 +1578,7 @@ export const testSeriesService = {
 
     // 4. Fetch questions and options WITHOUT revealing is_correct to prevent client inspection tampering
     const [questions]: any = await db.query(`
-      SELECT id, test_id, question_text, section_name, question_type, marks, negative_marks, display_order
+      SELECT id, test_id, question_text, section_name, question_type, image_url, metadata, marks, negative_marks, display_order
       FROM questions
       WHERE test_id = ?
       ORDER BY display_order ASC, id ASC
@@ -1587,7 +1587,7 @@ export const testSeriesService = {
     const questionIds = questions.map((q: any) => q.id);
     if (questionIds.length > 0) {
       const [allOptions]: any = await db.query(`
-        SELECT id, question_id, option_key, option_text
+        SELECT id, question_id, option_key, option_text, image_url
         FROM question_options
         WHERE question_id IN (?)
         ORDER BY option_key ASC
@@ -1882,6 +1882,9 @@ export const testSeriesService = {
       SELECT 
         q.id,
         q.question_text,
+        q.question_type,
+        q.image_url,
+        q.metadata,
         q.section_name,
         q.explanation,
         q.marks,
@@ -1898,7 +1901,7 @@ export const testSeriesService = {
     const scorecardQIds = questions.map((q: any) => q.id);
     if (scorecardQIds.length > 0) {
       const [allOptions]: any = await db.query(`
-        SELECT id, question_id, option_key, option_text, is_correct
+        SELECT id, question_id, option_key, option_text, image_url, is_correct
         FROM question_options
         WHERE question_id IN (?)
         ORDER BY option_key ASC
